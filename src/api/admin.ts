@@ -1,7 +1,7 @@
 // Admin console calls: /api/vlab/admin/* only (makus-vlab pegaprox/api/vlab.py).
 import { ApiError, isMock, request } from './client';
 import { mockAdminApi } from './mockAdmin';
-import type { AdminDesktop, AssignableUser, AccelInventory, AdminLease, AuditPage, PoolPolicy, PoolPolicyAnswer, AuditQuery, GpuApplyResult, GpuPolicy, VgpuProfile, PowerAction, ClusterNode, ClusterStorage, PlatformSettings, UsageReport, Directory, DirectoryTest, CloneResult, Cluster, Guest, NewCluster, Pool, PoolResetResult, PoolType, SessionRow, Summary, Template, UserAccess } from './types';
+import type { AdminDesktop, AssignableUser, AccelInventory, AdminLease, AuditPage, BackupJob, BackupStorage, Branding, BrandingSlot, PbsServer, VmBackup, PoolPolicy, PoolPolicyAnswer, AuditQuery, GpuApplyResult, GpuPolicy, VgpuProfile, PowerAction, ClusterNode, ClusterStorage, PlatformSettings, UsageReport, Directory, DirectoryTest, CloneResult, Cluster, Guest, NewCluster, Pool, PoolResetResult, PoolType, SessionRow, Summary, Template, UserAccess } from './types';
 
 // Calls that must succeed: a non-2xx answer throws with the engine's own message.
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -30,6 +30,44 @@ const realAdminApi = {
     call<{ lease: AdminLease; needs_restart: boolean }>('POST', '/api/vlab/admin/leases', l),
   returnLease: async (id: string) => { await call('POST', `/api/vlab/admin/leases/${enc(id)}/return`); },
   extendLease: async (id: string, ends_at: string) => { await call('POST', `/api/vlab/admin/leases/${enc(id)}/extend`, { ends_at }); },
+  branding: async () => (await call<{ branding: Branding }>('GET', '/api/vlab/admin/branding')).branding,
+  saveBranding: async (b: Branding) => (await call<{ branding: Branding }>('PUT', '/api/vlab/admin/branding', b)).branding,
+  uploadBrandingImage: async (slot: BrandingSlot, file: File) => {
+    const form = new FormData();
+    form.append('slot', slot);
+    form.append('file', file);
+    const r = await fetch('/api/vlab/admin/branding/image', { method: 'POST', body: form, credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data?.error || `HTTP ${r.status}`);
+    return data.branding as Branding;
+  },
+  deleteBrandingImage: async (slot: BrandingSlot) =>
+    (await call<{ branding: Branding }>('DELETE', `/api/vlab/admin/branding/image/${slot}`)).branding,
+  backupStorages: async (clusterId: string) =>
+    (await call<{ storages: BackupStorage[] }>('GET', `/api/vlab/admin/clusters/${enc(clusterId)}/backup/storages`)).storages,
+  backupJobs: async (clusterId: string) =>
+    (await call<{ jobs: BackupJob[] }>('GET', `/api/vlab/admin/clusters/${enc(clusterId)}/backup/jobs`)).jobs,
+  createPoolBackupJob: async (poolId: string, job: Record<string, string | number>) => {
+    await call('POST', `/api/vlab/admin/pools/${enc(poolId)}/backup/job`, job);
+  },
+  deleteBackupJob: async (clusterId: string, jobId: string) => {
+    await call('DELETE', `/api/vlab/admin/clusters/${enc(clusterId)}/backup/jobs/${enc(jobId)}`);
+  },
+  pbsServers: async () => call<PbsServer[]>('GET', '/api/vlab/admin/pbs'),
+  desktopBackups: async (desktopId: string) => {
+    const r = await call<{ backups?: VmBackup[] } | VmBackup[]>('GET', `/api/vlab/admin/desktops/${enc(desktopId)}/backups`);
+    return Array.isArray(r) ? r : r.backups ?? [];
+  },
+  backupNow: async (desktopId: string, storage: string, mode: string) => {
+    await call('POST', `/api/vlab/admin/desktops/${enc(desktopId)}/backups`, { storage, mode });
+  },
+  restoreBackup: async (desktopId: string, volid: string, force = false) => {
+    await call('POST', `/api/vlab/admin/desktops/${enc(desktopId)}/backups/restore`, { volid, start: false, ...(force ? { force: true } : {}) });
+  },
+  deleteBackup: async (desktopId: string, volid: string) => {
+    await call('DELETE', `/api/vlab/admin/desktops/${enc(desktopId)}/backups/${volid.split('/').map(enc).join('/')}`);
+  },
   poolPolicy: async (poolId: string) => call<PoolPolicyAnswer>('GET', `/api/vlab/admin/pools/${enc(poolId)}/policy`),
   savePoolPolicy: async (poolId: string, p: PoolPolicy) =>
     (await call<{ policy: PoolPolicy }>('PUT', `/api/vlab/admin/pools/${enc(poolId)}/policy`, p)).policy,

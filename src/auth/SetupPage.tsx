@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { BrandMark, BrandName } from '../components/Brand';
+import { useBranding } from '../branding';
 import { CompanyNotice } from '../components/CompanyNotice';
 import { LangSwitch } from '../components/LangSwitch';
 import { useI18n } from '../i18n';
@@ -11,6 +12,7 @@ import { useAuth } from './AuthContext';
 // Creates the first administrator through the engine's setup route, then signs in with it.
 export function SetupPage() {
   const { t } = useI18n();
+  const { b } = useBranding();
   const { signedIn } = useAuth();
   const navigate = useNavigate();
   const [username, setUsername] = useState('vlabadmin');
@@ -47,8 +49,8 @@ export function SetupPage() {
       <div className="login-top"><LangSwitch /></div>
       <main className="login-card">
         <div className="login-brand">
-          <BrandMark size={44} />
-          <div><h1><BrandName withTag /></h1><p className="muted">{t('setup.title')}</p></div>
+          {b.loginLogoUrl || b.logoUrl ? <img className="brand-logo-login" src={b.loginLogoUrl || b.logoUrl} alt={b.appName} /> : <BrandMark size={44} />}
+          <div><h1><BrandName /></h1><p className="muted">{t('setup.title')}</p></div>
         </div>
         <p className="small">{t('setup.intro')}</p>
         <div className="alert small">{t('setup.warn')}</div>

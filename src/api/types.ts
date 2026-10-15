@@ -44,6 +44,19 @@ export type Desktop = {
   policy?: { clipboard: Clipboard; allow_power: boolean; start_on_connect: boolean };
 };
 
+export type Branding = {
+  enabled: boolean; appName: string; browserTitle: string; logoUrl: string; loginLogoUrl: string; faviconUrl: string;
+  primaryColor: string; footerText: string; loginTagline: string; docsUrl: string; supportUrl: string; hideVersion: boolean;
+};
+export type BrandingSlot = 'logo' | 'loginLogo' | 'favicon';
+
+// --- backup (운영 > 백업) ---------------------------------------------------------
+export type BackupStorage = { storage: string; type: string; pbs: boolean; shared: boolean; status: string; used: number; total: number };
+export type BackupJob = { id: string; schedule?: string; storage?: string; vmid?: string; enabled?: number | boolean; mode?: string;
+  comment?: string; 'prune-backups'?: string; 'next-run'?: number; vlab_pool_id: string | null; vlab_pool: string | null };
+export type VmBackup = { volid: string; ctime?: number; size?: number; notes?: string; storage?: string; format?: string; protected?: number | boolean };
+export type PbsServer = { id: string; name: string; host: string; port?: number; enabled?: boolean; connected?: boolean };
+
 export type Clipboard = 'both' | 'to_desktop' | 'from_desktop' | 'off';
 
 export type Lease = {

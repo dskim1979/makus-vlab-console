@@ -1,7 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { MODULES } from '../admin/modules';
 import { useI18n } from '../i18n';
-import { EngineNotice } from './EngineNotice';
+import { CompanyNotice } from './CompanyNotice';
 import { Icon } from './Icon';
 
 // Admin console navigation (light, under the dark top bar): dashboard, then the modules
@@ -36,7 +36,7 @@ export function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () =>
           </div>
         ))}
       </nav>
-      <div className="sidebar-foot"><EngineNotice /></div>
+      <div className="sidebar-foot"><CompanyNotice /></div>
     </aside>
   );
 }

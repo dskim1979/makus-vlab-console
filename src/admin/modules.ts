@@ -27,12 +27,11 @@ export const MODULES: AdminModule[] = [
   {
     id: 'vms', icon: 'vm', tone: 'blue',
     label: { ko: '가상머신', en: 'Virtual machines' },
-    summary: { ko: '데스크톱 VM, 템플릿, 골든 이미지, 백업', en: 'Desktop VMs, templates, golden images, backups' },
+    summary: { ko: '데스크톱 VM, 템플릿, 골든 이미지', en: 'Desktop VMs, templates, golden images' },
     pages: [
       { id: 'desktops', label: { ko: '데스크톱(VM) 관리', en: 'Desktop VMs' }, phase: 1 },
       { id: 'templates', label: { ko: '템플릿 관리', en: 'Templates' }, phase: 1 },
       { id: 'golden', label: { ko: '골든 이미지 관리', en: 'Golden images' }, phase: 2 },
-      { id: 'backups', label: { ko: '백업 관리', en: 'Backups' }, phase: 2 },
     ],
   },
   {
@@ -98,13 +97,15 @@ export const MODULES: AdminModule[] = [
   {
     id: 'ops', icon: 'ops', tone: 'slate',
     label: { ko: '운영', en: 'Operations' },
-    summary: { ko: '시스템 요약, 접속 기록, 사용률 보고서, 작업 기록, 설정', en: 'System summary, session log, usage reports, audit log, settings' },
+    summary: { ko: '시스템 요약, 접속 기록, 사용률 보고서, 백업(PBS), 작업 기록, 설정, 화이트라벨', en: 'Summary, sessions, usage, backup (PBS), audit, settings, white label' },
     pages: [
       { id: 'summary', label: { ko: '시스템 요약', en: 'System summary' }, phase: 1 },
       { id: 'sessions', label: { ko: '접속 기록', en: 'Session log' }, phase: 1 },
       { id: 'reports', label: { ko: '사용률 보고서', en: 'Usage reports' }, phase: 1 },
+      { id: 'backup', label: { ko: '백업 (PBS)', en: 'Backup (PBS)' }, phase: 1 },
       { id: 'audit', label: { ko: '작업 기록(감사)', en: 'Audit log' }, phase: 1 },
       { id: 'settings', label: { ko: '플랫폼 설정', en: 'Platform settings' }, phase: 1 },
+      { id: 'branding', label: { ko: '화이트라벨', en: 'White label' }, phase: 1 },
     ],
   },
 ];

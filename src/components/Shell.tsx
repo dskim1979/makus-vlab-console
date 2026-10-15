@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
-import { EngineNotice } from './EngineNotice';
+import { CompanyNotice } from './CompanyNotice';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 
@@ -19,7 +19,7 @@ export function Shell({ children }: { children: ReactNode }) {
         {consoleMode && menu && <div className="sidebar-scrim" onClick={() => setMenu(false)} />}
         <div className="app-content">
           {children}
-          {!consoleMode && <footer className="ws-foot"><EngineNotice /></footer>}
+          {!consoleMode && <footer className="ws-foot"><CompanyNotice /></footer>}
         </div>
       </div>
     </div>

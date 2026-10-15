@@ -3,20 +3,21 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './App';
 import { AuthProvider } from './auth/AuthContext';
-import { BRAND } from './brand';
+import { BrandingProvider } from './branding';
 import { I18nProvider } from './i18n';
 import './styles.css';
 
-document.title = BRAND.productName;
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <I18nProvider>
+      <BrandingProvider>
       <AuthProvider>
         <BrowserRouter>
           <App />
         </BrowserRouter>
       </AuthProvider>
+      </BrandingProvider>
     </I18nProvider>
   </StrictMode>,
 );

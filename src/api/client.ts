@@ -1,4 +1,4 @@
-import type { AuthStatus, ConnectInfo, Desktop, Lease, LoginResult, PowerAction, User } from './types';
+import type { AuthStatus, Branding, ConnectInfo, Desktop, Lease, LoginResult, PowerAction, User } from './types';
 import { mockApi } from './mock';
 
 export class ApiError extends Error {
@@ -101,6 +101,13 @@ const realApi = {
 
   async endSession(sessionId: string): Promise<void> {
     try { await request('POST', `/api/vlab/sessions/${encodeURIComponent(sessionId)}/end`); } catch { /* best effort */ }
+  },
+
+  // white label: public, the sign-in screen reads it too
+  async branding(): Promise<Partial<Branding>> {
+    const { status, data } = await request<Partial<Branding>>('GET', '/api/vlab/branding');
+    if (status !== 200) throw new ApiError(status, 'branding_unavailable');
+    return data ?? {};
   },
 
   async myLeases(): Promise<Lease[]> {

@@ -1,7 +1,8 @@
 // Fake admin API for `npm run dev:mock`: same rules as the engine, kept in memory.
 import type { AdminApi } from './admin';
 import { ApiError } from './client';
-import type { AccelDevice, AccelUser, AdminDesktop, AdminLease, PoolPolicy, ClusterNode, ClusterStorage, Guest, PciMapping, Pool, SessionRow, VgpuProfile } from './types';
+import { mockBranding } from './mock';
+import type { AccelDevice, BackupJob, VmBackup, AccelUser, AdminDesktop, AdminLease, PoolPolicy, ClusterNode, ClusterStorage, Guest, PciMapping, Pool, SessionRow, VgpuProfile } from './types';
 
 const CLUSTER = { id: 'lab-cluster', name: 'LAB-PVE', connected: true, host: '10.20.0.11', connection_error: null as string | null, pools: 0 };
 const clusters = [CLUSTER];
@@ -71,6 +72,14 @@ function addDesk(pool: Pool, vmid: number, user: string | null = null) {
   const b = addPool('FPGA 빌드 팜', 'buildfarm');
   addDesk(b, 400, 'bob'); addDesk(b, 401, 'carol');
 }
+
+const mockJobs: BackupJob[] = [
+  { id: 'backup-nightly', schedule: '02:00', storage: 'pbs-lab', vmid: '400,401', enabled: 1, mode: 'snapshot',
+    comment: 'vlab-pool:pool_5 FPGA 빌드 팜', 'prune-backups': 'keep-last=7', vlab_pool_id: 'pool_5', vlab_pool: null },
+];
+const mockBackups: VmBackup[] = [0, 1, 2].flatMap((k) => [300, 301, 400].map((v) => ({
+  volid: `pbs-lab:backup/vm/${v}/${new Date(Date.now() - (k + 1) * 864e5).toISOString().slice(0, 10)}T02:00:00Z`,
+  ctime: Date.now() / 1000 - (k + 1) * 86400, size: (v >= 400 ? 92 : 21) * 1024 ** 3, notes: 'vlab-pool nightly', storage: 'pbs-lab' })));
 
 const POLICY_DEFAULTS: PoolPolicy = {
   protocols: ['vnc', 'spice'], spice_fullscreen: false, clipboard: 'both', usb_redirect: true, usb_autoshare: false,
@@ -214,6 +223,61 @@ export const mockAdminApi: AdminApi = {
     l.ends_at = new Date(ends_at).toISOString();
     return delay(undefined);
   },
+  branding: () => delay({ ...mockBranding }),
+  saveBranding: (b) => {
+    const hex = /^#?[0-9a-f]{6}$/i.test(b.primaryColor) ? (b.primaryColor.startsWith('#') ? b.primaryColor : '#' + b.primaryColor).toLowerCase() : '';
+    Object.assign(mockBranding, { ...b, primaryColor: hex, appName: b.appName.trim() || 'MAKUS vLAB',
+      logoUrl: mockBranding.logoUrl, loginLogoUrl: mockBranding.loginLogoUrl, faviconUrl: mockBranding.faviconUrl });
+    return delay({ ...mockBranding });
+  },
+  uploadBrandingImage: async (slot, file) => {
+    if (!/^image\/(png|jpeg|webp|x-icon|vnd\.microsoft\.icon)$/.test(file.type)) throw new Error('Unsupported image (PNG, JPEG, WebP; ICO for the favicon)');
+    const url = URL.createObjectURL(file);
+    if (slot === 'logo') mockBranding.logoUrl = url;
+    if (slot === 'loginLogo') mockBranding.loginLogoUrl = url;
+    if (slot === 'favicon') mockBranding.faviconUrl = url;
+    return delay({ ...mockBranding });
+  },
+  deleteBrandingImage: (slot) => {
+    if (slot === 'logo') mockBranding.logoUrl = '';
+    if (slot === 'loginLogo') mockBranding.loginLogoUrl = '';
+    if (slot === 'favicon') mockBranding.faviconUrl = '';
+    return delay({ ...mockBranding });
+  },
+  backupStorages: (cid) => cid !== CLUSTER.id ? fail(404, 'Cluster not found') : delay([
+    { storage: 'pbs-lab', type: 'pbs', pbs: true, shared: true, status: 'available', used: 3.1 * 1024 ** 4, total: 16 * 1024 ** 4 },
+    { storage: 'pbs-offsite', type: 'pbs', pbs: true, shared: true, status: 'available', used: 2.2 * 1024 ** 4, total: 20 * 1024 ** 4 },
+    { storage: 'nfs-iso', type: 'nfs', pbs: false, shared: true, status: 'available', used: 1.4 * 1024 ** 4, total: 8 * 1024 ** 4 },
+  ]),
+  backupJobs: (cid) => cid !== CLUSTER.id ? fail(404, 'Cluster not found') : delay(mockJobs.map((j) => ({ ...j,
+    vlab_pool: pools.find((p) => p.id === j.vlab_pool_id)?.name ?? null }))),
+  createPoolBackupJob: (poolId, job) => {
+    const p = pools.find((x) => x.id === poolId);
+    if (!p) return fail(404, 'Pool not found');
+    mockJobs.push({ id: `backup-${seq++}`, schedule: String(job.schedule), storage: String(job.storage), vmid: String(job.vmid),
+      enabled: 1, mode: String(job.mode ?? 'snapshot'), comment: String(job.comment), 'prune-backups': String(job['prune-backups'] ?? ''),
+      vlab_pool_id: poolId, vlab_pool: p.name });
+    return delay(undefined);
+  },
+  deleteBackupJob: (_cid, jobId) => { mockJobs.splice(mockJobs.findIndex((j) => j.id === jobId), 1); return delay(undefined); },
+  pbsServers: () => delay([
+    { id: 'pbs1', name: 'PBS 본사', host: '10.20.0.40', port: 8007, enabled: true, connected: true },
+    { id: 'pbs2', name: 'PBS 원격지', host: '10.30.0.40', port: 8007, enabled: true, connected: false },
+  ]),
+  desktopBackups: (id) => {
+    const d = desks.find((x) => x.id === id);
+    if (!d) return fail(404, 'Desktop not found');
+    return delay(mockBackups.filter((b) => b.volid.includes(`/vm/${d.vmid}/`)));
+  },
+  backupNow: (id, storage) => {
+    const d = desks.find((x) => x.id === id);
+    if (!d) return fail(404, 'Desktop not found');
+    mockBackups.unshift({ volid: `${storage}:backup/vm/${d.vmid}/${new Date().toISOString().slice(0, 19)}Z`, ctime: Date.now() / 1000,
+      size: 18.5 * 1024 ** 3, notes: 'manual', storage });
+    return delay(undefined);
+  },
+  restoreBackup: (id) => (desks.some((x) => x.id === id) ? delay(undefined) : fail(404, 'Desktop not found')),
+  deleteBackup: (_id, volid) => { mockBackups.splice(mockBackups.findIndex((b) => b.volid === volid), 1); return delay(undefined); },
   poolPolicy: (poolId) => {
     const p = pools.find((x) => x.id === poolId);
     if (!p) return fail(404, 'Pool not found');

@@ -10,9 +10,9 @@ export const BRAND = {
   },
 } as const;
 
-// Engine attribution (PegaProx, AGPL-3.0): About, 운영 > 시스템 요약 and the console's
-// navigation and workspace footers. Sign-in and first start show the company line instead
-// (CompanyNotice) - a product decision; legal review of NOTICE section 7(b) is pending.
+// Engine attribution (PegaProx, AGPL-3.0): shown in About and 운영 > 시스템 요약 only. The other
+// screens show the company line (CompanyNotice) - a product decision; legal review of the
+// engine's NOTICE section 7(b) for this separate console is pending.
 export const ENGINE_NOTICE = {
   name: 'PegaProx',
   copyright: '© 2025-2026 PegaProx Team',

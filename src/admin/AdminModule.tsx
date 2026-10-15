@@ -6,6 +6,8 @@ import { AccelInventoryPage, MappingsPage, VgpuProfilesPage } from './pages/Acce
 import { LeasesPage } from './pages/LeasesPage';
 import { AccessPage } from './pages/AccessPage';
 import { AuditPage } from './pages/AuditPage';
+import { BackupPage } from './pages/BackupPage';
+import { BrandingPage } from './pages/BrandingPage';
 import { ClusterNodesPage, ClusterOverviewPage, ClusterStoragePage } from './pages/ClusterPages';
 import { ClustersPage } from './pages/ClustersPage';
 import { DesktopStatusPage } from './pages/DesktopStatusPage';
@@ -27,6 +29,8 @@ function pageBody(moduleId: string, pageId: string, subId?: string) {
   if (key === 'ops/sessions') return <SessionsPage />;
   if (key === 'ops/summary') return <SummaryPage />;
   if (key === 'ops/audit') return <AuditPage />;
+  if (key === 'ops/backup') return <BackupPage />;
+  if (key === 'ops/branding') return <BrandingPage />;
   if (key === 'ops/reports') return <UsagePage />;
   if (key === 'ops/settings') return <SettingsPage />;
   if (key === 'cluster/connections') return <ClustersPage />;

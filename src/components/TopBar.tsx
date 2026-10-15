@@ -3,7 +3,7 @@ import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useI18n } from '../i18n';
 import { AboutDialog } from './AboutDialog';
-import { BrandMark, BrandName } from './Brand';
+import { BrandLockup } from './Brand';
 import { Icon } from './Icon';
 
 function initials(name: string) {
@@ -37,7 +37,7 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
         </button>
       )}
       <Link to={mode === 'console' ? '/admin' : '/'} className="tb-brand">
-        <BrandMark size={26} /><BrandName />
+        <BrandLockup markSize={26} />
         {mode === 'console' && <span className="tb-context">{t('nav.admin')}</span>}
       </Link>
 

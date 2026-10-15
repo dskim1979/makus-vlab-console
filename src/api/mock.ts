@@ -1,6 +1,6 @@
 // Fake engine for `npm run dev:mock`: lets the screens run without vlab-engine.
 import { ApiError, type Api } from './client';
-import type { AuthStatus, Desktop, Lease, User } from './types';
+import type { AuthStatus, Branding, Desktop, Lease, User } from './types';
 
 // Kept in sessionStorage so a page reload stays signed in, like the real session cookie.
 const KEY = 'vlab.mock.user';
@@ -36,7 +36,14 @@ const leases: Lease[] = [
 
 const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 150));
 
+// the white label, shared with the admin mock (운영 > 화이트라벨)
+export const mockBranding: Branding = {
+  enabled: false, appName: 'MAKUS vLAB', browserTitle: '', logoUrl: '', loginLogoUrl: '', faviconUrl: '',
+  primaryColor: '', footerText: '', loginTagline: '', docsUrl: '', supportUrl: '', hideVersion: false,
+};
+
 export const mockApi: Api = {
+  async branding() { return delay({ ...mockBranding }); },
   async authStatus(): Promise<AuthStatus> {
     return delay(current ? { authenticated: true, user: current } : { authenticated: false, initialized, ldap_enabled: initialized, oidc_enabled: false });
   },

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { api, isMock } from '../api/client';
 import { BRAND } from '../brand';
+import { useBranding } from '../branding';
 import { BrandMark, BrandName } from '../components/Brand';
 import { CompanyNotice } from '../components/CompanyNotice';
 import { LangSwitch } from '../components/LangSwitch';
@@ -18,6 +19,7 @@ const ERRORS: Record<string, MessageKey> = {
 
 export function LoginPage() {
   const { t, pick } = useI18n();
+  const { b: brand } = useBranding();
   const { status, signedIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -54,6 +56,7 @@ export function LoginPage() {
   }
 
   if (firstStart) return <SetupPage />;
+  const b = brand;
 
   return (
     <div className="login-page">
@@ -64,7 +67,7 @@ export function LoginPage() {
           <BrandMark size={44} />
           <div>
             <h1><BrandName withTag /></h1>
-            <p className="muted">{pick(BRAND.tagline)}</p>
+            <p className="muted">{b.loginTagline || pick(BRAND.tagline)}</p>
           </div>
         </div>
 
