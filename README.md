@@ -34,6 +34,8 @@ GPU·vGPU·FPGA 카드가 붙은 데스크톱은 카드에 표시됩니다.
 | ![가속 자원](docs/images/accel-inventory.png) | ![카드 대여](docs/images/card-loans.png) |
 | **사용률 보고서** — 7·30·90일, 일별 접속 시간, 풀별 사용률, 많이 쓴 사용자, CSV | **템플릿 관리** — 디스크·링크 클론 가능 여부·사용 풀, 여기서 풀에 클론 |
 | ![사용률 보고서](docs/images/usage-report.png) | ![템플릿](docs/images/templates.png) |
+| **백업 (PBS)** — 백업 저장소·PBS 서버, 풀 단위 예약 백업, 데스크톱별 지금 백업·복원·삭제 | **화이트라벨** — 제품 이름·문구·로고·파비콘·대표 색·링크, 미리보기 |
+| ![백업](docs/images/backup.png) | ![화이트라벨](docs/images/branding.png) |
 
 ### 로그인
 ![로그인](docs/images/login.png)

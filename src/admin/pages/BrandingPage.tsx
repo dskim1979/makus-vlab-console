@@ -64,7 +64,7 @@ function BrandingForm({ initial }: { initial: Branding }) {
     finally { setBusy(false); }
   }
 
-  const color = /^#[0-9a-f]{6}$/i.test(b.primaryColor) ? b.primaryColor : '#1559d6';
+  const color = /^#[0-9a-f]{6}$/i.test(b.primaryColor) ? b.primaryColor : '#53B1B1';
 
   return (
     <div className="wl-layout">
@@ -100,7 +100,7 @@ function BrandingForm({ initial }: { initial: Branding }) {
           <h2 className="section-title">{t('wl.color')}</h2>
           <div className="wl-color">
             <input type="color" value={color} aria-label={t('wl.color')} onChange={(e) => set('primaryColor', e.target.value)} />
-            <input value={b.primaryColor} placeholder="#1559d6" maxLength={7} onChange={(e) => set('primaryColor', e.target.value)} />
+            <input value={b.primaryColor} placeholder="#53B1B1" maxLength={7} onChange={(e) => set('primaryColor', e.target.value)} />
             <button type="button" className="btn-ghost" onClick={() => set('primaryColor', '')}>{t('wl.none')}</button>
           </div>
           <small className="muted">{t('wl.colorHint')}</small>

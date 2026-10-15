@@ -1,28 +1,30 @@
+import { useId } from 'react';
 import { BRAND } from '../brand';
 import { useBranding } from '../branding';
 import { useI18n } from '../i18n';
 
-// MAKUS red (www.makussystems.co.kr) with the desktop glyph of the product.
-export const MAKUS_RED = '#E63946';
-
+// The vLAB symbol, drawn like MOAVI's: navy-to-blue tile, white stroke, teal nodes (a V for vLAB).
 export function BrandMark({ size = 28 }: { size?: number }) {
+  const id = useId();
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" className="brand-mark">
-      <rect width="32" height="32" rx="7" fill={MAKUS_RED} />
-      <rect x="7" y="8" width="18" height="12" rx="2" fill="none" stroke="#fff" strokeWidth="2.2" />
-      <path d="M12 24h8M16 20v4" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" />
+    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" className="brand-mark">
+      <defs><linearGradient id={id} x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#0A2A66" /><stop offset="1" stopColor="#1668E3" /></linearGradient></defs>
+      <rect width="64" height="64" rx="15" fill={`url(#${id})`} />
+      <path d="M16 19 L32 44 L48 19" fill="none" stroke="#fff" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="16" cy="19" r="3.4" fill="#2FD4C4" /><circle cx="48" cy="19" r="3.4" fill="#2FD4C4" />
+      <circle cx="32" cy="44" r="7" fill="#fff" /><circle cx="32" cy="44" r="5.2" fill="#2FD4C4" />
     </svg>
   );
 }
 
-// "MAKUS vLAB" as a word mark, or the white label's name.
+// "MAKUS vLAB" as a word mark (v in the accent, like MOAVI's VI), or the white label's name.
 export function BrandName({ withTag = false }: { withTag?: boolean }) {
   const { pick } = useI18n();
   const { b, custom } = useBranding();
   if (custom && b.appName && b.appName !== BRAND.productName) return <span className="brand-name">{b.appName}</span>;
   return (
     <span className="brand-name">
-      <span className="brand-makus">MAKUS</span> <span className="brand-product">vLAB</span>
+      <span className="brand-makus">MAKUS</span> <span className="brand-product"><span className="brand-v">v</span>LAB</span>
       {withTag && <span className="brand-tag">{pick(BRAND.productTag)}</span>}
     </span>
   );
