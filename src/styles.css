@@ -274,8 +274,8 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 15
 
 /* numbers: the dashboard strip and stat cards */
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px; margin-bottom: 1rem;
-  background: var(--border); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-1); }
-.kpi { display: flex; flex-direction: column; gap: .15rem; padding: .95rem 1.15rem 1rem; background: var(--surface); color: var(--text); text-decoration: none !important; }
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-1); }
+.kpi { display: flex; flex-direction: column; gap: .15rem; padding: .95rem 1.15rem 1rem; background: var(--surface); box-shadow: 1px 0 0 var(--border), 0 1px 0 var(--border); color: var(--text); text-decoration: none !important; }
 .kpi:hover { background: var(--surface-2); }
 .kpi-label { display: inline-flex; align-items: center; gap: .4rem; font-size: .8rem; font-weight: 550; color: var(--muted); }
 .kpi-value { font-size: 1.75rem; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.25; }

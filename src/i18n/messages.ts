@@ -606,10 +606,11 @@ export const messages = {
 
   'about.title': { ko: '정보', en: 'About' },
   'about.version': { ko: '버전', en: 'Version' },
-  'about.engine': { ko: '처리 엔진', en: 'Engine' },
+  'about.engine': { ko: '기반 기술', en: 'Based on' },
+  'about.source': { ko: '엔진 소스', en: 'Engine source' },
   'about.engineText': {
-    ko: '이 제품의 처리 엔진은 PegaProx(AGPL-3.0)를 바탕으로 수정한 것입니다. 엔진 소스: https://github.com/dskim1979/makus-vlab',
-    en: 'The engine of this product is a modified version of PegaProx (AGPL-3.0). Engine source: https://github.com/dskim1979/makus-vlab',
+    ko: '이 제품의 처리 엔진은 PegaProx(AGPL-3.0)를 바탕으로 (주)매커스시스템즈가 수정·확장한 것입니다.',
+    en: 'The engine of this product is PegaProx (AGPL-3.0), modified and extended by MAKUS SYSTEMS.',
   },
   'about.close': { ko: '닫기', en: 'Close' },
 } as const;

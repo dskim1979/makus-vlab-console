@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { api, isMock } from '../api/client';
 import { BRAND } from '../brand';
 import { BrandMark, BrandName } from '../components/Brand';
-import { EngineNotice } from '../components/EngineNotice';
+import { CompanyNotice } from '../components/CompanyNotice';
 import { LangSwitch } from '../components/LangSwitch';
 import { useI18n } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
@@ -117,7 +117,7 @@ export function LoginPage() {
       </main>
 
       <footer className="login-foot">
-        <EngineNotice />
+        <CompanyNotice />
       </footer>
     </div>
   );

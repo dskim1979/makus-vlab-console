@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { BrandMark, BrandName } from '../components/Brand';
-import { EngineNotice } from '../components/EngineNotice';
+import { CompanyNotice } from '../components/CompanyNotice';
 import { LangSwitch } from '../components/LangSwitch';
 import { useI18n } from '../i18n';
 import { useAuth } from './AuthContext';
@@ -69,7 +69,7 @@ export function SetupPage() {
           <button type="submit" className="btn primary block" disabled={busy}>{t('setup.submit')}</button>
         </form>
       </main>
-      <footer className="login-foot"><EngineNotice /></footer>
+      <footer className="login-foot"><CompanyNotice /></footer>
     </div>
   );
 }

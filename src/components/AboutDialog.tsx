@@ -28,11 +28,13 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
         <dd>{__APP_VERSION__}</dd>
         <dt>{t('about.engine')}</dt>
         <dd>
-          {ENGINE_NOTICE.name} · {ENGINE_NOTICE.copyright} · {ENGINE_NOTICE.license}
+          <span className="strong">Powered by <a href={ENGINE_NOTICE.homepage} target="_blank" rel="noreferrer">{ENGINE_NOTICE.name}</a></span>
+          <br />
+          {ENGINE_NOTICE.copyright} · {ENGINE_NOTICE.license}
           <br />
           <span className="muted">{t('about.engineText')}</span>
           <br />
-          <a href={ENGINE_NOTICE.source} target="_blank" rel="noreferrer">{ENGINE_NOTICE.source}</a>
+          {t('about.source')}: <a href={ENGINE_NOTICE.source} target="_blank" rel="noreferrer">{ENGINE_NOTICE.source}</a>
         </dd>
       </dl>
       <div className="muted small">© {pick(BRAND.company)}</div>
