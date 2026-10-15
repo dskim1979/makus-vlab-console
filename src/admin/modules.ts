@@ -61,13 +61,13 @@ export const MODULES: AdminModule[] = [
   },
   {
     id: 'labs', icon: 'lab', tone: 'orange',
-    label: { ko: '실습실', en: 'Labs' },
-    summary: { ko: '실습실, 단말, 수업 일정, 교육용 풀', en: 'Labs, terminals, class schedules, classroom pools' },
+    label: { ko: '랩', en: 'Labs' },
+    summary: { ko: '랩(공용 공간), 단말, 사용 일정, 일정형 풀', en: 'Labs (shared spaces), terminals, schedules, scheduled pools' },
     pages: [
-      { id: 'list', label: { ko: '실습실 관리', en: 'Labs' }, phase: 2 },
+      { id: 'list', label: { ko: '랩 관리', en: 'Labs' }, phase: 2 },
       { id: 'terminals', label: { ko: '단말 관리', en: 'Terminals' }, phase: 2 },
-      { id: 'schedules', label: { ko: '수업 일정', en: 'Class schedules' }, phase: 2 },
-      { id: 'pools', label: { ko: '교육용 풀', en: 'Classroom pools' }, phase: 2 },
+      { id: 'schedules', label: { ko: '사용 일정', en: 'Schedules' }, phase: 2 },
+      { id: 'pools', label: { ko: '일정형 풀', en: 'Scheduled pools' }, phase: 2 },
     ],
   },
   {

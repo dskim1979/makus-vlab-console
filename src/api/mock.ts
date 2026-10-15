@@ -12,14 +12,21 @@ function save(u: User | null) {
 }
 let current: User | null = load();
 // ?fresh on the URL plays a first start: no administrator yet, the setup form shows
-let initialized = !new URLSearchParams(location.search).has('fresh');
+const params = new URLSearchParams(location.search);
+let initialized = !params.has('fresh');
+// ?as=<user>[&name=<display name>] signs straight in (demos and README screenshots; mock only)
+if (params.get('as')) {
+  const as = params.get('as')!;
+  current = { username: as, role: as === 'admin' ? 'admin' : 'user', display_name: params.get('name') || as, auth_source: 'local' };
+  save(current);
+}
 let setupAdmin = '';
 
 const desktops: Desktop[] = [
   { id: 'd1', name: 'vivado-build-01', pool: 'FPGA 빌드 팜', state: 'ready', os: 'Rocky Linux 9', spec: { cpu: 16, memory_gb: 64 }, protocols: ['spice', 'vnc'], resources: [{ kind: 'card', name: 'Alveo U250 #2' }], pool_type: 'buildfarm', last_connected: new Date(Date.now() - 3 * 864e5).toISOString() },
   { id: 'd2', name: 'board-lab-zcu102', pool: '보드 랩', state: 'in_use', os: 'Ubuntu 22.04', spec: { cpu: 8, memory_gb: 32 }, protocols: ['spice', 'vnc'], resources: [{ kind: 'usb', name: 'JTAG ZCU102 #1' }], pool_type: 'dedicated', last_connected: new Date(Date.now() - 2 * 36e5).toISOString() },
   { id: 'd4', name: 'ai-ws-03', pool: 'AI 연구실', state: 'ready', os: 'Windows 11', spec: { cpu: 8, memory_gb: 32 }, protocols: ['spice', 'vnc'], gpu: { mode: 'vgpu', label: 'A16-4Q' }, pool_type: 'dedicated', last_connected: new Date(Date.now() - 26 * 36e5).toISOString() },
-  { id: 'd3', name: 'lab-win11-07', pool: '실습실 A', state: 'stopped', os: 'Windows 11', spec: { cpu: 4, memory_gb: 8 }, protocols: ['vnc', 'spice'], pool_type: 'reset', last_connected: null },
+  { id: 'd3', name: 'lab-win11-07', pool: '공용 랩 A', state: 'stopped', os: 'Windows 11', spec: { cpu: 4, memory_gb: 8 }, protocols: ['vnc', 'spice'], pool_type: 'reset', last_connected: null },
 ];
 
 const leases: Lease[] = [

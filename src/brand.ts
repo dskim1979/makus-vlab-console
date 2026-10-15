@@ -5,7 +5,7 @@ export const BRAND = {
   productTag: { ko: '가칭', en: 'working name' },
   company: { ko: '(주)매커스시스템즈', en: 'MAKUS SYSTEMS Co., Ltd.' },
   tagline: {
-    ko: '연구·개발·실습을 위한 가상 데스크톱과 자원 할당',
+    ko: '연구·개발·교육을 위한 가상 데스크톱과 자원 할당',
     en: 'Virtual desktops and shared resources for R&D and labs',
   },
 } as const;
