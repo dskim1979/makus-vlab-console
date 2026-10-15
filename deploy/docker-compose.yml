@@ -1,0 +1,56 @@
+# MAKUS vLAB (working name) - one Linux host, two containers. Install guide: README.md here.
+#
+#   vlab-proxy   console + HTTPS (443), passes /api to the engine   <- makus-vlab-console (this repo)
+#   vlab-engine  vLAB engine, API only, no web UI (WEB_UI=0)          <- makus-vlab
+#
+# Built from the two repositories checked out side by side:
+#   <dir>/makus-vlab            (engine)
+#   <dir>/makus-vlab-console    (this repo; run compose from deploy/)
+# or pulled ready-made by setting VLAB_ENGINE_IMAGE / VLAB_CONSOLE_IMAGE in .env.
+
+name: vlab
+
+services:
+  vlab-engine:
+    image: ${VLAB_ENGINE_IMAGE:-vlab-engine:dev}
+    build:
+      context: ../../makus-vlab
+      args:
+        WEB_UI: "0"
+    restart: unless-stopped
+    environment:
+      PEGAPROX_BEHIND_PROXY: "1"            # plain HTTP behind vlab-proxy; VNC websocket on the same port
+      PEGAPROX_HOST: "0.0.0.0"              # reachable from vlab-proxy (the port is not published)
+      PEGAPROX_TRUSTED_PROXIES: "172.16.0.0/12,192.168.0.0/16,10.0.0.0/8"   # X-Forwarded-For from the proxy
+      PEGAPROX_HTTP_PORT: "-1"
+      TZ: ${TZ:-Asia/Seoul}
+    volumes:
+      - vlab-config:/app/config             # database (encrypted), master key, settings - back this up
+      - vlab-logs:/app/logs
+    expose:
+      - "5000"
+    networks: [vlab]
+
+  vlab-proxy:
+    image: ${VLAB_CONSOLE_IMAGE:-vlab-console:dev}
+    build:
+      context: ..
+    restart: unless-stopped
+    depends_on: [vlab-engine]
+    environment:
+      VLAB_HOSTNAME: ${VLAB_HOSTNAME:-vlab.local}   # name for the self-signed certificate
+      TZ: ${TZ:-Asia/Seoul}
+    ports:
+      - "${VLAB_HTTPS_PORT:-443}:443"
+      - "${VLAB_HTTP_PORT:-80}:80"
+    volumes:
+      - vlab-tls:/etc/vlab/tls              # tls.crt + tls.key; replace with your own certificate
+    networks: [vlab]
+
+networks:
+  vlab:
+
+volumes:
+  vlab-config:
+  vlab-logs:
+  vlab-tls:
