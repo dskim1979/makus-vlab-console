@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useState } from 'react';
 import { api } from '../api/client';
-import type { Desktop, PowerAction } from '../api/types';
+import type { Clipboard, Desktop, PowerAction } from '../api/types';
 import { Icon } from '../components/Icon';
 import { LoadState } from '../components/LoadState';
 import { StateBadge } from '../components/StateBadge';
@@ -25,7 +25,7 @@ export function PortalHome() {
   const desktops = useLoad(api.myDesktops);
   const [view, setView] = useState<'grid' | 'list'>(savedView);
   const [help, setHelp] = useState(false);
-  const [open, setOpen] = useState<{ title: string; wsPath: string; password: string; sessionId: string } | null>(null);
+  const [open, setOpen] = useState<{ title: string; wsPath: string; password: string; sessionId: string; clipboard: Clipboard } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<{ id: string; text: string } | null>(null);
   const [hint, setHint] = useState<{ id: string; text: string } | null>(null);
@@ -40,7 +40,7 @@ export function PortalHome() {
     try {
       const c = await api.connect(d.id, protocol);
       if (c.type === 'vnc') {
-        setOpen({ title: d.name, wsPath: c.ws_path, password: c.password, sessionId: c.session_id });
+        setOpen({ title: d.name, wsPath: c.ws_path, password: c.password, sessionId: c.session_id, clipboard: c.clipboard ?? 'both' });
       } else {
         // the .vv carries a one-time ticket: hand it straight to the browser as a download
         const url = URL.createObjectURL(new Blob([c.vv], { type: 'application/x-virt-viewer' }));
@@ -52,6 +52,11 @@ export function PortalHome() {
       }
     } catch (e) {
       const code = (e as Error).message;
+      if (code === 'STARTING') {
+        setHint({ id: d.id, text: t('portal.starting') });
+        [4000, 10000, 20000].forEach((ms) => setTimeout(() => desktops.reload(), ms));
+        return;
+      }
       const known = code === 'VM_STOPPED' || code === 'NO_SPICE';
       setError({ id: d.id, text: known ? t(`portal.err.${code}` as MessageKey) : `${t('portal.err.generic')}: ${code}` });
     } finally {
@@ -67,7 +72,8 @@ export function PortalHome() {
       // the guest takes a moment; look again a few times
       [3000, 8000, 15000].forEach((ms) => setTimeout(() => desktops.reload(), ms));
     } catch (e) {
-      setError({ id: d.id, text: `${t('power.failed')}: ${(e as Error).message}` });
+      const msg = (e as { body?: { code?: string } }).body?.code === 'POWER_OFF' ? t('power.off') : `${t('power.failed')}: ${(e as Error).message}`;
+      setError({ id: d.id, text: msg });
     } finally {
       setBusy(null);
       desktops.reload();
@@ -215,7 +221,7 @@ export function PortalHome() {
 
       {open && (
         <Suspense fallback={<div className="console-backdrop"><p className="muted">{t('console.connecting')}</p></div>}>
-          <ConsoleWindow title={open.title} wsPath={open.wsPath} password={open.password} onClose={close} />
+          <ConsoleWindow title={open.title} wsPath={open.wsPath} password={open.password} clipboard={open.clipboard} onClose={close} />
         </Suspense>
       )}
     </main>

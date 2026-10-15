@@ -1,7 +1,7 @@
 // Fake admin API for `npm run dev:mock`: same rules as the engine, kept in memory.
 import type { AdminApi } from './admin';
 import { ApiError } from './client';
-import type { AccelDevice, AccelUser, AdminDesktop, AdminLease, ClusterNode, ClusterStorage, Guest, PciMapping, Pool, SessionRow, VgpuProfile } from './types';
+import type { AccelDevice, AccelUser, AdminDesktop, AdminLease, PoolPolicy, ClusterNode, ClusterStorage, Guest, PciMapping, Pool, SessionRow, VgpuProfile } from './types';
 
 const CLUSTER = { id: 'lab-cluster', name: 'LAB-PVE', connected: true, host: '10.20.0.11', connection_error: null as string | null, pools: 0 };
 const clusters = [CLUSTER];
@@ -72,6 +72,10 @@ function addDesk(pool: Pool, vmid: number, user: string | null = null) {
   addDesk(b, 400, 'bob'); addDesk(b, 401, 'carol');
 }
 
+const POLICY_DEFAULTS: PoolPolicy = {
+  protocols: ['vnc', 'spice'], spice_fullscreen: false, clipboard: 'both', usb_redirect: true, usb_autoshare: false,
+  start_on_connect: true, idle_shutdown_min: 0, reset_on_logout: false, allow_power: true, max_session_hours: 0,
+};
 const cloneSources = new Map<number, Set<string>>();   // template -> pools cloned from it
 
 function usage(vmid: number, running: boolean): AdminDesktop['usage'] {
@@ -209,6 +213,20 @@ export const mockAdminApi: AdminApi = {
     if (l.ends_at && new Date(ends_at) <= new Date(l.ends_at)) return fail(400, 'ends_at: a later ISO date and time');
     l.ends_at = new Date(ends_at).toISOString();
     return delay(undefined);
+  },
+  poolPolicy: (poolId) => {
+    const p = pools.find((x) => x.id === poolId);
+    if (!p) return fail(404, 'Pool not found');
+    return delay({ policy: { ...POLICY_DEFAULTS, ...(p.settings?.policy ?? {}) }, defaults: POLICY_DEFAULTS,
+      reset_allowed: p.type === 'reset' || p.type === 'classroom' });
+  },
+  savePoolPolicy: (poolId, pol) => {
+    const p = pools.find((x) => x.id === poolId);
+    if (!p) return fail(404, 'Pool not found');
+    if (!pol.protocols.length) return fail(400, 'protocols: a non-empty list of vnc, spice');
+    if (pol.reset_on_logout && p.type !== 'reset' && p.type !== 'classroom') return fail(400, 'reset_on_logout is for reset and scheduled pools only');
+    p.settings = { ...(p.settings ?? {}), policy: pol, protocols: pol.protocols };
+    return delay(pol);
   },
   setPoolGpu: (poolId, g) => {
     const p = pools.find((x) => x.id === poolId);

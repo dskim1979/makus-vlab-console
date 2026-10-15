@@ -69,6 +69,8 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
   const menuRef = useRef<HTMLDivElement>(null);
   const running = d.state === 'ready' || d.state === 'in_use';
   const last = relativeTime(d.last_connected, lang);
+  const canPower = d.policy?.allow_power !== false;
+  const autoStart = d.policy?.start_on_connect !== false;
 
   useEffect(() => {
     if (!menu) return;
@@ -100,7 +102,7 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
                   <Icon name="download" size={16} />{t('portal.connectSpice')}
                 </button>
               )}
-              {running ? (
+              {!canPower ? null : running ? (
                 <>
                   <button type="button" role="menuitem" disabled={busy}
                     onClick={() => { setMenu(false); if (confirm(t('power.shutdownConfirm'))) onPower('shutdown'); }}>
@@ -143,12 +145,12 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
           <span className={`pill st-${d.state}`}><span className="dot" />{t(`portal.state.${d.state}` as MessageKey)}</span>
           <span className="muted small">{last ? `${t('portal.lastConnected')} ${last}` : t('portal.never')}</span>
         </div>
-        {d.state === 'stopped' ? (
+        {d.state === 'stopped' && canPower && !autoStart ? (
           <button type="button" className="btn" disabled={busy} onClick={() => onPower('start')}>
             <Icon name="play" size={15} />{t('power.start')}
           </button>
         ) : d.protocols.includes('vnc') ? (
-          <button type="button" className="btn primary" disabled={busy || !running} onClick={() => onConnect('vnc')}>
+          <button type="button" className="btn primary" disabled={busy || !(running || (d.state === 'stopped' && autoStart))} onClick={() => onConnect('vnc')}>
             {t('portal.connect')}
           </button>
         ) : (

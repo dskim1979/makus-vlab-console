@@ -41,7 +41,10 @@ export type Desktop = {
   pool_type?: string;
   last_connected?: string | null;
   gpu?: { mode: 'passthrough' | 'vgpu'; label: string };
+  policy?: { clipboard: Clipboard; allow_power: boolean; start_on_connect: boolean };
 };
+
+export type Clipboard = 'both' | 'to_desktop' | 'from_desktop' | 'off';
 
 export type Lease = {
   id: string;
@@ -67,8 +70,18 @@ export type Pool = {
   created_by: string;
   desktops: number;
   assigned: number;
-  settings?: { gpu?: GpuPolicy; protocols?: string[]; templates?: number[] };
+  settings?: { gpu?: GpuPolicy; protocols?: string[]; templates?: number[]; policy?: PoolPolicy };
 };
+
+// --- pool policy (데스크톱 풀 > 풀 > 정책) ------------------------------------------
+export type PoolPolicy = {
+  protocols: ('vnc' | 'spice')[]; spice_fullscreen: boolean;
+  clipboard: Clipboard;
+  usb_redirect: boolean; usb_autoshare: boolean;
+  start_on_connect: boolean; idle_shutdown_min: number; reset_on_logout: boolean;
+  allow_power: boolean; max_session_hours: number;
+};
+export type PoolPolicyAnswer = { policy: PoolPolicy; defaults: PoolPolicy; reset_allowed: boolean };
 
 // --- accelerators (가속 자원, docs/vlab-design.md 10-0) ---------------------------
 export type GpuPolicy = { mode: 'none' | 'passthrough' | 'vgpu'; mapping?: string; mdev_type?: string; label?: string; x_vga?: boolean };
@@ -129,7 +142,7 @@ export type UserAccess = {
 // --- connecting (/api/vlab/desktops/<id>/connect) ----------------------------------
 
 export type ConnectInfo =
-  | { type: 'vnc'; ws_path: string; password: string; session_id: string }
+  | { type: 'vnc'; ws_path: string; password: string; session_id: string; clipboard?: Clipboard }
   | { type: 'spice'; vv: string; filename: string; session_id: string };
 
 export type PowerAction = 'start' | 'shutdown' | 'reboot' | 'stop';

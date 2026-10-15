@@ -6,6 +6,7 @@ declare module '@novnc/novnc/lib/rfb' {
     resizeSession: boolean;
     disconnect(): void;
     sendCtrlAltDel(): void;
+    clipboardPasteFrom(text: string): void;
     focus(): void;
   }
 }

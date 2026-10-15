@@ -26,7 +26,7 @@ const desktops: Desktop[] = [
   { id: 'd1', name: 'vivado-build-01', pool: 'FPGA 빌드 팜', state: 'ready', os: 'Rocky Linux 9', spec: { cpu: 16, memory_gb: 64 }, protocols: ['spice', 'vnc'], resources: [{ kind: 'card', name: 'Alveo U250 #2' }], pool_type: 'buildfarm', last_connected: new Date(Date.now() - 3 * 864e5).toISOString() },
   { id: 'd2', name: 'board-lab-zcu102', pool: '보드 랩', state: 'in_use', os: 'Ubuntu 22.04', spec: { cpu: 8, memory_gb: 32 }, protocols: ['spice', 'vnc'], resources: [{ kind: 'usb', name: 'JTAG ZCU102 #1' }], pool_type: 'dedicated', last_connected: new Date(Date.now() - 2 * 36e5).toISOString() },
   { id: 'd4', name: 'ai-ws-03', pool: 'AI 연구실', state: 'ready', os: 'Windows 11', spec: { cpu: 8, memory_gb: 32 }, protocols: ['spice', 'vnc'], gpu: { mode: 'vgpu', label: 'A16-4Q' }, pool_type: 'dedicated', last_connected: new Date(Date.now() - 26 * 36e5).toISOString() },
-  { id: 'd3', name: 'lab-win11-07', pool: '공용 랩 A', state: 'stopped', os: 'Windows 11', spec: { cpu: 4, memory_gb: 8 }, protocols: ['vnc', 'spice'], pool_type: 'reset', last_connected: null },
+  { id: 'd3', name: 'lab-win11-07', pool: '공용 랩 A', state: 'stopped', os: 'Windows 11', spec: { cpu: 4, memory_gb: 8 }, protocols: ['vnc', 'spice'], pool_type: 'reset', last_connected: null, policy: { clipboard: 'to_desktop', allow_power: false, start_on_connect: true } },
 ];
 
 const leases: Lease[] = [
@@ -60,13 +60,17 @@ export const mockApi: Api = {
   async connect(desktopId, protocol) {
     const d = desktops.find((x) => x.id === desktopId);
     if (!d) throw new ApiError(404, 'Desktop not found');
-    if (d.state === 'stopped') throw new ApiError(409, 'VM_STOPPED');
+    if (d.state === 'stopped') {
+      if (d.policy?.start_on_connect === false) throw new ApiError(409, 'VM_STOPPED');
+      setTimeout(() => { d.state = 'ready'; }, 2500);   // the mock desktop comes up
+      throw new ApiError(409, 'STARTING');
+    }
     if (protocol === 'spice') {
       return delay({ type: 'spice' as const, filename: `${d.name}.vv`, session_id: 'mock-sess',
         vv: '[virt-viewer]\ntype=spice\nhost=mock.invalid\npassword=mock\nproxy=http://mock.invalid:3128\n' });
     }
     // nothing answers this websocket in mock mode: the console shows "disconnected"
-    return delay({ type: 'vnc' as const, ws_path: '/api/mock/vncwebsocket', password: 'mock', session_id: 'mock-sess' });
+    return delay({ type: 'vnc' as const, ws_path: '/api/mock/vncwebsocket', password: 'mock', session_id: 'mock-sess', clipboard: d.policy?.clipboard ?? 'both' });
   },
   async endSession() { /* nothing to close */ },
   async power(desktopId, action) {

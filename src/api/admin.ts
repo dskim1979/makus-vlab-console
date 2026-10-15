@@ -1,7 +1,7 @@
 // Admin console calls: /api/vlab/admin/* only (makus-vlab pegaprox/api/vlab.py).
 import { ApiError, isMock, request } from './client';
 import { mockAdminApi } from './mockAdmin';
-import type { AdminDesktop, AssignableUser, AccelInventory, AdminLease, AuditPage, AuditQuery, GpuApplyResult, GpuPolicy, VgpuProfile, PowerAction, ClusterNode, ClusterStorage, PlatformSettings, UsageReport, Directory, DirectoryTest, CloneResult, Cluster, Guest, NewCluster, Pool, PoolResetResult, PoolType, SessionRow, Summary, Template, UserAccess } from './types';
+import type { AdminDesktop, AssignableUser, AccelInventory, AdminLease, AuditPage, PoolPolicy, PoolPolicyAnswer, AuditQuery, GpuApplyResult, GpuPolicy, VgpuProfile, PowerAction, ClusterNode, ClusterStorage, PlatformSettings, UsageReport, Directory, DirectoryTest, CloneResult, Cluster, Guest, NewCluster, Pool, PoolResetResult, PoolType, SessionRow, Summary, Template, UserAccess } from './types';
 
 // Calls that must succeed: a non-2xx answer throws with the engine's own message.
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -30,6 +30,9 @@ const realAdminApi = {
     call<{ lease: AdminLease; needs_restart: boolean }>('POST', '/api/vlab/admin/leases', l),
   returnLease: async (id: string) => { await call('POST', `/api/vlab/admin/leases/${enc(id)}/return`); },
   extendLease: async (id: string, ends_at: string) => { await call('POST', `/api/vlab/admin/leases/${enc(id)}/extend`, { ends_at }); },
+  poolPolicy: async (poolId: string) => call<PoolPolicyAnswer>('GET', `/api/vlab/admin/pools/${enc(poolId)}/policy`),
+  savePoolPolicy: async (poolId: string, p: PoolPolicy) =>
+    (await call<{ policy: PoolPolicy }>('PUT', `/api/vlab/admin/pools/${enc(poolId)}/policy`, p)).policy,
   setPoolGpu: async (poolId: string, g: GpuPolicy) =>
     (await call<{ gpu: GpuPolicy }>('PUT', `/api/vlab/admin/pools/${enc(poolId)}/gpu`, g)).gpu,
   applyPoolGpu: async (poolId: string) => {

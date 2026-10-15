@@ -602,3 +602,32 @@ fieldset.choices legend { font-size: .85rem; font-weight: 550; margin-bottom: .3
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* ---------- pool policy wizard ---------- */
+.dialog-wide { width: min(720px, calc(100vw - 32px)); }
+.dialog-actions > .btn-ghost:first-child { margin-right: auto; }
+.policy-panel { margin: 0 0 1rem; }
+.policy-panel .stat-icon { margin: 0; }
+.policy-panel .section-title { margin: 0 0 .25rem; }
+.policy-chips { display: flex; flex-wrap: wrap; gap: .35rem; }
+.stepper { list-style: none; display: flex; gap: .25rem; margin: 0 0 .25rem; padding: 0 0 .75rem; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.stepper li { flex: 1; min-width: max-content; }
+.stepper button { display: flex; align-items: center; gap: .45rem; width: 100%; padding: .35rem .5rem; border: 0; border-radius: 6px;
+  background: transparent; color: var(--muted); font: inherit; font-size: .84rem; font-weight: 550; cursor: pointer; }
+.stepper button:hover { background: var(--surface-3); }
+.stepper-n { width: 22px; height: 22px; flex: none; display: grid; place-items: center; border-radius: 50%; font-size: .72rem; font-weight: 700;
+  background: var(--surface-3); color: var(--muted); }
+.stepper li.on button { color: var(--accent); }
+.stepper li.on .stepper-n { background: var(--accent); color: #fff; }
+.stepper li.done .stepper-n { background: var(--ok-soft); color: var(--ok); }
+.wiz-body { display: flex; flex-direction: column; gap: .75rem; min-height: 220px; }
+.mode-cards-2 { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 640px) { .mode-cards-2 { grid-template-columns: 1fr; } }
+.review-list { display: grid; grid-template-columns: 7rem 1fr; gap: .55rem 1rem; margin: 0; font-size: .9rem; }
+.review-list dt { color: var(--muted); font-weight: 550; }
+.review-list dd { margin: 0; }
+
+/* console clipboard */
+.console-clip { display: flex; flex-direction: column; gap: .4rem; padding: .5rem .75rem; background: var(--surface); border-bottom: 1px solid var(--border); }
+.console-clip textarea { width: 100%; resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: .82rem; }
+.console-clip-actions { display: flex; align-items: center; gap: .6rem; color: var(--muted); }
