@@ -88,7 +88,10 @@ export type Lab = { id: string; name: string; location: string; description: str
   created_at: string; terminals: number; pending: number; schedules: number; current: LabSlot | null; next: LabSlot | null };
 export type LabInput = { name: string; location?: string; description?: string; seats?: number };
 export type Terminal = { id: string; lab_id: string | null; name: string; mac: string; ip: string; state: 'pending' | 'approved';
-  registered_by: string; last_seen: string | null; created_at: string; has_key?: boolean };
+  registered_by: string; last_seen: string | null; created_at: string; has_key?: boolean; enrollment?: TerminalEnrollment | null };
+// a terminal that came in with an enrolment code (src/api/enroll.ts): whether its kiosk key went out to the client
+export type TerminalEnrollment = { state: 'waiting' | 'delivered' | 'manual' | 'expired'; code_id: string; code: string;
+  created_at: string; last_poll_at: string | null; delivered_at: string | null };
 export type LabAfter = 'reset' | 'off' | 'none';
 // GET /api/vlab/kiosk (terminal key): the room and what runs now and next
 export type KioskSlot = LabSlot & { pool: string | null };

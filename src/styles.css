@@ -1333,3 +1333,12 @@ fieldset.plain:disabled { opacity: .55; }
 .nas-folders input:not([type=checkbox]) { min-width: 11rem; }
 .nas-folders .num-input { width: 6rem; min-width: 0; }
 .nas-folders td:first-child { min-width: 11rem; }
+
+/* LAB 단말 대량 등록: 등록 코드, 키 전달, 한꺼번에 승인 (admin/pages/TerminalEnroll.tsx) */
+.enroll-panel { margin-bottom: 1rem; }
+.enroll-panel .panel-head { justify-content: space-between; flex-wrap: wrap; }
+.enroll-panel p { margin: 0; }
+.bulk-bar { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; padding: .55rem .8rem; margin-bottom: .6rem;
+  border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--accent-soft); }
+.table th.check-col, .table td.check-col { width: 2rem; text-align: center; padding-right: 0; }
+.install-line code { font-size: .82rem; }

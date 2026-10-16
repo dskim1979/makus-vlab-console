@@ -965,7 +965,7 @@ export const messages = {
   'term.approve': { ko: '승인', en: 'Approve' },
   'term.approveHint': { ko: 'LAB을 먼저 고르면 그 LAB 단말로 승인됩니다.', en: 'Pick its LAB first to approve it into that room.' },
   'term.deleteConfirm': { ko: "단말 '{name}'을(를) 지울까요?", en: "Delete terminal '{name}'?" },
-  'term.note': { ko: '단말에 MOAVI Desk Client를 설치하고 로그인하면 이 목록에 승인 대기로 나타납니다. 승인하고 LAB을 지정하면 그 LAB의 일정에 맞춰 접속합니다.', en: 'Install MOAVI Desk Client on a PC and sign in: it shows up here waiting for approval. Approve it into a LAB and it follows that LAB’s schedule.' },
+  'term.note': { ko: '단말에 MOAVI Desk Client를 등록 코드와 함께 설치하면(위 설치 명령) 처음 켤 때, 코드 없이 설치하면 로그인할 때 이 목록에 승인 대기로 나타납니다. 여러 대를 골라 LAB과 함께 한꺼번에 승인하면, 코드로 설치한 PC는 키오스크 키를 스스로 받아 갑니다.', en: 'Install MOAVI Desk Client with an enrolment code (install line above) and the PC shows up here waiting on its first start; without a code it shows up when someone signs in. Select several and approve them into a LAB at once: PCs installed with a code pick their kiosk key up themselves.' },
   'term.addHint': { ko: 'MOAVI Desk Client 없이 미리 등록할 때 씁니다. 직접 추가한 단말은 바로 승인됩니다.', en: 'For registering a PC ahead of its client. Terminals added here are approved right away.' },
   'sch.add': { ko: '일정 추가', en: 'Add a schedule' },
   'sch.edit': { ko: '일정 편집', en: 'Edit the schedule' },

@@ -85,14 +85,22 @@ const mockLabs: Omit<Lab, 'terminals' | 'pending' | 'schedules' | 'current' | 'n
   { id: 'lab_a', name: '교육장 A', location: '본관 3층 301호', description: '신입 연구원 교육·사내 교육', seats: 24, tenant_id: '', created_at: '2026-09-01T09:00:00Z' },
   { id: 'lab_b', name: '공용 연구실 B', location: '연구동 2층', description: '교대 근무·야간 분석', seats: 12, tenant_id: '', created_at: '2026-09-01T09:00:00Z' },
 ];
-const mockTerminals: Terminal[] = [
+export const mockTerminals: Terminal[] = [
   ...Array.from({ length: 6 }, (_, i): Terminal => ({ id: `term_a${i + 1}`, lab_id: 'lab_a', name: `A-PC-${String(i + 1).padStart(2, '0')}`,
     mac: `52:54:00:a1:00:${String(i + 1).padStart(2, '0')}`, ip: `10.30.1.${21 + i}`, state: 'approved', registered_by: 'admin',
-    last_seen: new Date(Date.now() - (i + 1) * 9 * 60e3).toISOString(), created_at: '2026-09-02T09:00:00Z' })),
+    last_seen: new Date(Date.now() - (i + 1) * 9 * 60e3).toISOString(), created_at: '2026-09-02T09:00:00Z', has_key: true,
+    enrollment: i < 4 ? { state: 'delivered', code_id: 'enc_1', code: '301호 일괄 설치', created_at: '2026-10-14T08:50:00Z',
+      last_poll_at: '2026-10-14T09:02:00Z', delivered_at: '2026-10-14T09:02:00Z' } : null })),
   { id: 'term_b1', lab_id: 'lab_b', name: 'B-PC-01', mac: '52:54:00:b2:00:01', ip: '10.30.2.11', state: 'approved', registered_by: 'admin',
     last_seen: new Date(Date.now() - 3 * 3600e3).toISOString(), created_at: '2026-09-02T09:00:00Z' },
-  { id: 'term_new1', lab_id: null, name: 'A-PC-07', mac: '52:54:00:a1:00:07', ip: '10.30.1.27', state: 'pending', registered_by: 'alice',
-    last_seen: new Date(Date.now() - 4 * 60e3).toISOString(), created_at: new Date(Date.now() - 4 * 60e3).toISOString() },
+  { id: 'term_new1', lab_id: 'lab_a', name: 'A-PC-07', mac: '52:54:00:a1:00:07', ip: '10.30.1.27', state: 'pending', registered_by: 'code:301호 일괄 설치',
+    last_seen: new Date(Date.now() - 40e3).toISOString(), created_at: new Date(Date.now() - 4 * 60e3).toISOString(),
+    enrollment: { state: 'waiting', code_id: 'enc_1', code: '301호 일괄 설치', created_at: new Date(Date.now() - 4 * 60e3).toISOString(),
+      last_poll_at: new Date(Date.now() - 40e3).toISOString(), delivered_at: null } },
+  { id: 'term_new3', lab_id: 'lab_a', name: 'A-PC-09', mac: '52:54:00:a1:00:09', ip: '10.30.1.29', state: 'pending', registered_by: 'code:301호 일괄 설치',
+    last_seen: new Date(Date.now() - 25e3).toISOString(), created_at: new Date(Date.now() - 3 * 60e3).toISOString(),
+    enrollment: { state: 'waiting', code_id: 'enc_1', code: '301호 일괄 설치', created_at: new Date(Date.now() - 3 * 60e3).toISOString(),
+      last_poll_at: new Date(Date.now() - 25e3).toISOString(), delivered_at: null } },
   { id: 'term_new2', lab_id: null, name: '', mac: '52:54:00:a1:00:08', ip: '10.30.1.28', state: 'pending', registered_by: 'bob',
     last_seen: new Date(Date.now() - 11 * 60e3).toISOString(), created_at: new Date(Date.now() - 11 * 60e3).toISOString() },
 ];

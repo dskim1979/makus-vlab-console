@@ -10,6 +10,7 @@ import { SettingsStatus } from '../../components/SettingsShell';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
+import { BulkApprove, EnrollCodesPanel, KeyDelivery } from './TerminalEnroll';
 
 // LAB: rooms of shared PCs (training rooms, labs, shift offices), their terminals, and the
 // weekly schedules that start a pool's desktops before a session and put them back after it
@@ -158,13 +159,15 @@ function LabDialog({ lab, onClose, onDone }: { lab: Lab | null; onClose: () => v
 // --- 단말 관리 --------------------------------------------------------------------
 
 export function TerminalsPage() {
-  const { t } = useI18n();
+  const { t, pick: pickText } = useI18n();
+  const pickL = (ko: string, en: string) => pickText({ ko, en });
   const [params, setParams] = useSearchParams();
   const terms = useLoad(adminApi.terminals);
   const labs = useLoad(adminApi.labs);
   const [adding, setAdding] = useState(false);
   const [keyOf, setKeyOf] = useState<{ terminal: Terminal; key: string } | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
+  const [picked, setPicked] = useState<string[]>([]);
   const { ago } = useWhen();
   const labFilter = params.get('lab') ?? '';
   const stateFilter = params.get('state') ?? '';
@@ -188,8 +191,13 @@ export function TerminalsPage() {
     <LoadState value={terms} retry={terms.reload}>
       {(all) => {
         const list = all.filter((x) => (!labFilter || x.lab_id === labFilter) && (!stateFilter || x.state === stateFilter));
+        const chosen = picked.filter((id) => list.some((x) => x.id === id));
+        const pendingIds = list.filter((x) => x.state === 'pending').map((x) => x.id);
+        const allPicked = pendingIds.length > 0 && pendingIds.every((id) => chosen.includes(id));
+        const pick = (id: string, on: boolean) => setPicked((p) => (on ? [...p, id] : p.filter((x) => x !== id)));
         return (
           <>
+            <EnrollCodesPanel labs={labList} />
             <SettingsStatus items={[
               { label: t('term.all'), value: String(all.length) },
               { label: t('term.approved'), value: String(all.filter((x) => x.state === 'approved').length), tone: 'ok' },
@@ -212,13 +220,20 @@ export function TerminalsPage() {
               <button type="button" className="btn primary" onClick={() => setAdding(true)}><Icon name="plus" size={16} />{t('term.add')}</button>
             </div>
             {notice && <div className={`alert small ${notice.kind === 'error' ? 'error' : 'info'}`}>{notice.text}</div>}
+            {chosen.length > 0 && <BulkApprove ids={chosen} labs={labList} onClear={() => setPicked([])}
+              onDone={(text, error) => { setNotice({ kind: error ? 'error' : 'info', text }); if (!error) setPicked([]); terms.reload(); labs.reload(); }} />}
             {list.length === 0 ? <div className="empty"><p>{t('term.empty')}</p></div> : (
               <div className="table-scroll">
                 <table className="table compact-head">
-                  <thead><tr><th>{t('term.name')}</th><th>MAC</th><th>IP</th><th>LAB</th><th>{t('term.state')}</th><th>{t('term.lastSeen')}</th><th>{t('term.by')}</th><th className="actions" /></tr></thead>
+                  <thead><tr>
+                    <th className="check-col"><input type="checkbox" aria-label={pickL('승인 대기 모두 선택', 'Select every waiting one')} disabled={!pendingIds.length}
+                      checked={allPicked} onChange={(e) => setPicked(e.target.checked ? pendingIds : [])} /></th>
+                    <th>{t('term.name')}</th><th>MAC</th><th>IP</th><th>LAB</th><th>{t('term.state')}</th><th>{pickL('키 전달', 'Key')}</th><th>{t('term.lastSeen')}</th><th>{t('term.by')}</th><th className="actions" /></tr></thead>
                   <tbody>
                     {list.map((x) => (
                       <tr key={x.id} className={x.state === 'pending' ? 'row-pending' : ''}>
+                        <td className="check-col">{x.state === 'pending' &&
+                          <input type="checkbox" aria-label={x.name || x.mac} checked={chosen.includes(x.id)} onChange={(e) => pick(x.id, e.target.checked)} />}</td>
                         <td className="strong">{x.name || <span className="muted">{t('term.unnamed')}</span>}</td>
                         <td><code className="code">{x.mac}</code></td>
                         <td className="small">{x.ip || '-'}</td>
@@ -229,6 +244,7 @@ export function TerminalsPage() {
                           </select>
                         </td>
                         <td>{x.state === 'pending' ? <span className="chip chip-warn">{t('term.pending')}</span> : <span className="chip chip-ok">{t('term.approved')}</span>}</td>
+                        <td><KeyDelivery terminal={x} /></td>
                         <td className="small nowrap">{ago(x.last_seen)}</td>
                         <td className="small">{x.registered_by || '-'}</td>
                         <td className="actions">
