@@ -5,11 +5,12 @@ import { Icon, type IconName } from '../components/Icon';
 import { LoadState } from '../components/LoadState';
 import { useLoad } from '../components/useLoad';
 import { useI18n } from '../i18n';
+import { InfraBoard } from './InfraBoard';
 import { MODULES } from './modules';
 import { Breakdown, StatTiles } from './SummaryTiles';
 
-// Admin dashboard: headline numbers, system health, desktops by state, quick actions and
-// the modules (the console's home, pxvdi's module desktop in a quieter form).
+// Admin dashboard: headline numbers, the infrastructure monitoring panels (InfraBoard),
+// system health, desktops by state, quick actions and the modules.
 export function AdminHome() {
   const { t } = useI18n();
   const summary = useLoad(adminApi.summary);
@@ -30,6 +31,7 @@ export function AdminHome() {
         {(s) => (
           <>
             <StatTiles s={s} />
+            <InfraBoard />
             <div className="dash-grid">
               <Health s={s} />
               <section className="card">

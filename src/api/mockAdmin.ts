@@ -260,6 +260,48 @@ export const mockAdminApi: AdminApi = {
     return delay(undefined);
   },
   deleteBackupJob: (_cid, jobId) => { mockJobs.splice(mockJobs.findIndex((j) => j.id === jobId), 1); return delay(undefined); },
+  infra: (cid, range) => {
+    if (cid !== CLUSTER.id) return fail(404, 'Cluster not found');
+    const GB = 1024 ** 3, TB = 1024 ** 4;
+    const [days, step] = range === '24h' ? [1, 300] : range === '7d' ? [7, 3600] : [30, 4 * 3600];
+    const end = Math.floor(Date.now() / 1000 / step) * step, n = Math.floor((days * 86400) / step);
+    const ts = Array.from({ length: n + 1 }, (_, i) => end - (n - i) * step);
+    // a working-day curve: busy 9-18 h on weekdays, quiet at night
+    const load = (t: number, base: number, amp: number, seed: number) => {
+      const d = new Date(t * 1000), h = d.getHours() + d.getMinutes() / 60, wd = d.getDay() % 6 !== 0;
+      const day = wd && h >= 8 && h <= 19 ? Math.sin(((h - 8) / 11) * Math.PI) : 0;
+      return Math.max(1, Math.min(99, base + amp * day + 4 * Math.sin(t / 1700 + seed) + 2 * Math.sin(t / 333 + seed * 3)));
+    };
+    const nodeBase: Record<string, [number, number, number]> = { pve1: [14, 38, 1], pve2: [9, 24, 2], pve3: [22, 52, 3] };
+    const node_history = Object.fromEntries(Object.entries(nodeBase).map(([nn, [b, a, s]]) =>
+      [nn, ts.map((t) => ({ ts: t, cpu: +load(t, b, a, s).toFixed(1), mem: +load(t, 35 + b, a / 2, s + 1).toFixed(1) }))]));
+    const history = ts.map((t, i) => {
+      const cpu = Object.values(node_history).reduce((a, h) => a + h[i].cpu, 0) / 3;
+      const mem = Object.values(node_history).reduce((a, h) => a + h[i].mem, 0) / 3;
+      return { ts: t, cpu_pct: +cpu.toFixed(1), mem_pct: +mem.toFixed(1), vms_running: Math.round(14 + cpu / 6) };
+    });
+    const sessions = ts.map((t) => ({ ts: t, sessions: Math.round(load(t, 0, 9, 5) / 1.2) }));
+    const lastNode = (nn: string) => node_history[nn][node_history[nn].length - 1];
+    return delay({
+      cluster_id: cid, range, step, connected: true,
+      health: { score: 86, band: 'good', issues: ['pve3: memory 82% (above 80%)', 'pbs-offsite: last verify 9 days ago'] },
+      nodes: (['pve1', 'pve2', 'pve3'] as const).map((nn, i) => ({
+        name: nn, status: 'online', cpu_pct: lastNode(nn).cpu, mem_pct: lastNode(nn).mem,
+        mem_used: Math.round((lastNode(nn).mem / 100) * [256, 256, 512][i]) * GB, mem_total: [256, 256, 512][i] * GB,
+        disk_pct: [19, 22, 31][i], uptime: 86400 * (12 + i * 5), netin: 0, netout: 0 })),
+      history, node_history, sessions,
+      storages: [
+        { storage: 'ceph-vm', node: null, type: 'rbd', used: 41 * TB, total: 64 * TB },
+        { storage: 'pbs-lab', node: null, type: 'pbs', used: 3.1 * TB, total: 16 * TB },
+        { storage: 'nfs-iso', node: null, type: 'nfs', used: 1.4 * TB, total: 8 * TB },
+        { storage: 'local-lvm', node: 'pve3', type: 'lvmthin', used: 0.6 * TB, total: 1.8 * TB },
+      ],
+      alerts: [
+        { id: 7, severity: 'warning', message: 'Memory above 80%', target_type: 'node', target_name: 'pve3', metric: 'mem',
+          triggered_at: new Date(Date.now() - 42 * 60e3).toISOString(), acked_at: null },
+      ],
+    });
+  },
   pbsServers: () => delay([
     { id: 'pbs1', name: 'PBS 본사', host: '10.20.0.40', port: 8007, enabled: true, connected: true },
     { id: 'pbs2', name: 'PBS 원격지', host: '10.30.0.40', port: 8007, enabled: true, connected: false },

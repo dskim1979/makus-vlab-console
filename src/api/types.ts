@@ -259,3 +259,21 @@ export type ClusterStorage = {
   storage: string; type: string; shared: boolean; content: string[]; status: string;
   used: number; total: number; nodes: string[];
 };
+
+// GET /api/vlab/admin/clusters/<id>/infra - the dashboard's monitoring panels
+export type InfraRange = '24h' | '7d' | '30d';
+export interface InfraNode {
+  name: string; status: string; cpu_pct: number; mem_pct: number; mem_used: number; mem_total: number;
+  disk_pct: number; uptime: number; netin: number; netout: number;
+}
+export interface Infra {
+  cluster_id: string; range: InfraRange; step: number; connected: boolean;
+  health: { score: number | null; band: string | null; issues: string[] };
+  nodes: InfraNode[];
+  history: { ts: number; cpu_pct: number; mem_pct: number; vms_running: number }[];
+  node_history: Record<string, { ts: number; cpu: number; mem: number }[]>;
+  sessions: { ts: number; sessions: number }[];
+  storages: { storage: string; node: string | null; type: string; used: number; total: number }[];
+  alerts: { id: number | string; severity: string; message: string; target_type: string; target_name: string;
+    metric: string; triggered_at: string; acked_at: string | null }[];
+}

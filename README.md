@@ -28,7 +28,7 @@ GPU·vGPU·FPGA 카드가 붙은 데스크톱은 카드에 표시됩니다.
 
 | | |
 |---|---|
-| **대시보드** — 클러스터·풀·데스크톱·세션·사용자 숫자, 시스템 상태, 빠른 작업 | **데스크톱(VM) 관리** — 사용량, 전원(한 대씩·여러 대 한 번에) |
+| **대시보드** — 숫자 요약과 인프라 모니터링: 상태 점수, CPU·메모리·VM·접속 추이(24시간·7일·30일), 노드별 CPU, 노드·스토리지, 활성 경보 | **데스크톱(VM) 관리** — 사용량, 전원(한 대씩·여러 대 한 번에) |
 | ![대시보드](docs/images/admin-dashboard.png) | ![데스크톱 VM](docs/images/desktop-vms.png) |
 | **GPU·가속 카드 재고** — NVIDIA·AMD·Intel GPU, vGPU 가능 여부, FPGA 카드, 리소스 매핑, 사용 중인 VM | **카드 대여 현황** — GPU·FPGA 카드를 데스크톱에 기간을 정해 빌려주기, 연장·반납·자동 반납 |
 | ![가속 자원](docs/images/accel-inventory.png) | ![카드 대여](docs/images/card-loans.png) |

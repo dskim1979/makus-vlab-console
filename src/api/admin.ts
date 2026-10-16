@@ -1,7 +1,7 @@
 // Admin console calls: /api/vlab/admin/* only (makus-vlab pegaprox/api/vlab.py).
 import { ApiError, isMock, request } from './client';
 import { mockAdminApi } from './mockAdmin';
-import type { AdminDesktop, AssignableUser, AccelInventory, AdminLease, AuditPage, BackupJob, BackupStorage, Branding, BrandingSlot, PbsServer, VmBackup, PoolPolicy, PoolPolicyAnswer, AuditQuery, GpuApplyResult, GpuPolicy, VgpuProfile, PowerAction, ClusterNode, ClusterStorage, PlatformSettings, UsageReport, Directory, DirectoryTest, CloneResult, Cluster, Guest, NewCluster, Pool, PoolResetResult, PoolType, SessionRow, Summary, Template, UserAccess } from './types';
+import type { Infra, InfraRange, AdminDesktop, AssignableUser, AccelInventory, AdminLease, AuditPage, BackupJob, BackupStorage, Branding, BrandingSlot, PbsServer, VmBackup, PoolPolicy, PoolPolicyAnswer, AuditQuery, GpuApplyResult, GpuPolicy, VgpuProfile, PowerAction, ClusterNode, ClusterStorage, PlatformSettings, UsageReport, Directory, DirectoryTest, CloneResult, Cluster, Guest, NewCluster, Pool, PoolResetResult, PoolType, SessionRow, Summary, Template, UserAccess } from './types';
 
 // Calls that must succeed: a non-2xx answer throws with the engine's own message.
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -54,6 +54,8 @@ const realAdminApi = {
   deleteBackupJob: async (clusterId: string, jobId: string) => {
     await call('DELETE', `/api/vlab/admin/clusters/${enc(clusterId)}/backup/jobs/${enc(jobId)}`);
   },
+  infra: async (clusterId: string, range: InfraRange) =>
+    call<Infra>('GET', `/api/vlab/admin/clusters/${enc(clusterId)}/infra?range=${range}`),
   pbsServers: async () => call<PbsServer[]>('GET', '/api/vlab/admin/pbs'),
   desktopBackups: async (desktopId: string) => {
     const r = await call<{ backups?: VmBackup[] } | VmBackup[]>('GET', `/api/vlab/admin/desktops/${enc(desktopId)}/backups`);
