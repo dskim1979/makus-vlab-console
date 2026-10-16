@@ -1,4 +1,4 @@
-import type { AuthStatus, Branding, ConnectInfo, Desktop, KioskInfo, Lease, LoginResult, PowerAction, User } from './types';
+import type { AuthStatus, Branding, ClientConfig, ConnectInfo, Desktop, KioskInfo, Lease, LoginResult, PowerAction, User } from './types';
 import { mockApi } from './mock';
 
 export class ApiError extends Error {
@@ -123,6 +123,14 @@ const realApi = {
       'POST', '/api/vlab/kiosk/start', {}, { 'X-Terminal-Key': key });
     if (status !== 200) throw new ApiError(status, data?.code || data?.error || `HTTP ${status}`, data);
     return data;
+  },
+
+  // the Windows client to offer; null when the engine predates it
+  async clientConfig(): Promise<ClientConfig | null> {
+    try {
+      const { status, data } = await request<ClientConfig>('GET', '/api/vlab/client/config');
+      return status === 200 ? data : null;
+    } catch { return null; }
   },
 
   async myLeases(): Promise<Lease[]> {

@@ -182,6 +182,9 @@ export type ConnectInfo =
 
 export type PowerAction = 'start' | 'shutdown' | 'reboot' | 'stop';
 
+// GET /api/vlab/client/config: the Windows client to offer (set under the engine's client settings)
+export type ClientConfig = { latest_version: string; min_version: string; download_url: string; protocol: string; support_url: string };
+
 export type SessionRow = {
   id: string;
   username: string;

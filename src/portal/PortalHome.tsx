@@ -1,6 +1,7 @@
-import { lazy, Suspense, useCallback, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
-import type { Clipboard, Desktop, PowerAction } from '../api/types';
+import type { ClientConfig, Clipboard, Desktop, PowerAction } from '../api/types';
+import { BRAND } from '../brand';
 import { Icon } from '../components/Icon';
 import { LoadState } from '../components/LoadState';
 import { StateBadge } from '../components/StateBadge';
@@ -25,6 +26,8 @@ export function PortalHome() {
   const desktops = useLoad(api.myDesktops);
   const [view, setView] = useState<'grid' | 'list'>(savedView);
   const [help, setHelp] = useState(false);
+  const [client, setClient] = useState<ClientConfig | null>(null);
+  useEffect(() => { let live = true; api.clientConfig().then((c) => { if (live) setClient(c); }); return () => { live = false; }; }, []);
   const [open, setOpen] = useState<{ title: string; wsPath: string; password: string; sessionId: string; clipboard: Clipboard } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<{ id: string; text: string } | null>(null);
@@ -133,7 +136,9 @@ export function PortalHome() {
             <button type="button" className={`btn-ghost${help ? ' on' : ''}`} aria-expanded={help} onClick={() => setHelp((h) => !h)}>
               <Icon name="book" size={16} />{t('quick.help')}
             </button>
-            <span className="btn-ghost disabled" title={t('quick.clientDesc')}><Icon name="download" size={16} />{t('quick.client')}<span className="tag-soft tag">{t('quick.soon')}</span></span>
+            <a className="btn-ghost" href={client?.download_url || BRAND.clientDownload} target="_blank" rel="noopener noreferrer" title={t('quick.clientDesc')}>
+              <Icon name="download" size={16} />{t('quick.client')}{client?.latest_version && <span className="tag-soft tag">v{client.latest_version}</span>}
+            </a>
             <div className="seg" role="group" aria-label={t('portal.viewGrid')}>
               <button type="button" className={view === 'grid' ? 'on' : ''} aria-pressed={view === 'grid'}
                 title={t('portal.viewGrid')} aria-label={t('portal.viewGrid')} onClick={() => pickView('grid')}><Icon name="grid" size={16} /></button>

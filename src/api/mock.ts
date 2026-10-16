@@ -78,6 +78,9 @@ export const mockApi: Api = {
   },
   async logout() { current = null; save(null); },
   async myDesktops() { return delay(desktops); },
+  async clientConfig() {
+    return delay({ latest_version: '0.9.0', min_version: '', download_url: '', protocol: 'auto', support_url: 'https://support.makussystems.co.kr/' });
+  },
   async myLeases() { return delay(leases); },
   async kiosk(key) {
     if (!key.startsWith('mdt_')) throw new ApiError(401, 'BAD_KEY');
