@@ -1,4 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { adminApi } from '../api/admin';
+import type { Summary } from '../api/types';
+import { useAuth } from '../auth/AuthContext';
 import { BRAND, ENGINE_NOTICE } from '../brand';
 import { useI18n } from '../i18n';
 import { useBranding, useSupportUrl } from '../branding';
@@ -9,6 +12,13 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
   const ref = useRef<HTMLDialogElement>(null);
   const { b } = useBranding();
   const support = useSupportUrl();
+  const { isAdmin } = useAuth();
+  const [versions, setVersions] = useState<Summary['versions'] | null>(null);
+  // admins see the engine's version too (the summary call is theirs only)
+  useEffect(() => {
+    if (!open || !isAdmin || versions) return;
+    adminApi.summary().then((s) => setVersions(s.versions)).catch(() => setVersions(null));
+  }, [open, isAdmin, versions]);
 
   useEffect(() => {
     const d = ref.current;
@@ -27,8 +37,11 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
         </div>
       </div>
       <dl className="about-list">
-        {!b.hideVersion && <><dt>{t('about.version')}</dt>
-        <dd>{__APP_VERSION__}</dd></>}
+        {!b.hideVersion && <><dt>{t('sum.console')}</dt><dd>{__APP_VERSION__}</dd></>}
+        {!b.hideVersion && versions && <>
+          <dt>{t('sum.engine')}</dt><dd>{versions.engine} · Desk API {versions.vlab_api}</dd>
+          {versions.build && <><dt>{t('sum.build')}</dt><dd>{versions.build}</dd></>}
+        </>}
         <dt>{t('sup.remote')}</dt><dd><a href={support} target="_blank" rel="noopener noreferrer">{support}</a></dd>
         {b.docsUrl && <><dt>{t('wl.docs')}</dt><dd><a href={b.docsUrl} target="_blank" rel="noreferrer">{b.docsUrl}</a></dd></>}
         <dt>{t('about.engine')}</dt>

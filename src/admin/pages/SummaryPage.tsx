@@ -2,7 +2,6 @@ import { adminApi } from '../../api/admin';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
-import { ENGINE_NOTICE } from '../../brand';
 import { useI18n } from '../../i18n';
 import { Breakdown, StatTiles } from '../SummaryTiles';
 
@@ -19,24 +18,8 @@ export function SummaryPage() {
         {(s) => (
           <>
             <StatTiles s={s} />
-            <div className="sum-row">
             <Breakdown s={s} />
-            <section className="panel versions">
-              <h2 className="section-title">{t('sum.versions')}</h2>
-              <dl className="about-list">
-                <dt>{t('sum.console')}</dt><dd>{__APP_VERSION__}</dd>
-                <dt>{t('sum.engine')}</dt><dd>{s.versions.engine} · Desk API {s.versions.vlab_api}</dd>
-                {s.versions.build && <><dt>{t('sum.build')}</dt><dd>{s.versions.build}</dd></>}
-                <dt>{t('about.engine')}</dt>
-                <dd>
-                  Powered by <a href={ENGINE_NOTICE.homepage} target="_blank" rel="noreferrer">{ENGINE_NOTICE.name}</a>
-                  {' · '}{ENGINE_NOTICE.copyright} · {ENGINE_NOTICE.license}
-                  <br />
-                  {t('about.source')}: <a href={ENGINE_NOTICE.source} target="_blank" rel="noreferrer">{ENGINE_NOTICE.source}</a>
-                </dd>
-              </dl>
-            </section>
-            </div>
+            <p className="muted small">{t('sum.aboutHint')}</p>
           </>
         )}
       </LoadState>

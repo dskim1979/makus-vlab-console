@@ -73,7 +73,7 @@ export const messages = {
   'nav.admin': { ko: '관리 콘솔', en: 'Admin console' },
   'nav.home': { ko: '홈', en: 'Home' },
   'nav.logout': { ko: '로그아웃', en: 'Sign out' },
-  'nav.about': { ko: '정보', en: 'About' },
+  'nav.about': { ko: '정보 (버전·라이선스)', en: 'About (version, licence)' },
 
   'portal.title': { ko: '내 데스크톱', en: 'My desktops' },
   'portal.resources': { ko: '내 자원', en: 'My resources' },
@@ -888,6 +888,7 @@ export const messages = {
   'hub.directory': { ko: '도메인(AD/LDAP)', en: 'Directory (AD/LDAP)' },
   'hub.branding': { ko: '화이트라벨', en: 'White label' },
   'hub.tabs': { ko: '설정 종류', en: 'Settings' },
+  'sum.aboutHint': { ko: '버전과 기반 기술은 오른쪽 위 사용자 메뉴의 "정보"에서 봅니다.', en: 'Versions and the base technology are under About in the user menu, top right.' },
   'about.close': { ko: '닫기', en: 'Close' },
 } as const;
 

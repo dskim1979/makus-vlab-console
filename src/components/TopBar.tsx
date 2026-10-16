@@ -70,9 +70,6 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
           onClick={() => setLang(lang === 'ko' ? 'en' : 'ko')}>
           <span className="tb-lang">{lang === 'ko' ? 'EN' : '한'}</span>
         </button>
-        <button type="button" className="tb-icon" title={t('nav.about')} aria-label={t('nav.about')} onClick={() => setAbout(true)}>
-          <Icon name="info" size={19} />
-        </button>
         <div className="tb-user" ref={ref}>
           <button type="button" className="tb-user-btn" aria-expanded={open} aria-haspopup="menu" onClick={() => setOpen((o) => !o)}>
             <span className="avatar" aria-hidden="true">{initials(name)}</span>
