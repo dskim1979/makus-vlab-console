@@ -28,7 +28,24 @@ export function AccessPage({ username }: { username?: string }) {
           ))}
         </select>
       </div>
-      {username ? <AccessDetail key={username} username={username} /> : <p className="muted">{t('access.hint')}</p>}
+      {username ? <AccessDetail key={username} username={username} /> : (
+        <section className="panel access-pick">
+          <p className="muted">{t('access.hint')}</p>
+          {users.state === 'ok' && (
+            <div className="access-users">
+              {users.data.map((u) => (
+                <Link key={u.username} to={`/admin/users/access/${encodeURIComponent(u.username)}`} className="access-user">
+                  <span className="avatar" aria-hidden="true">{(u.display_name || u.username).slice(0, 2).toUpperCase()}</span>
+                  <span className="access-user-text">
+                    <span className="strong">{u.display_name || u.username}</span>
+                    <span className="muted small">{u.username} · {roleLabel(t, u.role)}{u.enabled === false ? ` · ${t('users.disabled')}` : ''}</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
     </>
   );
 }
