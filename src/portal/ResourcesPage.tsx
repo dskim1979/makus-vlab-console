@@ -1,4 +1,6 @@
 import { api } from '../api/client';
+import { nextApi } from '../api/next';
+import { BuildJobsPanel } from '../admin/pages/NextPages';
 import { Icon } from '../components/Icon';
 import { LoadState } from '../components/LoadState';
 import { useLoad } from '../components/useLoad';
@@ -8,6 +10,7 @@ import { useI18n } from '../i18n';
 export function ResourcesPage() {
   const { t, lang } = useI18n();
   const leases = useLoad(api.myLeases);
+  const jobs = useLoad(nextApi.myJobs);
   return (
     <main className="page">
       <div className="page-head">
@@ -39,6 +42,7 @@ export function ResourcesPage() {
           )}
         </LoadState>
       )}
+      {jobs.state === 'ok' && jobs.data.pools.length > 0 && <BuildJobsPanel pools={jobs.data.pools} />}
     </main>
   );
 }

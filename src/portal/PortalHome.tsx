@@ -11,6 +11,7 @@ import { useI18n } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
 import { DesktopCard, relativeTime } from './DesktopCard';
 import { ExternalDesktops } from './ExternalDesktops';
+import { MyPools } from './MyPools';
 
 // noVNC is only loaded when a console is opened
 const ConsoleWindow = lazy(() => import('./ConsoleWindow'));
@@ -39,12 +40,21 @@ export function PortalHome() {
     try { localStorage.setItem(VIEW_KEY, v); } catch { /* per-browser convenience only */ }
   }
 
-  async function connect(d: Desktop, protocol: 'vnc' | 'spice') {
+  async function connect(d: Desktop, protocol: 'vnc' | 'spice' | 'rdp' | 'guac') {
     setBusy(d.id); setError(null); setHint(null);
     try {
       const c = await api.connect(d.id, protocol);
       if (c.type === 'vnc') {
         setOpen({ title: d.name, wsPath: c.ws_path, password: c.password, sessionId: c.session_id, clipboard: c.clipboard ?? 'both' });
+      } else if (c.type === 'guac') {
+        window.open(c.url, '_blank', 'noopener');
+        setHint({ id: d.id, text: t('portal.guacHint') });
+      } else if (c.type === 'rdp') {
+        const url = URL.createObjectURL(new Blob([c.rdp], { type: 'application/x-rdp' }));
+        const a = document.createElement('a');
+        a.href = url; a.download = c.filename; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        setHint({ id: d.id, text: t('portal.rdpHint') });
       } else {
         // the .vv carries a one-time ticket: hand it straight to the browser as a download
         const url = URL.createObjectURL(new Blob([c.vv], { type: 'application/x-virt-viewer' }));
@@ -61,6 +71,7 @@ export function PortalHome() {
         [4000, 10000, 20000].forEach((ms) => setTimeout(() => desktops.reload(), ms));
         return;
       }
+      if (code === 'NO_IP' || code === 'NO_GATEWAY') { setError({ id: d.id, text: t(`portal.err.${code}` as MessageKey) }); return; }
       const known = code === 'VM_STOPPED' || code === 'NO_SPICE';
       setError({ id: d.id, text: known ? t(`portal.err.${code}` as MessageKey) : `${t('portal.err.generic')}: ${code}` });
     } finally {
@@ -223,6 +234,7 @@ export function PortalHome() {
             }}
           </LoadState>
         )}
+        <MyPools onOpen={(id) => { desktops.reload(); setTimeout(() => document.getElementById(`dtile-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 600); }} />
         <ExternalDesktops />
       </div>
 

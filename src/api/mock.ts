@@ -106,6 +106,12 @@ export const mockApi: Api = {
       setTimeout(() => { d.state = 'ready'; }, 2500);   // the mock desktop comes up
       throw new ApiError(409, 'STARTING');
     }
+    if (protocol === 'rdp') {
+      return delay({ type: 'rdp' as const, filename: `${d.name}.rdp`, session_id: 'mock-sess', rdp: 'full address:s:10.20.3.41:3389\r\nusername:s:alice\r\n' });
+    }
+    if (protocol === 'guac') {
+      return delay({ type: 'guac' as const, session_id: 'mock-sess', url: 'https://guac.univ.ac.kr:8443/guacamole/?data=mock' });
+    }
     if (protocol === 'spice') {
       return delay({ type: 'spice' as const, filename: `${d.name}.vv`, session_id: 'mock-sess',
         vv: '[virt-viewer]\ntype=spice\nhost=mock.invalid\npassword=mock\nproxy=http://mock.invalid:3128\n' });

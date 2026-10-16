@@ -79,8 +79,8 @@ function PolicyWizard({ pool, initial, resetAllowed, onClose, onSaved }: {
     finally { setBusy(false); }
   }
 
-  const toggleProto = (x: 'vnc' | 'spice') =>
-    set('protocols', p.protocols.includes(x) ? p.protocols.filter((y) => y !== x) : (['vnc', 'spice'] as const).filter((y) => y === x || p.protocols.includes(y)));
+  const toggleProto = (x: 'vnc' | 'spice' | 'rdp' | 'guac') =>
+    set('protocols', p.protocols.includes(x) ? p.protocols.filter((y) => y !== x) : (['vnc', 'spice', 'rdp', 'guac'] as const).filter((y) => y === x || p.protocols.includes(y)));
 
   return (
     <Dialog open wide title={`${t('pol.title')} · ${pool.name}`} onClose={onClose} onSubmit={next}
@@ -100,7 +100,7 @@ function PolicyWizard({ pool, initial, resetAllowed, onClose, onSaved }: {
         <div className="wiz-body">
           <span className="field-label">{t('pol.protocols')}</span>
           <div className="mode-cards mode-cards-2">
-            {(['vnc', 'spice'] as const).map((x) => (
+            {(['vnc', 'spice', 'rdp', 'guac'] as const).map((x) => (
               <label key={x} className={`mode-card${p.protocols.includes(x) ? ' on' : ''}`}>
                 <input type="checkbox" checked={p.protocols.includes(x)} onChange={() => toggleProto(x)} aria-label={t(`pol.${x}` as MessageKey)} />
                 <span className="strong">{t(`pol.${x}` as MessageKey)}</span>

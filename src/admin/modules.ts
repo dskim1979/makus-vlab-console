@@ -71,7 +71,7 @@ export const MODULES: AdminModule[] = [
   {
     id: 'accel', icon: 'gpu', tone: 'green', vlabOnly: true,
     label: { ko: '가속 자원', en: 'Accelerators' },
-    summary: { ko: 'GPU·vGPU, FPGA·NPU 카드, 리소스 매핑, 대여, 보드 LAB, 빌드 팜, 라이선스', en: 'GPU and vGPU, FPGA cards, resource mappings, loans, board lab, build farm, licences' },
+    summary: { ko: 'GPU·vGPU, FPGA·NPU 카드, 리소스 매핑, 대여, 보드 LAB, 빌드 팜·작업 큐, 라이선스, 사용 보고서', en: 'GPU and vGPU, FPGA cards, resource mappings, loans, board lab, build farm, licences' },
     pages: [
       { id: 'inventory', label: { ko: 'GPU·가속 카드 재고', en: 'GPU and card inventory' }, phase: 1 },
       { id: 'vgpu', label: { ko: 'vGPU 프로필', en: 'vGPU profiles' }, phase: 1 },
@@ -80,6 +80,7 @@ export const MODULES: AdminModule[] = [
       { id: 'boards', label: { ko: '보드 LAB(JTAG)', en: 'Board lab (JTAG)' }, phase: 1 },
       { id: 'buildfarm', label: { ko: '빌드 팜', en: 'Build farm' }, phase: 1 },
       { id: 'licenses', label: { ko: '라이선스 서버', en: 'License servers' }, phase: 1 },
+      { id: 'usage', label: { ko: '카드 사용 보고서', en: 'Card usage report' }, phase: 1 },
     ],
   },
   {

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { adminApi } from '../../api/admin';
 import { nextApi } from '../../api/next';
-import type { Board, ClientSettings, Department, ExternalDesktop, Gateway, GatewayKind, GoldenImage, LicenseServer, Signup, SignupStatus, UsbCategory, UsbDevice } from '../../api/next';
+import type { Board, BuildJob, CardRow, ClientSettings, Department, ExternalDesktop, Gateway, GatewayKind, GoldenImage, JobStatus, LicenseServer, RolloutResult, Signup, SignupStatus, UsbCategory, UsbDevice } from '../../api/next';
 import { Dialog } from '../../components/Dialog';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
@@ -42,6 +42,7 @@ export function GoldenImagesPage() {
   const [adding, setAdding] = useState(false);
   const [versionOf, setVersionOf] = useState<GoldenImage | null>(null);
   const [deployOf, setDeployOf] = useState<GoldenImage | null>(null);
+  const [rollOf, setRollOf] = useState<{ image: GoldenImage; pool_id: string; pool: string; outdated: number } | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
 
   async function act(fn: () => Promise<unknown>, ok?: string) {
@@ -80,6 +81,20 @@ export function GoldenImagesPage() {
                     <div><dt>{L('쓰는 풀', 'Pools')}</dt><dd>{g.pools.length ? g.pools.join(', ') : '-'}</dd></div>
                   </dl>
                   {g.notes && <p className="muted small lab-desc">{g.notes}</p>}
+                  {g.rollout && g.rollout.length > 0 && (
+                    <ul className="ver-list rollout-list">
+                      {g.rollout.map((r) => (
+                        <li key={r.pool_id}>
+                          <span className="strong">{r.pool}</span>
+                          <span className="muted small">{r.outdated
+                            ? L(`${r.total}대 중 ${r.outdated}대가 예전 버전`, `${r.outdated} of ${r.total} on an older version`)
+                            : L(`${r.total}대 모두 최신`, `all ${r.total} current`)}</span>
+                          {r.outdated > 0 ? <button type="button" className="btn small-btn primary" onClick={() => setRollOf({ image: g, ...r })}>{L('새 버전으로 교체', 'Roll out')}</button>
+                            : <span className="chip chip-on">{L('최신', 'current')}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   {g.versions && g.versions.length > 0 && (
                     <ul className="ver-list">
                       {g.versions.slice(0, 4).map((v) => (
@@ -106,6 +121,12 @@ export function GoldenImagesPage() {
           )}
           {adding && <AddGoldenDialog onClose={() => setAdding(false)} onDone={() => { setAdding(false); images.reload(); }} />}
           {versionOf && <VersionDialog image={versionOf} onClose={() => setVersionOf(null)} onDone={(v) => { setVersionOf(null); images.reload(); setNotice({ kind: 'info', text: L(`새 버전 ${v}을(를) 만들었습니다.`, `Made version ${v}.`) }); }} />}
+          {rollOf && <RolloutDialog target={rollOf} onClose={() => setRollOf(null)} onDone={(r) => {
+            setRollOf(null); images.reload();
+            setNotice({ kind: r.failed ? 'error' : 'info', text: L(`${r.replaced.length}대를 새 버전으로 바꿨습니다.`, `Replaced ${r.replaced.length} desktops.`)
+              + (r.skipped.length ? L(` 접속 중이라 건너뜀: ${r.skipped.join(', ')}`, ` Skipped (in use): ${r.skipped.join(', ')}`) : '')
+              + (r.failed ? L(` 실패: ${r.failed.name} (${r.failed.error})`, ` Failed: ${r.failed.name} (${r.failed.error})`) : '') });
+          }} />}
           {deployOf && <DeployDialog image={deployOf} onClose={() => setDeployOf(null)} onDone={(n) => { setDeployOf(null); images.reload(); setNotice({ kind: 'info', text: L(`데스크톱 ${n}대를 만들고 있습니다.`, `Creating ${n} desktops.`) }); }} />}
         </>
       )}
@@ -196,6 +217,29 @@ function DeployDialog({ image, onClose, onDone }: { image: GoldenImage; onClose:
   );
 }
 
+function RolloutDialog({ target, onClose, onDone }: { target: { image: GoldenImage; pool_id: string; pool: string; outdated: number }; onClose: () => void; onDone: (r: RolloutResult) => void }) {
+  const { L } = useL();
+  const [deleteOld, setDeleteOld] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function submit() {
+    setBusy(true); setError(null);
+    try { onDone(await nextApi.rollout(target.image.id, { pool_id: target.pool_id, delete_old: deleteOld })); } catch (e) { setError(errText(e)); } finally { setBusy(false); }
+  }
+  return (
+    <Dialog open title={L(`${target.pool}: 새 버전으로 교체`, `${target.pool}: roll out`)} onClose={onClose} onSubmit={submit} submitLabel={L('교체 시작', 'Start')} busy={busy} error={error}>
+      <p>{L(`예전 버전 데스크톱 ${target.outdated}대를 ${target.image.current_version}에서 새로 복제한 데스크톱으로 바꿉니다. 사용자 배정과 권한은 그대로 옮겨집니다.`,
+        `${target.outdated} desktops on an older version are replaced by fresh clones of ${target.image.current_version}; users and permissions move over.`)}</p>
+      <ul className="muted small">
+        <li>{L('지금 접속 중인 데스크톱은 건너뜁니다. 나중에 다시 실행하면 됩니다.', 'Desktops in use are skipped; run it again later.')}</li>
+        <li>{L('한 번에 최대 20대씩 교체합니다.', 'At most 20 per run.')}</li>
+        <li>{L('예전 데스크톱 안의 사용자 파일은 옮겨지지 않습니다. 필요하면 먼저 백업하세요.', 'Files inside the old desktops do not move; back them up first if needed.')}</li>
+      </ul>
+      <label className="check"><input id="ro-del" type="checkbox" checked={deleteOld} onChange={(e) => setDeleteOld(e.target.checked)} /><span>{L('교체 후 예전 VM 삭제', 'Delete the old VMs afterwards')}</span></label>
+    </Dialog>
+  );
+}
+
 // --- 데스크톱 풀 > 게이트웨이 ------------------------------------------------------
 
 const GW_KINDS: { id: GatewayKind; ko: string; en: string; port: number }[] = [
@@ -269,11 +313,14 @@ function GatewayDialog({ gw, onClose, onDone }: { gw: Gateway | null; onClose: (
   const [port, setPort] = useState(gw?.port ?? 443);
   const [notes, setNotes] = useState(gw?.notes ?? '');
   const [enabled, setEnabled] = useState(gw ? !!gw.enabled : true);
+  const [key, setKey] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const newKey = () => setKey(Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join(''));
   async function submit() {
     setBusy(true); setError(null);
-    try { await nextApi.saveGateway(gw?.id ?? null, { name, kind, address, port, notes, enabled }); onDone(); } catch (e) { setError(errText(e)); } finally { setBusy(false); }
+    try { await nextApi.saveGateway(gw?.id ?? null, { name, kind, address, port, notes, enabled, ...(kind === 'guacamole' && key ? { secret_key: key } : {}) }); onDone(); }
+    catch (e) { setError(errText(e)); } finally { setBusy(false); }
   }
   return (
     <Dialog open title={gw ? L('게이트웨이 편집', 'Edit gateway') : L('게이트웨이 추가', 'Add gateway')} onClose={onClose} onSubmit={submit} submitLabel={L('저장', 'Save')} busy={busy || !name || !address} error={error}>
@@ -286,6 +333,18 @@ function GatewayDialog({ gw, onClose, onDone }: { gw: Gateway | null; onClose: (
         <label><span>{L('주소 (도메인 또는 IP)', 'Address')}</span><input id="gw-addr" value={address} placeholder="rdgw.example.com" onChange={(e) => setAddress(e.target.value.trim())} /></label>
         <label><span>{L('포트', 'Port')}</span><input id="gw-port" type="number" min={1} max={65535} value={port} onChange={(e) => setPort(Number(e.target.value) || 0)} /></label>
       </div>
+      {kind === 'guacamole' && (
+        <>
+          <label><span>{L('공유 키 (guacamole-auth-json, 16진수 32자)', 'Shared key (guacamole-auth-json, 32 hex)')}</span>
+            <div className="input-with-btn">
+              <input id="gw-key" value={key} maxLength={32} placeholder={gw?.has_key ? L('저장됨 — 바꿀 때만 입력', 'Saved; type only to change') : '4c0b569e4c96df157eee1b65dd0e4d41'}
+                onChange={(e) => setKey(e.target.value.trim().toLowerCase())} />
+              <button type="button" className="btn small-btn" onClick={newKey}>{L('새로 만들기', 'Generate')}</button>
+            </div></label>
+          <p className="muted small">{L('같은 키를 Guacamole 서버의 guacamole.properties에 json-secret-key로 넣으세요. 이 키가 있어야 포털에서 브라우저 RDP 링크를 만듭니다.',
+            'Put the same key in the Guacamole server\'s guacamole.properties as json-secret-key. The portal needs it to make browser RDP links.')}</p>
+        </>
+      )}
       <label><span>{L('메모', 'Notes')}</span><input id="gw-notes" value={notes} maxLength={300} onChange={(e) => setNotes(e.target.value)} /></label>
       <label className="check"><input id="gw-on" type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /><span>{L('사용', 'Enabled')}</span></label>
     </Dialog>
@@ -686,19 +745,21 @@ export function BoardsPage() {
             { label: L('보드', 'Boards'), value: String(list.length) },
             { label: L('연결됨', 'Attached'), value: String(list.filter((b) => b.attached_desktop).length), tone: 'ok' },
             { label: L('빈 보드', 'Free'), value: String(list.filter((b) => !b.attached_desktop).length) },
+            { label: L('기한 대여', 'On a loan'), value: String(list.filter((b) => b.lease_until).length) },
           ]} />
           <NoticeBar notice={notice} />
           {list.length === 0 ? <div className="empty"><p>{L('등록된 보드가 없습니다.', 'No boards yet.')}</p></div> : (
             <div className="table-scroll"><table className="table compact-head">
-              <thead><tr><th>{L('보드', 'Board')}</th><th>{L('노드', 'Node')}</th><th>USB</th><th>{L('연결된 데스크톱', 'Desktop')}</th><th>{L('사용자', 'User')}</th><th>{L('연결 시각', 'Since')}</th><th className="actions" /></tr></thead>
+              <thead><tr><th>{L('보드', 'Board')}</th><th>{L('노드', 'Node')}</th><th>USB</th><th>{L('연결된 데스크톱', 'Desktop')}</th><th>{L('사용자', 'User')}</th><th>{L('연결 시각', 'Since')}</th><th>{L('반납 예정', 'Returns')}</th><th className="actions" /></tr></thead>
               <tbody>{list.map((b) => (
                 <tr key={b.id}>
                   <td className="strong">{b.name}{b.kind && <div className="muted small">{b.kind}{b.notes ? ` · ${b.notes}` : ''}</div>}</td>
                   <td>{b.node}</td>
                   <td><code className="code">{b.usb}</code></td>
                   <td>{b.desktop ? b.desktop.name : <span className="chip chip-free">{L('비어 있음', 'free')}</span>}</td>
-                  <td>{b.desktop?.assigned_user ?? '-'}</td>
+                  <td>{b.lease_user || b.desktop?.assigned_user || '-'}</td>
                   <td className="muted small">{when(b.attached_at)}</td>
+                  <td className="small">{b.lease_until ? <span className="chip chip-accent">{when(b.lease_until)}</span> : <span className="muted">{b.attached_desktop ? L('기한 없음', 'no end') : '-'}</span>}</td>
                   <td className="actions">
                     {b.attached_desktop
                       ? <button type="button" className="btn small-btn" onClick={async () => { try { await nextApi.detachBoard(b.id); boards.reload(); } catch (e) { setNotice({ kind: 'error', text: errText(e) }); } }}>{L('분리', 'Detach')}</button>
@@ -762,12 +823,17 @@ function AttachDialog({ board, onClose, onDone }: { board: Board; onClose: () =>
   const { L } = useL();
   const desks = useLoad(adminApi.desktops);
   const [desk, setDesk] = useState('');
+  const [until, setUntil] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const list = desks.state === 'ok' ? desks.data.filter((d) => (!d.cluster_id || d.cluster_id === board.cluster_id) && d.node === board.node) : [];
+  const chosen = list.find((d) => d.id === desk);
+  const later = (days: number) => { const t = new Date(Date.now() + days * 86400000); t.setHours(18, 0, 0, 0);
+    return new Date(t.getTime() - t.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
   async function submit() {
     setBusy(true); setError(null);
-    try { await nextApi.attachBoard(board.id, desk); onDone(); } catch (e) { setError(errText(e)); } finally { setBusy(false); }
+    try { await nextApi.attachBoardFor(board.id, { desktop_id: desk, lease_user: chosen?.assigned_user ?? '', ...(until ? { lease_until: until } : {}) }); onDone(); }
+    catch (e) { setError(errText(e)); } finally { setBusy(false); }
   }
   return (
     <Dialog open title={L(`${board.name} 연결`, `Attach ${board.name}`)} onClose={onClose} onSubmit={submit} submitLabel={L('연결', 'Attach')} busy={busy || !desk} error={error}>
@@ -777,6 +843,13 @@ function AttachDialog({ board, onClose, onDone }: { board: Board; onClose: () =>
           <option value="">{L('고르세요', 'Pick one')}</option>
           {list.map((d) => <option key={d.id} value={d.id}>{d.name}{d.assigned_user ? ` · ${d.assigned_user}` : ''}</option>)}
         </select></label>
+      <label><span>{L('대여 기간 (이때 자동으로 분리)', 'Loan ends (detached automatically)')}</span>
+        <input id="att-until" type="datetime-local" value={until} onChange={(e) => setUntil(e.target.value)} /></label>
+      <div className="chip-row">
+        {[1, 3, 7, 14].map((n) => <button key={n} type="button" className="btn-ghost small-btn" onClick={() => setUntil(later(n))}>{L(`${n}일`, `${n} d`)}</button>)}
+        <button type="button" className="btn-ghost small-btn" onClick={() => setUntil('')}>{L('기한 없음', 'No end')}</button>
+      </div>
+      <p className="muted small">{L('기간이 끝나면 보드를 데스크톱에서 떼어 다음 사람이 쓸 수 있게 합니다.', 'When the loan ends the board comes off the desktop for the next person.')}</p>
     </Dialog>
   );
 }
@@ -817,6 +890,151 @@ export function BuildFarmPage() {
               </table></div>
             </section>
           ))}
+          {pools.length > 0 && <BuildJobsPanel pools={pools.map((p) => ({ id: p.id, name: p.name }))} admin />}
+        </>
+      )}
+    </LoadState>
+  );
+}
+
+const JOB_TONE: Record<JobStatus, string> = { queued: 'chip', running: 'chip chip-accent', done: 'chip chip-on', failed: 'chip chip-warn', cancelled: 'chip' };
+
+// 빌드 작업 큐: commands that run on a free build VM, one job per VM, oldest first.
+// Shared by the build farm page (every job, submit for anyone) and the portal (one's own).
+export function BuildJobsPanel({ pools, admin = false }: { pools: { id: string; name: string }[]; admin?: boolean }) {
+  const { L, when } = useL();
+  const jobs = useLoad(() => admin ? nextApi.buildJobs().then((r) => r.jobs) : nextApi.myJobs().then((r) => r.jobs), [admin]);
+  const [adding, setAdding] = useState(false);
+  const [open, setOpen] = useState<BuildJob | null>(null);
+  const [notice, setNotice] = useState<Notice>(null);
+  const S: Record<JobStatus, string> = { queued: L('대기', 'queued'), running: L('실행 중', 'running'), done: L('완료', 'done'), failed: L('실패', 'failed'), cancelled: L('취소', 'cancelled') };
+  async function cancel(j: BuildJob) {
+    try { await (admin ? nextApi.cancelJob(j.id) : nextApi.myCancelJob(j.id)); jobs.reload(); } catch (e) { setNotice({ kind: 'error', text: errText(e) }); }
+  }
+  const list = jobs.state === 'ok' ? jobs.data : [];
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <span className="stat-icon tone-green"><Icon name="list" size={18} /></span>
+        <div>
+          <h2 className="section-title">{L('빌드 작업 큐', 'Build job queue')}</h2>
+          <p className="muted small" style={{ margin: 0 }}>{L('합성 · 구현 같은 긴 빌드를 큐에 넣으면 빈 빌드 VM에서 차례로 돌립니다. 결과와 마지막 출력이 여기에 남습니다.',
+            'Queue long builds (synthesis, implementation); they run on free build VMs in turn and leave their result and last output here.')}</p>
+        </div>
+        <div className="panel-actions">
+          <button type="button" className="btn" onClick={jobs.reload}><Icon name="refresh" size={16} /></button>
+          <button type="button" className="btn primary" onClick={() => setAdding(true)}><Icon name="plus" size={16} />{L('작업 넣기', 'Queue a job')}</button>
+        </div>
+      </div>
+      <SettingsStatus items={(['queued', 'running', 'done', 'failed'] as JobStatus[]).map((k) => ({ label: S[k], value: String(list.filter((j) => j.status === k).length),
+        tone: k === 'failed' && list.some((j) => j.status === 'failed') ? 'warn' as const : k === 'running' ? 'ok' as const : undefined }))} />
+      <NoticeBar notice={notice} />
+      {list.length === 0 ? <div className="empty"><p>{L('작업이 없습니다.', 'No jobs.')}</p></div> : (
+        <div className="table-scroll"><table className="table compact-head">
+          <thead><tr><th>{L('작업', 'Job')}</th>{admin && <th>{L('사용자', 'User')}</th>}<th>{L('상태', 'State')}</th><th>{L('빌드 VM', 'Build VM')}</th><th>{L('넣은 시각', 'Queued')}</th><th>{L('끝난 시각', 'Finished')}</th><th className="actions" /></tr></thead>
+          <tbody>{list.map((j) => (
+            <tr key={j.id}>
+              <td className="strong">{j.name}<div className="muted small"><code className="code">{j.command}</code></div></td>
+              {admin && <td>{j.username}</td>}
+              <td><span className={JOB_TONE[j.status]}>{S[j.status]}{j.exit_code !== null && j.status !== 'done' ? ` · ${j.exit_code}` : ''}</span></td>
+              <td>{j.desktop ?? <span className="muted small">-</span>}</td>
+              <td className="muted small">{when(j.created_at)}</td>
+              <td className="muted small">{when(j.finished_at)}</td>
+              <td className="actions">
+                {(j.output || j.error) && <button type="button" className="btn-ghost small-btn" onClick={() => setOpen(j)}>{L('출력', 'Output')}</button>}
+                {j.status === 'queued' && <button type="button" className="btn-ghost small-btn danger" onClick={() => cancel(j)}>{L('취소', 'Cancel')}</button>}
+              </td>
+            </tr>))}</tbody>
+        </table></div>
+      )}
+      {adding && <JobDialog pools={pools} admin={admin} onClose={() => setAdding(false)} onDone={() => { setAdding(false); jobs.reload(); setNotice({ kind: 'info', text: L('큐에 넣었습니다. 빈 빌드 VM이 생기면 시작합니다.', 'Queued; it starts on the next free build VM.') }); }} />}
+      {open && (
+        <Dialog open title={L(`${open.name} 출력`, `${open.name}: output`)} onClose={() => setOpen(null)}>
+          <p className="muted small">{open.desktop} · {L('종료 코드', 'exit code')} {open.exit_code ?? '-'}</p>
+          <pre className="job-output">{open.error || open.output}</pre>
+        </Dialog>
+      )}
+    </section>
+  );
+}
+
+function JobDialog({ pools, admin, onClose, onDone }: { pools: { id: string; name: string }[]; admin: boolean; onClose: () => void; onDone: () => void }) {
+  const { L } = useL();
+  const [pool, setPool] = useState(pools[0]?.id ?? '');
+  const [name, setName] = useState('');
+  const [command, setCommand] = useState('');
+  const [workdir, setWorkdir] = useState('');
+  const [user, setUser] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function submit() {
+    setBusy(true); setError(null);
+    try {
+      const b = { pool_id: pool, name, command, workdir, ...(admin && user ? { username: user } : {}) };
+      await (admin ? nextApi.submitJob(b) : nextApi.mySubmitJob(b)); onDone();
+    } catch (e) { setError(errText(e)); } finally { setBusy(false); }
+  }
+  return (
+    <Dialog open title={L('빌드 작업 넣기', 'Queue a build job')} onClose={onClose} onSubmit={submit} submitLabel={L('큐에 넣기', 'Queue')} busy={busy || !pool || !name || !command} error={error}>
+      <label><span>{L('빌드 팜', 'Build farm')}</span>
+        <select id="job-pool" value={pool} onChange={(e) => setPool(e.target.value)}>{pools.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+      <label><span>{L('작업 이름', 'Name')}</span><input id="job-name" value={name} maxLength={80} placeholder={L('예: zcu102 비트스트림', 'e.g. zcu102 bitstream')} onChange={(e) => setName(e.target.value)} /></label>
+      <label><span>{L('명령', 'Command')}</span><input id="job-cmd" value={command} maxLength={2000} placeholder="vivado -mode batch -source build.tcl" onChange={(e) => setCommand(e.target.value)} /></label>
+      <div className="form-row form-row-wide">
+        <label><span>{L('작업 폴더 (빌드 VM 안)', 'Folder (on the build VM)')}</span><input id="job-dir" value={workdir} placeholder="/proj/zcu102" onChange={(e) => setWorkdir(e.target.value.trim())} /></label>
+        {admin && <label><span>{L('사용자 (선택)', 'For user (optional)')}</span><input id="job-user" value={user} placeholder="alice" onChange={(e) => setUser(e.target.value.trim())} /></label>}
+      </div>
+      <p className="muted small">{L('빌드 VM에는 게스트 에이전트가 있어야 하고, 프로젝트 폴더는 공유 스토리지(NFS 등)에 두세요. 출력은 마지막 8KB만 남습니다.',
+        'Build VMs need the guest agent; keep projects on shared storage (NFS). Only the last 8 KB of output is kept.')}</p>
+    </Dialog>
+  );
+}
+
+// --- 가속 자원 > 카드 사용 보고서 ---------------------------------------------------
+
+export function CardUsagePage() {
+  const { L } = useL();
+  const [days, setDays] = useState(30);
+  const report = useLoad(() => nextApi.cardReport(days), [days]);
+  function csv(rows: CardRow[]) {
+    const q = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+    const text = '\ufeff' + ['card,loans,hours,use_pct,users,lent_now', ...rows.map((r) => [q(r.card), r.loans, r.hours, r.use_pct, q(r.users.join(' ')), r.active].join(','))].join('\n') + '\n';
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a'); a.href = url; a.download = `card-usage-${days}d.csv`; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+  return (
+    <LoadState value={report} retry={report.reload}>
+      {(r) => (
+        <>
+          <Intro>{L('가속 카드(FPGA · NPU · GPU)마다 누가 얼마나 빌려 썼는지 봅니다. 사용률은 기간 전체 시간 대비 대여된 시간입니다. 예산 · 증설 근거로 CSV를 받아 쓰세요.',
+            'Who borrowed each accelerator card and for how long. Use % is loan hours over the whole period. Download the CSV for budgets and expansion plans.')}</Intro>
+          <div className="toolbar">
+            <div className="seg" role="group">
+              {[7, 30, 90].map((d) => <button key={d} type="button" className={`seg-btn${days === d ? ' on' : ''}`} onClick={() => setDays(d)}>{L(`${d}일`, `${d} days`)}</button>)}
+            </div>
+            <button type="button" className="btn" onClick={() => csv(r.cards)} disabled={r.cards.length === 0}><Icon name="download" size={16} />CSV</button>
+          </div>
+          <SettingsStatus items={[
+            { label: L('카드', 'Cards'), value: String(r.cards.length) },
+            { label: L('대여 건수', 'Loans'), value: String(r.cards.reduce((a, c) => a + c.loans, 0)) },
+            { label: L('총 대여 시간', 'Loan hours'), value: `${r.total_hours} h` },
+            { label: L('지금 대여 중', 'Lent now'), value: String(r.cards.reduce((a, c) => a + c.active, 0)), tone: 'ok' },
+          ]} />
+          {r.cards.length === 0 ? <div className="empty"><p>{L('이 기간에 대여 기록이 없습니다.', 'No loans in this period.')}</p></div> : (
+            <div className="table-scroll"><table className="table compact-head">
+              <thead><tr><th>{L('카드', 'Card')}</th><th className="num">{L('대여', 'Loans')}</th><th className="num">{L('시간', 'Hours')}</th><th>{L('사용률', 'Use')}</th><th>{L('사용자', 'Users')}</th><th>{L('지금', 'Now')}</th></tr></thead>
+              <tbody>{r.cards.map((c) => (
+                <tr key={c.card}>
+                  <td className="strong">{c.card}<div className="muted small"><code className="code">{c.resource_id}</code></div></td>
+                  <td className="num">{c.loans}</td>
+                  <td className="num">{c.hours}</td>
+                  <td className="farm-cpu"><span className="bar-track"><span className="bar-fill" style={{ width: `${Math.min(100, c.use_pct)}%` }} /></span><span className="muted small">{c.use_pct}%</span></td>
+                  <td className="small">{c.users.join(', ')}</td>
+                  <td>{c.active ? <span className="chip chip-accent">{L('대여 중', 'lent')}</span> : <span className="muted small">-</span>}</td>
+                </tr>))}</tbody>
+            </table></div>
+          )}
         </>
       )}
     </LoadState>
@@ -851,14 +1069,19 @@ export function LicenseServersPage() {
             { label: L('정상', 'OK'), value: String(list.filter((s) => s.last_ok === 1).length), tone: 'ok' },
             { label: L('문제', 'Problem'), value: String(list.filter((s) => s.last_ok === 0).length), tone: list.some((s) => s.last_ok === 0) ? 'warn' : undefined },
             { label: L('HA 등록', 'Under HA'), value: String(list.filter((s) => s.vm_ha).length) },
+            { label: L('자동 감시', 'Watched'), value: String(list.filter((s) => s.watch).length) },
           ]} />
+          <p className="muted small">{L('자동 감시를 켠 서버는 5분마다 포트를 확인하고, 응답이 없으면 알림 채널(웹훅 · 메일)로 한 번 알리고 다시 살아나면 또 알립니다.',
+            'Watched servers are checked every 5 minutes; when one stops answering the alert channels (webhook, mail) hear once, and again when it is back.')}</p>
           <NoticeBar notice={notice} />
           {list.length === 0 ? <div className="empty"><p>{L('등록된 라이선스 서버가 없습니다.', 'No licence servers yet.')}</p></div> : (
             <div className="table-scroll"><table className="table compact-head">
               <thead><tr><th>{L('이름', 'Name')}</th><th>{L('주소', 'Host')}</th><th>{L('포트', 'Ports')}</th><th>VM</th><th>{L('고정 MAC', 'Fixed MAC')}</th><th>{L('마지막 확인', 'Checked')}</th><th className="actions" /></tr></thead>
               <tbody>{list.map((s) => (
                 <tr key={s.id}>
-                  <td className="strong">{s.name}{s.notes && <div className="muted small">{s.notes}</div>}</td>
+                  <td className="strong">{s.name}{s.watch ? <span className="chip chip-on" style={{ marginLeft: 6 }}>{L('감시', 'watched')}</span> : null}
+                    {s.alerted_at && <span className="chip chip-warn" style={{ marginLeft: 4 }}>{L(`알림 보냄 ${when(s.alerted_at)}`, `alerted ${when(s.alerted_at)}`)}</span>}
+                    {s.notes && <div className="muted small">{s.notes}</div>}</td>
                   <td><code className="code">{s.host}</code></td>
                   <td>{s.ports.map((p) => {
                     const d = s.last_detail.find((x) => x.port === p);
@@ -895,11 +1118,12 @@ function LicenseDialog({ server, onClose, onDone }: { server: LicenseServer | nu
   const [vmid, setVmid] = useState(server?.vmid ? String(server.vmid) : '');
   const [mac, setMac] = useState(server?.fixed_mac ?? '');
   const [notes, setNotes] = useState(server?.notes ?? '');
+  const [watch, setWatch] = useState(server ? server.watch !== 0 : true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function submit() {
     setBusy(true); setError(null);
-    try { await nextApi.saveLicense(server?.id ?? null, { name, host, ports, cluster_id: vmid ? cluster : '', vmid: vmid ? Number(vmid) : null, fixed_mac: mac, notes }); onDone(); }
+    try { await nextApi.saveLicense(server?.id ?? null, { name, host, ports, cluster_id: vmid ? cluster : '', vmid: vmid ? Number(vmid) : null, fixed_mac: mac, notes, watch }); onDone(); }
     catch (e) { setError(errText(e)); } finally { setBusy(false); }
   }
   return (
@@ -919,6 +1143,7 @@ function LicenseDialog({ server, onClose, onDone }: { server: LicenseServer | nu
       </div>
       <label><span>{L('고정 MAC (라이선스 호스트 ID)', 'Fixed MAC (licence host id)')}</span><input id="lic-mac" value={mac} placeholder="52:54:00:12:34:56" onChange={(e) => setMac(e.target.value.trim())} /></label>
       <label><span>{L('메모', 'Notes')}</span><input id="lic-notes" value={notes} maxLength={300} onChange={(e) => setNotes(e.target.value)} /></label>
+      <label className="check"><input id="lic-watch" type="checkbox" checked={watch} onChange={(e) => setWatch(e.target.checked)} /><span>{L('자동 감시 (5분마다 확인, 끊기면 알림)', 'Watch (check every 5 min, alert when down)')}</span></label>
     </Dialog>
   );
 }

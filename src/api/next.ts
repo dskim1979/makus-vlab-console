@@ -16,19 +16,23 @@ export type UsbInput = { name: string; vid: string; pid: string; category: UsbCa
 export type GatewayKind = 'guacamole' | 'rdpgw' | 'msrdgw';
 export type Gateway = {
   id: string; name: string; kind: GatewayKind; address: string; port: number; notes: string; enabled: number;
-  last_check: string | null; last_ok: number | null; last_detail: string; external: number;
+  last_check: string | null; last_ok: number | null; last_detail: string; external: number; has_key?: boolean;
 };
-export type GatewayInput = { name: string; kind: GatewayKind; address: string; port: number; notes: string; enabled: boolean };
+export type GatewayInput = { name: string; kind: GatewayKind; address: string; port: number; notes: string; enabled: boolean; secret_key?: string };
 export type ExternalDesktop = { id: string; name: string; address: string; port: number; assigned_user: string | null; gateway_id: string | null; notes: string };
 export type ExternalInput = Omit<ExternalDesktop, 'id'>;
 export type GoldenVersion = { name: string; description: string; time: number | null };
 export type GoldenImage = {
   id: string; cluster_id: string; node: string; vmid: number; name: string; current_version: string; notes: string;
   created_by: string; created_at: string; versions: GoldenVersion[] | null; status: string; pools: string[];
+  rollout?: { pool_id: string; pool: string; total: number; outdated: number }[];
 };
+export type RolloutResult = { replaced: { name: string; old_vmid: number; new_vmid: number; user: string | null; old_deleted: boolean }[];
+  skipped: string[]; failed: { name: string; error: string } | null };
 export type Board = {
   id: string; name: string; cluster_id: string; node: string; usb: string; kind: string; notes: string;
   attached_desktop: string | null; attached_vmid: number | null; attached_by: string; attached_at: string | null;
+  lease_user?: string; lease_until?: string | null;
   desktop: { id: string; name: string; assigned_user: string | null } | null;
 };
 export type BoardInput = { name: string; cluster_id: string; node: string; usb: string; kind: string; notes: string };
@@ -38,8 +42,20 @@ export type PortCheck = { port: number; ok: boolean; ms: number; error: string }
 export type LicenseServer = {
   id: string; name: string; host: string; ports: number[]; cluster_id: string; vmid: number | null; fixed_mac: string; notes: string;
   last_check: string | null; last_ok: number | null; last_detail: PortCheck[]; vm_status?: string; vm_ha?: boolean;
+  watch?: number; alerted_at?: string | null;
 };
-export type LicenseInput = { name: string; host: string; ports: string; cluster_id: string; vmid: number | null; fixed_mac: string; notes: string };
+export type LicenseInput = { name: string; host: string; ports: string; cluster_id: string; vmid: number | null; fixed_mac: string; notes: string; watch: boolean };
+export type GrantType = 'user' | 'department' | 'group';
+export type Grant = { pool_id?: string; subject_type: GrantType; subject_id: string; include_children: number | boolean };
+export type MyPool = { id: string; name: string; type: string; description: string; action: 'claim' | 'shared' | 'other'; desktops: number; free: number; mine: string[] };
+export type JobStatus = 'queued' | 'running' | 'done' | 'failed' | 'cancelled';
+export type BuildJob = {
+  id: string; pool_id: string; pool: string | null; username: string; name: string; command: string; workdir: string; status: JobStatus;
+  desktop_id: string | null; desktop: string | null; pid: number | null; exit_code: number | null; output: string; error: string;
+  created_at: string; started_at: string | null; finished_at: string | null;
+};
+export type JobInput = { pool_id: string; name: string; command: string; workdir: string; username?: string };
+export type CardRow = { card: string; resource_id: string; loans: number; hours: number; users: string[]; active: number; use_pct: number };
 export type ClientSettings = { latest_version: string; min_version: string; download_url: string; protocol: 'auto' | 'spice' | 'vnc' };
 export type MyExternal = { id: string; name: string; address: string; port: number; notes: string };
 
@@ -114,6 +130,27 @@ const realNextApi = {
   deleteLicense: async (id: string) => { await call('DELETE', `${A}/license-servers/${enc(id)}`); },
   checkLicense: async (id: string) => call<{ server: LicenseServer; ok: boolean }>('POST', `${A}/license-servers/${enc(id)}/check`),
 
+  poolGrants: async (poolId: string) => call<{ grants: Grant[]; max_sessions: number }>('GET', `${A}/pools/${enc(poolId)}/grants`),
+  savePoolGrants: async (poolId: string, grants: Grant[], max_sessions?: number) =>
+    call<{ grants: Grant[]; max_sessions: number }>('PUT', `${A}/pools/${enc(poolId)}/grants`, max_sessions ? { grants, max_sessions } : { grants }),
+  rollout: async (id: string, b: { pool_id: string; delete_old: boolean }) => call<RolloutResult>('POST', `${A}/golden-images/${enc(id)}/rollout`, b),
+  attachBoardFor: async (id: string, b: { desktop_id: string; lease_user?: string; lease_until?: string }) => { await call('POST', `${A}/boards/${enc(id)}/attach`, b); },
+  buildJobs: async (poolId?: string) => call<{ jobs: BuildJob[]; counts: Record<JobStatus, number> }>('GET', `${A}/build-jobs${poolId ? `?pool_id=${enc(poolId)}` : ''}`),
+  submitJob: async (b: JobInput) => (await call<{ job: BuildJob }>('POST', `${A}/build-jobs`, b)).job,
+  cancelJob: async (id: string) => { await call('POST', `${A}/build-jobs/${enc(id)}/cancel`); },
+  cardReport: async (days: number) => call<{ days: number; cards: CardRow[]; total_hours: number }>('GET', `${A}/reports/cards?days=${days}`),
+
+  myPools: async () => {
+    const { status, data } = await request<{ pools: MyPool[] }>('GET', '/api/vlab/me/pools');
+    return status === 200 ? data.pools ?? [] : [];
+  },
+  claim: async (poolId: string) => call<{ desktop: { id: string; name: string }; new: boolean }>('POST', `/api/vlab/me/pools/${enc(poolId)}/claim`),
+  route: async (poolId: string) => call<{ desktop: { id: string; name: string }; sessions: number; limit: number }>('POST', `/api/vlab/me/pools/${enc(poolId)}/route`),
+  myExternalGuac: async (id: string) => call<{ url: string }>('GET', `/api/vlab/me/external/${enc(id)}/guac`),
+  myJobs: async () => call<{ jobs: BuildJob[]; pools: { id: string; name: string }[] }>('GET', '/api/vlab/me/build-jobs'),
+  mySubmitJob: async (b: JobInput) => (await call<{ job: BuildJob }>('POST', '/api/vlab/me/build-jobs', b)).job,
+  myCancelJob: async (id: string) => { await call('POST', `/api/vlab/me/build-jobs/${enc(id)}/cancel`); },
+
   clientSettings: async () => (await call<{ client: ClientSettings }>('GET', `${A}/client`)).client,
   saveClientSettings: async (b: ClientSettings) => (await call<{ client: ClientSettings }>('PUT', `${A}/client`, b)).client,
 
@@ -171,8 +208,8 @@ const usb: UsbDevice[] = [
 const gateways: Gateway[] = [
   { id: 'gw_1', name: '외부망 RDP 게이트웨이', kind: 'rdpgw', address: 'rdgw.univ.ac.kr', port: 443, notes: '재택 · 출장 접속', enabled: 1,
     last_check: iso(12), last_ok: 1, last_detail: '18 ms', external: 2 },
-  { id: 'gw_2', name: '브라우저 RDP (Guacamole)', kind: 'guacamole', address: 'guac.univ.ac.kr', port: 8080, notes: '설치 없는 RDP', enabled: 1,
-    last_check: iso(60), last_ok: 0, last_detail: 'Connection refused', external: 0 },
+  { id: 'gw_2', name: '브라우저 RDP (Guacamole)', kind: 'guacamole', address: 'guac.univ.ac.kr', port: 8443, notes: '설치 없는 RDP', enabled: 1,
+    last_check: iso(60), last_ok: 1, last_detail: '9 ms', external: 0, has_key: true },
 ];
 const external: ExternalDesktop[] = [
   { id: 'ext_1', name: '측정실 PC (오실로스코프)', address: '10.30.5.21', port: 3389, assigned_user: 'alice', gateway_id: 'gw_1', notes: '계측 장비 연결 PC' },
@@ -216,6 +253,37 @@ const licenses: LicenseServer[] = [
     notes: '', last_check: iso(30), last_ok: 0, last_detail: [{ port: 443, ok: false, ms: 2001, error: 'timed out' }] },
 ];
 let client: ClientSettings = { latest_version: '0.9.0', min_version: '0.9.0', download_url: '', protocol: 'auto' };
+const grants: Record<string, Grant[]> = {
+  pool_1: [{ subject_type: 'department', subject_id: 'dep_cs', include_children: true }, { subject_type: 'group', subject_id: 'CN=Lab-Users,OU=Groups,DC=univ,DC=ac,DC=kr', include_children: true }],
+};
+const maxSessions: Record<string, number> = {};
+const myPools: MyPool[] = [
+  { id: 'p_res', name: '연구원 전용 VM', type: 'dedicated', description: '신규 연구원용 Windows 11', action: 'claim', desktops: 12, free: 4, mine: [] },
+  { id: 'p_term', name: '공용 리눅스 서버', type: 'shared', description: 'EDA 툴 · 터미널 서버', action: 'shared', desktops: 3, free: 3, mine: [] },
+];
+const jobs: BuildJob[] = [
+  { id: 'job_1', pool_id: 'p_farm', pool: 'FPGA 빌드 팜', username: 'alice', name: 'zcu102 비트스트림', command: 'make bit', workdir: '/proj/zcu102', status: 'running',
+    desktop_id: 'b4', desktop: 'vivado-build-04', pid: 4242, exit_code: null, output: '', error: '', created_at: iso(48), started_at: iso(47), finished_at: null },
+  { id: 'job_2', pool_id: 'p_farm', pool: 'FPGA 빌드 팜', username: 'dave', name: 'vck190 합성', command: 'vivado -mode batch -source synth.tcl', workdir: '/proj/vck190',
+    status: 'queued', desktop_id: null, desktop: null, pid: null, exit_code: null, output: '', error: '', created_at: iso(20), started_at: null, finished_at: null },
+  { id: 'job_3', pool_id: 'p_farm', pool: 'FPGA 빌드 팜', username: 'alice', name: '시뮬레이션 회귀', command: 'make sim', workdir: '/proj/zcu102', status: 'done',
+    desktop_id: 'b5', desktop: 'vivado-build-05', pid: 4100, exit_code: 0, output: 'INFO: 128 tests passed\nsimulation finished in 41m 12s', error: '',
+    created_at: iso(300), started_at: iso(299), finished_at: iso(258) },
+  { id: 'job_4', pool_id: 'p_farm', pool: 'FPGA 빌드 팜', username: 'carol', name: 'kv260 타이밍', command: 'make timing', workdir: '/proj/kv260', status: 'failed',
+    desktop_id: 'b3', desktop: 'vivado-build-03', pid: 4011, exit_code: 2, output: 'ERROR: [Timing 38-282] The design failed to meet the timing requirements.', error: '',
+    created_at: iso(600), started_at: iso(599), finished_at: iso(540) },
+];
+const cards: CardRow[] = [
+  { card: 'Alveo U250 #1', resource_id: 'alveo-u250-1', loans: 9, hours: 412.5, users: ['alice', 'dave', 'kim.minji'], active: 1, use_pct: 57.3 },
+  { card: 'Alveo U55C #1', resource_id: 'alveo-u55c-1', loans: 6, hours: 298.0, users: ['carol', 'park.sora'], active: 1, use_pct: 41.4 },
+  { card: 'RNGD #1 (FuriosaAI)', resource_id: 'rngd-1', loans: 4, hours: 156.2, users: ['bob', 'lee.junho'], active: 0, use_pct: 21.7 },
+  { card: 'NVIDIA L40S #2', resource_id: 'l40s-2', loans: 11, hours: 520.8, users: ['alice', 'bob', 'carol', 'dave'], active: 1, use_pct: 72.3 },
+  { card: 'ATOM+ #1 (Rebellions)', resource_id: 'atom-1', loans: 2, hours: 38.0, users: ['lee.junho'], active: 0, use_pct: 5.3 },
+];
+golden[0].rollout = [{ pool_id: 'p1', pool: '공용 LAB A', total: 12, outdated: 5 }, { pool_id: 'p_c', pool: '교육장 A 수업용', total: 30, outdated: 0 }];
+golden[1].rollout = [{ pool_id: 'p_farm', pool: 'FPGA 빌드 팜', total: 6, outdated: 2 }];
+boards[0].lease_user = 'alice'; boards[0].lease_until = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 16);
+licenses[0].watch = 1; licenses[1].watch = 1; licenses[1].alerted_at = iso(30);
 
 const counts = () => deps.map((d) => ({ ...d, members: Object.values(memberOf).filter((x) => x === d.id).length }));
 const under = (id: string) => { const out = new Set([id]); let grew = true; while (grew) { grew = false; for (const d of deps) if (d.parent_id && out.has(d.parent_id) && !out.has(d.id)) { out.add(d.id); grew = true; } } return out; };
@@ -272,8 +340,10 @@ const mockNextApi: NextApi = {
 
   gateways: () => delay(gateways.map((g) => ({ ...g, external: external.filter((e) => e.gateway_id === g.id).length }))),
   saveGateway: (id, b) => {
-    if (id) { const g = gateways.find((x) => x.id === id)!; Object.assign(g, { ...b, enabled: b.enabled ? 1 : 0 }); return delay({ ...g }); }
-    const g: Gateway = { id: nid('gw'), ...b, enabled: b.enabled ? 1 : 0, last_check: null, last_ok: null, last_detail: '', external: 0 };
+    const { secret_key, ...rest } = b;
+    if (secret_key && (b.kind !== 'guacamole' || !/^[0-9a-f]{32}$/.test(secret_key))) return fail(400, 'secret_key: 32 hex digits, Guacamole only');
+    if (id) { const g = gateways.find((x) => x.id === id)!; Object.assign(g, { ...rest, enabled: b.enabled ? 1 : 0 }, secret_key ? { has_key: true } : {}); return delay({ ...g }); }
+    const g: Gateway = { id: nid('gw'), ...rest, enabled: b.enabled ? 1 : 0, last_check: null, last_ok: null, last_detail: '', external: 0, has_key: !!secret_key };
     gateways.push(g); return delay({ ...g });
   },
   deleteGateway: (id) => { gateways.splice(gateways.findIndex((x) => x.id === id), 1); external.forEach((e) => { if (e.gateway_id === id) e.gateway_id = null; }); return delay(undefined); },
@@ -339,7 +409,7 @@ const mockNextApi: NextApi = {
   saveLicense: (id, b) => {
     const ports = b.ports.split(/[\s,]+/).filter(Boolean).map(Number);
     if (!ports.length || ports.some((p) => !(p >= 1 && p <= 65535))) return fail(400, 'ports: 1 to 10 port numbers');
-    const row = { name: b.name, host: b.host, ports: [...new Set(ports)].sort((a, c) => a - c), cluster_id: b.cluster_id, vmid: b.vmid, fixed_mac: b.fixed_mac, notes: b.notes };
+    const row = { name: b.name, host: b.host, ports: [...new Set(ports)].sort((a, c) => a - c), cluster_id: b.cluster_id, vmid: b.vmid, fixed_mac: b.fixed_mac, notes: b.notes, watch: b.watch ? 1 : 0 };
     if (id) { const l = licenses.find((x) => x.id === id)!; Object.assign(l, row); return delay({ ...l }); }
     const l: LicenseServer = { id: nid('lic'), ...row, last_check: null, last_ok: null, last_detail: [] }; licenses.push(l); return delay({ ...l });
   },
@@ -349,6 +419,52 @@ const mockNextApi: NextApi = {
     Object.assign(l, { last_check: iso(0), last_ok: ok ? 1 : 0, last_detail: l.ports.map((port) => ({ port, ok, ms: ok ? 3 : 2001, error: ok ? '' : 'timed out' })) });
     return delay({ server: { ...l }, ok });
   },
+
+  poolGrants: (poolId) => delay({ grants: [...(grants[poolId] ?? [])], max_sessions: maxSessions[poolId] ?? 10 }),
+  savePoolGrants: (poolId, g, ms) => { grants[poolId] = [...g]; if (ms) maxSessions[poolId] = ms; return delay({ grants: [...g], max_sessions: maxSessions[poolId] ?? 10 }); },
+  rollout: (id, b) => {
+    const g = golden.find((x) => x.id === id)!; const row = g.rollout?.find((r) => r.pool_id === b.pool_id);
+    const n = row?.outdated ?? 0; if (row) row.outdated = 0;
+    return delay({ replaced: Array.from({ length: n }, (_, i) => ({ name: `lab-a-${String(i + 1).padStart(2, '0')}`, old_vmid: 300 + i, new_vmid: 1200 + i, user: i % 2 ? 'bob' : 'alice', old_deleted: b.delete_old })),
+      skipped: n ? ['lab-a-07'] : [], failed: null });
+  },
+  attachBoardFor: (id, b) => {
+    const x = boards.find((y) => y.id === id)!;
+    Object.assign(x, { attached_desktop: b.desktop_id, attached_vmid: 300, attached_by: 'admin', attached_at: iso(0), lease_user: b.lease_user ?? '', lease_until: b.lease_until ?? null,
+      desktop: { id: b.desktop_id, name: 'lab-win11-01', assigned_user: b.lease_user || 'bob' } });
+    return delay(undefined);
+  },
+  buildJobs: (poolId) => {
+    const list = jobs.filter((j) => !poolId || j.pool_id === poolId).map((j) => ({ ...j }));
+    const counts = { queued: 0, running: 0, done: 0, failed: 0, cancelled: 0 } as Record<JobStatus, number>;
+    list.forEach((j) => { counts[j.status] += 1; });
+    return delay({ jobs: list, counts });
+  },
+  submitJob: (b) => {
+    const j: BuildJob = { id: nid('job'), pool_id: b.pool_id, pool: 'FPGA 빌드 팜', username: b.username || 'admin', name: b.name, command: b.command, workdir: b.workdir,
+      status: 'queued', desktop_id: null, desktop: null, pid: null, exit_code: null, output: '', error: '', created_at: iso(0), started_at: null, finished_at: null };
+    jobs.unshift(j); return delay({ ...j });
+  },
+  cancelJob: (id) => {
+    const j = jobs.find((x) => x.id === id)!; if (j.status !== 'queued') return fail(409, 'Only a queued job can be cancelled');
+    Object.assign(j, { status: 'cancelled', finished_at: iso(0) }); return delay(undefined);
+  },
+  cardReport: (days) => delay({ days, cards: cards.map((c) => ({ ...c, hours: Math.round(c.hours * days / 30 * 10) / 10, use_pct: c.use_pct })), total_hours: Math.round(cards.reduce((a, c) => a + c.hours, 0) * days / 30) }),
+
+  myPools: () => delay(myPools.map((p) => ({ ...p }))),
+  claim: (poolId) => {
+    const p = myPools.find((x) => x.id === poolId)!; if (p.free < 1) return fail(409, 'FULL');
+    p.free -= 1; p.mine = ['d_claimed']; return delay({ desktop: { id: 'd_claimed', name: 'research-win11-05' }, new: true });
+  },
+  route: () => delay({ desktop: { id: 'd1', name: 'eda-server-02' }, sessions: 3, limit: 10 }),
+  myExternalGuac: () => delay({ url: 'https://guac.univ.ac.kr:8443/guacamole/?data=mock' }),
+  myJobs: () => delay({ jobs: jobs.filter((j) => j.username === 'alice').map((j) => ({ ...j })), pools: [{ id: 'p_farm', name: 'FPGA 빌드 팜' }] }),
+  mySubmitJob: (b) => {
+    const j: BuildJob = { id: nid('job'), pool_id: b.pool_id, pool: 'FPGA 빌드 팜', username: 'alice', name: b.name, command: b.command, workdir: b.workdir,
+      status: 'queued', desktop_id: null, desktop: null, pid: null, exit_code: null, output: '', error: '', created_at: iso(0), started_at: null, finished_at: null };
+    jobs.unshift(j); return delay({ ...j });
+  },
+  myCancelJob: (id) => { const j = jobs.find((x) => x.id === id)!; Object.assign(j, { status: 'cancelled', finished_at: iso(0) }); return delay(undefined); },
 
   clientSettings: () => delay({ ...client }),
   saveClientSettings: (b) => {

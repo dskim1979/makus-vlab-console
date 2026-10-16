@@ -24,6 +24,15 @@ export function ExternalDesktops() {
     } catch (e) { setError((e as Error).message); }
   }
 
+  async function guac(id: string) {
+    setError(null);
+    try { window.open((await nextApi.myExternalGuac(id)).url, '_blank', 'noopener'); }
+    catch (e) {
+      const m = (e as Error).message;
+      setError(/NO_GATEWAY/.test(m) ? L('브라우저 RDP 게이트웨이가 준비되지 않았습니다. 관리자에게 문의하세요.', 'No browser RDP gateway is set up. Ask your administrator.') : m);
+    }
+  }
+
   return (
     <section className="ext-section">
       <h2 className="section-title">{L('외부 데스크톱', 'External desktops')}</h2>
@@ -35,6 +44,7 @@ export function ExternalDesktops() {
             <span className="ext-icon"><Icon name="vm" size={20} /></span>
             <div className="ext-body"><h3>{e.name}</h3><span className="muted small">{e.notes || `${e.address}:${e.port}`}</span></div>
             <button type="button" className="btn connect" onClick={() => rdp(e.id)}><Icon name="download" size={16} />{L('RDP 파일 받기', 'Get RDP file')}</button>
+            <button type="button" className="btn-ghost" onClick={() => guac(e.id)} title={L('설치 없이 브라우저에서 엽니다', 'Opens in the browser, nothing to install')}><Icon name="globe" size={16} />{L('브라우저', 'Browser')}</button>
           </article>
         ))}
       </div>

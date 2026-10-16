@@ -109,7 +109,7 @@ export type Pool = {
 
 // --- pool policy (데스크톱 풀 > 풀 > 정책) ------------------------------------------
 export type PoolPolicy = {
-  protocols: ('vnc' | 'spice')[]; spice_fullscreen: boolean;
+  protocols: ('vnc' | 'spice' | 'rdp' | 'guac')[]; spice_fullscreen: boolean;
   clipboard: Clipboard;
   usb_redirect: boolean; usb_autoshare: boolean;
   start_on_connect: boolean; idle_shutdown_min: number; reset_on_logout: boolean;
@@ -178,7 +178,10 @@ export type UserAccess = {
 
 export type ConnectInfo =
   | { type: 'vnc'; ws_path: string; password: string; session_id: string; clipboard?: Clipboard }
-  | { type: 'spice'; vv: string; filename: string; session_id: string };
+  | { type: 'spice'; vv: string; filename: string; session_id: string }
+  | { type: 'rdp'; rdp: string; filename: string; session_id: string }
+  | { type: 'guac'; url: string; session_id: string };
+export type ConnectProtocol = 'vnc' | 'spice' | 'rdp' | 'guac';
 
 export type PowerAction = 'start' | 'shutdown' | 'reboot' | 'stop';
 

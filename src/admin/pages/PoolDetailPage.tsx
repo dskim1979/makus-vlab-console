@@ -9,6 +9,7 @@ import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import { PoolGpuPanel } from './PoolGpu';
 import { PoolPolicyPanel } from './PoolPolicy';
+import { PoolGrantsPanel } from './PoolGrants';
 import type { MessageKey } from '../../i18n/messages';
 
 // 데스크톱 풀 > 풀 관리 > (풀): its desktops, add an existing VM, assign / unassign, take out.
@@ -100,6 +101,7 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
       </div>
       {notice && <div className={`alert ${notice.kind === 'error' ? 'error' : 'info'}`} role="status">{notice.text}</div>}
       {pool && <PoolPolicyPanel pool={pool} onChanged={pools.reload} />}
+      {pool && <PoolGrantsPanel pool={pool} />}
       {pool && <PoolGpuPanel pool={pool} onChanged={() => { pools.reload(); desktops.reload(); }} />}
       <p className="muted small">{t('desk.assignNote')}</p>
 

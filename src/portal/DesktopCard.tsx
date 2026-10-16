@@ -61,7 +61,7 @@ function Screen({ d, family }: { d: Desktop; family: OsFamily }) {
 
 export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hint }: {
   d: Desktop; busy: boolean; fav: boolean; onFav: () => void;
-  onConnect: (p: 'vnc' | 'spice') => void; onPower: (a: PowerAction) => void; error?: string; hint?: string;
+  onConnect: (p: 'vnc' | 'spice' | 'rdp' | 'guac') => void; onPower: (a: PowerAction) => void; error?: string; hint?: string;
 }) {
   const { t, lang } = useI18n();
   const family = osFamily(d);
@@ -80,7 +80,7 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
   }, [menu]);
 
   return (
-    <article className="dtile">
+    <article className="dtile" id={`dtile-${d.id}`}>
       <header className="dtile-head">
         <span className={`os-badge os-${family}`}><OsGlyph family={family} /></span>
         <div className="dtile-title">
@@ -100,6 +100,18 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
                 <button type="button" role="menuitem" disabled={busy || !running}
                   onClick={() => { setMenu(false); onConnect('spice'); }}>
                   <Icon name="download" size={16} />{t('portal.connectSpice')}
+                </button>
+              )}
+              {d.protocols.includes('rdp') && (
+                <button type="button" role="menuitem" disabled={busy || !running}
+                  onClick={() => { setMenu(false); onConnect('rdp'); }}>
+                  <Icon name="download" size={16} />{t('portal.connectRdp')}
+                </button>
+              )}
+              {d.protocols.includes('guac') && (
+                <button type="button" role="menuitem" disabled={busy || !running}
+                  onClick={() => { setMenu(false); onConnect('guac'); }}>
+                  <Icon name="globe" size={16} />{t('portal.connectGuac')}
                 </button>
               )}
               {!canPower ? null : running ? (
