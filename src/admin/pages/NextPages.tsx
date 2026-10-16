@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { adminApi } from '../../api/admin';
 import { envApi } from '../../api/envmig';
 import { nextApi } from '../../api/next';
-import type { Board, BuildJob, CardRow, ClientSettings, Department, ExternalDesktop, Gateway, GatewayKind, GoldenImage, JobStatus, LicenseServer, RolloutResult, Signup, SignupSettings, SignupStatus, UsbCategory, UsbDevice, VerifyMode } from '../../api/next';
+import type { Board, BuildJob, CardRow, ClientSettings, Department, ExternalDesktop, Gateway, GatewayKind, GoldenImage, JobPool, JobStatus, LicenseServer, RolloutResult, Signup, SignupSettings, SignupStatus, UsbCategory, UsbDevice, VerifyMode } from '../../api/next';
+import { researchApi, waitText } from '../../api/research';
 import { Dialog } from '../../components/Dialog';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
@@ -991,7 +992,7 @@ export function BuildFarmPage() {
               </table></div>
             </section>
           ))}
-          {pools.length > 0 && <BuildJobsPanel pools={pools.map((p) => ({ id: p.id, name: p.name }))} admin />}
+          {pools.length > 0 && <BuildJobsPanel pools={pools.map((p) => ({ id: p.id, name: p.name, gpus_per_vm: p.gpus_per_vm, gpu_kind: p.gpu_kind, max_minutes: p.max_minutes, runtime: p.runtime }))} admin />}
         </>
       )}
     </LoadState>
@@ -1000,9 +1001,17 @@ export function BuildFarmPage() {
 
 const JOB_TONE: Record<JobStatus, string> = { queued: 'chip', running: 'chip chip-accent', done: 'chip chip-on', failed: 'chip chip-warn', cancelled: 'chip' };
 
-// 빌드 작업 큐: commands that run on a free build VM, one job per VM, oldest first.
+/** "GPU 2 · A100 (0,1)" for a GPU job, '' for a plain build. */
+export function gpuText(j: BuildJob, L: (ko: string, en: string) => string) {
+  if (!j.gpus) return '';
+  const idx = j.gpu_index && j.gpu_index.length ? ` (#${j.gpu_index.join(',')})` : '';
+  return `GPU ${j.gpus}${L('장', '')}${j.gpu_kind ? ` · ${j.gpu_kind}` : ''}${idx}`;
+}
+
+// 빌드 작업 큐: commands that run on a free build VM - a plain build takes a whole VM, a GPU job
+// the GPUs it asks for (research.ts). Oldest first, each user's first job before anyone's second.
 // Shared by the build farm page (every job, submit for anyone) and the portal (one's own).
-export function BuildJobsPanel({ pools, admin = false }: { pools: { id: string; name: string; workdir?: string }[]; admin?: boolean }) {
+export function BuildJobsPanel({ pools, admin = false }: { pools: JobPool[]; admin?: boolean }) {
   const { L, when } = useL();
   const jobs = useLoad(() => admin ? nextApi.buildJobs().then((r) => r.jobs) : nextApi.myJobs().then((r) => r.jobs), [admin]);
   const [adding, setAdding] = useState(false);
@@ -1012,15 +1021,23 @@ export function BuildJobsPanel({ pools, admin = false }: { pools: { id: string; 
   async function cancel(j: BuildJob) {
     try { await (admin ? nextApi.cancelJob(j.id) : nextApi.myCancelJob(j.id)); jobs.reload(); } catch (e) { setNotice({ kind: 'error', text: errText(e) }); }
   }
+  async function stop(j: BuildJob) {
+    if (!confirm(L(`'${j.name}'을(를) 멈출까요? 빌드 VM에서 작업 프로세스를 끝냅니다. 결과 폴더는 남습니다.`, `Stop '${j.name}'? Its processes on the build VM end; the result folder stays.`))) return;
+    try { await (admin ? researchApi.stopJob(j.id) : researchApi.stopMyJob(j.id)); jobs.reload(); } catch (e) { setNotice({ kind: 'error', text: errText(e) }); }
+  }
   const list = jobs.state === 'ok' ? jobs.data : [];
+  const gpuPools = pools.some((p) => (p.gpus_per_vm ?? 0) > 0);
   return (
     <section className="panel">
       <div className="panel-head">
         <span className="stat-icon tone-green"><Icon name="list" size={18} /></span>
         <div>
-          <h2 className="section-title">{L('빌드 작업 큐', 'Build job queue')}</h2>
-          <p className="muted small" style={{ margin: 0 }}>{L('합성 · 구현 같은 긴 빌드를 큐에 넣으면 빈 빌드 VM에서 차례로 돌립니다. 결과와 마지막 출력이 여기에 남습니다.',
-            'Queue long builds (synthesis, implementation); they run on free build VMs in turn and leave their result and last output here.')}</p>
+          <h2 className="section-title">{gpuPools ? L('작업 큐 (빌드 · GPU)', 'Job queue (builds and GPU)') : L('빌드 작업 큐', 'Build job queue')}</h2>
+          <p className="muted small" style={{ margin: 0 }}>{gpuPools
+            ? L('긴 빌드나 GPU 학습을 큐에 넣으면 빈 빌드 VM · 빈 GPU에서 차례로 돌립니다. 오래 기다린 사람이 먼저, 할당량을 넘긴 사람은 뒤로 갑니다. 결과는 스크래치/<작업 ID> 폴더에 남습니다.',
+              'Queue long builds or GPU training; they run on free build VMs and free GPUs in turn. Who waited longest goes first, anyone over quota goes last. Results stay in scratch/<job id>.')
+            : L('합성 · 구현 같은 긴 빌드를 큐에 넣으면 빈 빌드 VM에서 차례로 돌립니다. 결과와 마지막 출력이 여기에 남습니다.',
+              'Queue long builds (synthesis, implementation); they run on free build VMs in turn and leave their result and last output here.')}</p>
         </div>
         <div className="panel-actions">
           <button type="button" className="btn" onClick={jobs.reload}><Icon name="refresh" size={16} /></button>
@@ -1032,26 +1049,33 @@ export function BuildJobsPanel({ pools, admin = false }: { pools: { id: string; 
       <NoticeBar notice={notice} />
       {list.length === 0 ? <div className="empty"><p>{L('작업이 없습니다.', 'No jobs.')}</p></div> : (
         <div className="table-scroll"><table className="table compact-head">
-          <thead><tr><th>{L('작업', 'Job')}</th>{admin && <th>{L('사용자', 'User')}</th>}<th>{L('상태', 'State')}</th><th>{L('빌드 VM', 'Build VM')}</th><th>{L('넣은 시각', 'Queued')}</th><th>{L('끝난 시각', 'Finished')}</th><th className="actions" /></tr></thead>
+          <thead><tr><th>{L('작업', 'Job')}</th>{admin && <th>{L('사용자', 'User')}</th>}<th>{L('상태', 'State')}</th>{gpuPools && <th>GPU</th>}<th>{L('빌드 VM', 'Build VM')}</th><th>{L('넣은 시각', 'Queued')}</th><th>{L('끝난 시각', 'Finished')}</th><th className="actions" /></tr></thead>
           <tbody>{list.map((j) => (
             <tr key={j.id}>
-              <td className="strong">{j.name}<div className="muted small"><code className="code">{j.command}</code></div></td>
+              <td className="strong">{j.name}<div className="muted small"><code className="code">{j.command}</code></div>
+                {j.env && <div className="muted small">{j.env.kind === 'conda' ? `conda: ${j.env.name}` : `${L('컨테이너', 'container')}: ${j.env.image}`}</div>}</td>
               {admin && <td>{j.username}</td>}
-              <td><span className={JOB_TONE[j.status]}>{S[j.status]}{j.exit_code !== null && j.status !== 'done' ? ` · ${j.exit_code}` : ''}</span></td>
-              <td>{j.desktop ?? <span className="muted small">-</span>}</td>
+              <td><span className={JOB_TONE[j.status]}>{S[j.status]}{j.exit_code !== null && j.status !== 'done' ? ` · ${j.exit_code}` : ''}</span>
+                {j.status === 'queued' && j.gpus ? <div className="muted small">{waitText(j.wait_reason, L)}</div> : null}</td>
+              {gpuPools && <td>{j.gpus ? <span className="chip chip-accent gpu-chip"><Icon name="gpu" size={12} />{gpuText(j, L)}</span> : <span className="muted small">-</span>}
+                {j.max_minutes ? <div className="muted small">{L(`최대 ${j.max_minutes}분`, `up to ${j.max_minutes} min`)}</div> : null}</td>}
+              <td>{j.desktop ?? <span className="muted small">{j.pool ?? (j.gpus ? L('자동 선택', 'auto') : '-')}</span>}</td>
               <td className="muted small">{when(j.created_at)}</td>
               <td className="muted small">{when(j.finished_at)}</td>
               <td className="actions">
                 {(j.output || j.error) && <button type="button" className="btn-ghost small-btn" onClick={() => setOpen(j)}>{L('출력', 'Output')}</button>}
                 {j.status === 'queued' && <button type="button" className="btn-ghost small-btn danger" onClick={() => cancel(j)}>{L('취소', 'Cancel')}</button>}
+                {j.status === 'running' && <button type="button" className="btn-ghost small-btn danger" onClick={() => stop(j)}>{L('멈추기', 'Stop')}</button>}
               </td>
             </tr>))}</tbody>
         </table></div>
       )}
-      {adding && <JobDialog pools={pools} admin={admin} onClose={() => setAdding(false)} onDone={() => { setAdding(false); jobs.reload(); setNotice({ kind: 'info', text: L('큐에 넣었습니다. 빈 빌드 VM이 생기면 시작합니다.', 'Queued; it starts on the next free build VM.') }); }} />}
+      {adding && <JobDialog pools={pools} admin={admin} onClose={() => setAdding(false)} onDone={(j) => { setAdding(false); jobs.reload();
+        setNotice({ kind: 'info', text: j.status === 'running' ? L(`${j.desktop}에서 시작했습니다.`, `Started on ${j.desktop}.`)
+          : j.gpus ? L('큐에 넣었습니다. 맞는 GPU가 비면 시작합니다.', 'Queued; it starts when matching GPUs are free.') : L('큐에 넣었습니다. 빈 빌드 VM이 생기면 시작합니다.', 'Queued; it starts on the next free build VM.') }); }} />}
       {open && (
         <Dialog open title={L(`${open.name} 출력`, `${open.name}: output`)} onClose={() => setOpen(null)}>
-          <p className="muted small">{open.desktop} · {L('종료 코드', 'exit code')} {open.exit_code ?? '-'}</p>
+          <p className="muted small">{open.desktop} · {L('종료 코드', 'exit code')} {open.exit_code ?? '-'}{open.workdir ? ` · ${L('결과 폴더', 'results')} ${open.workdir}` : ''}</p>
           <pre className="job-output">{open.error || open.output}</pre>
         </Dialog>
       )}
@@ -1059,38 +1083,97 @@ export function BuildJobsPanel({ pools, admin = false }: { pools: { id: string; 
   );
 }
 
-function JobDialog({ pools, admin, onClose, onDone }: { pools: { id: string; name: string; workdir?: string }[]; admin: boolean; onClose: () => void; onDone: () => void }) {
+const AUTO = '__auto__';
+
+function JobDialog({ pools, admin, onClose, onDone }: { pools: JobPool[]; admin: boolean; onClose: () => void; onDone: (j: BuildJob) => void }) {
   const { L } = useL();
-  const [pool, setPool] = useState(pools[0]?.id ?? '');
+  const gpuPools = pools.filter((p) => (p.gpus_per_vm ?? 0) > 0);
+  const [pool, setPool] = useState(gpuPools.length > 1 ? AUTO : pools[0]?.id ?? '');
   const [name, setName] = useState('');
   const [command, setCommand] = useState('');
   // 공유 저장소: left empty, the engine starts the job in <the user's scratch>/<job id>, as the user
-  const folderOf = (id: string) => pools.find((p) => p.id === id)?.workdir ?? '';
+  const sel = pools.find((p) => p.id === pool);
+  const folderOf = (id: string) => (id === AUTO ? gpuPools[0]?.workdir : pools.find((p) => p.id === id)?.workdir) ?? '';
   const [workdir, setWorkdir] = useState('');
   const [user, setUser] = useState('');
+  const gpuMode = pool === AUTO || (sel?.gpus_per_vm ?? 0) > 0;
+  const maxGpus = pool === AUTO ? Math.max(1, ...gpuPools.map((p) => p.gpus_per_vm ?? 1)) : sel?.gpus_per_vm ?? 0;
+  const cap = pool === AUTO ? 0 : sel?.max_minutes ?? 0;
+  const kinds = [...new Set(gpuPools.map((p) => p.gpu_kind).filter(Boolean))] as string[];
+  const [gpus, setGpus] = useState(1);
+  const [kind, setKind] = useState('');
+  const [mem, setMem] = useState(0);
+  const [minutes, setMinutes] = useState(0);
+  const [envKind, setEnvKind] = useState<'none' | 'conda' | 'container'>('none');
+  const [envName, setEnvName] = useState('');
+  const [image, setImage] = useState('');
+  const [mail, setMail] = useState(true);
+  const [hook, setHook] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function submit() {
     setBusy(true); setError(null);
     try {
-      const b = { pool_id: pool, name, command, workdir, ...(admin && user ? { username: user } : {}) };
-      await (admin ? nextApi.submitJob(b) : nextApi.mySubmitJob(b)); onDone();
+      const gpu = gpuMode ? {
+        gpus, gpu_kind: kind, memory_gb: mem, ...(minutes ? { max_minutes: minutes } : {}),
+        env: envKind === 'conda' ? { kind: 'conda' as const, name: envName } : envKind === 'container' ? { kind: 'container' as const, image } : null,
+        notify: { mail, webhook: hook },
+      } : {};
+      const b = { pool_id: pool === AUTO ? '' : pool, name, command, workdir, ...(admin && user ? { username: user } : {}), ...gpu };
+      onDone(await (admin ? nextApi.submitJob(b) : nextApi.mySubmitJob(b)));
     } catch (e) { setError(errText(e)); } finally { setBusy(false); }
   }
+  const envMissing = (envKind === 'conda' && !envName) || (envKind === 'container' && !image);
   return (
-    <Dialog open title={L('빌드 작업 넣기', 'Queue a build job')} onClose={onClose} onSubmit={submit} submitLabel={L('큐에 넣기', 'Queue')} busy={busy || !pool || !name || !command} error={error}>
-      <label><span>{L('빌드 팜', 'Build farm')}</span>
-        <select id="job-pool" value={pool} onChange={(e) => setPool(e.target.value)}>{pools.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
-      <label><span>{L('작업 이름', 'Name')}</span><input id="job-name" value={name} maxLength={80} placeholder={L('예: zcu102 비트스트림', 'e.g. zcu102 bitstream')} onChange={(e) => setName(e.target.value)} /></label>
-      <label><span>{L('명령', 'Command')}</span><input id="job-cmd" value={command} maxLength={2000} placeholder="vivado -mode batch -source build.tcl" onChange={(e) => setCommand(e.target.value)} /></label>
+    <Dialog open wide={gpuMode} title={gpuMode ? L('작업 넣기 (GPU)', 'Queue a GPU job') : L('빌드 작업 넣기', 'Queue a build job')} onClose={onClose} onSubmit={submit}
+      submitLabel={L('큐에 넣기', 'Queue')} busy={busy || !pool || !name || !command || envMissing} error={error}>
+      <label><span>{L('풀', 'Pool')}</span>
+        <select id="job-pool" value={pool} onChange={(e) => { setPool(e.target.value); setGpus(1); }}>
+          {gpuPools.length > 1 && <option value={AUTO}>{L('아무 GPU 풀 (빈 곳 자동 선택)', 'Any GPU pool (first free)')}</option>}
+          {pools.map((p) => <option key={p.id} value={p.id}>{p.name}{p.gpus_per_vm ? ` · GPU ${p.gpus_per_vm}${L('장/VM', '/VM')}${p.gpu_kind ? ` ${p.gpu_kind}` : ''}` : ''}</option>)}
+        </select></label>
+      <label><span>{L('작업 이름', 'Name')}</span><input id="job-name" value={name} maxLength={80} placeholder={gpuMode ? L('예: llama-7b LoRA', 'e.g. llama-7b LoRA') : L('예: zcu102 비트스트림', 'e.g. zcu102 bitstream')} onChange={(e) => setName(e.target.value)} /></label>
+      <label><span>{L('명령', 'Command')}</span><input id="job-cmd" value={command} maxLength={2000} placeholder={gpuMode ? 'torchrun --nproc_per_node 2 train.py' : 'vivado -mode batch -source build.tcl'} onChange={(e) => setCommand(e.target.value)} /></label>
+      {gpuMode && (
+        <>
+          <div className="form-row">
+            <label><span>{L('GPU 장 수', 'GPUs')}</span><input id="job-gpus" type="number" min={1} max={maxGpus} value={gpus} onChange={(e) => setGpus(Math.max(1, Math.min(maxGpus, Number(e.target.value) || 1)))} />
+              <small className="muted">{L(`VM 하나에 최대 ${maxGpus}장`, `up to ${maxGpus} per VM`)}</small></label>
+            <label><span>{L('GPU 종류 (선택)', 'GPU kind (optional)')}</span>
+              <input id="job-kind" list="job-kinds" value={kind} maxLength={60} placeholder={kinds[0] ?? 'A100'} onChange={(e) => setKind(e.target.value)} />
+              <datalist id="job-kinds">{kinds.map((k) => <option key={k} value={k} />)}</datalist></label>
+            <label><span>{L('메모리 (GB, 선택)', 'Memory (GB, optional)')}</span><input id="job-mem" type="number" min={0} max={4096} value={mem} onChange={(e) => setMem(Math.max(0, Number(e.target.value) || 0))} /></label>
+            <label><span>{L('최대 실행 시간 (분)', 'Time limit (min)')}</span><input id="job-min" type="number" min={0} max={43200} value={minutes} onChange={(e) => setMinutes(Math.max(0, Number(e.target.value) || 0))} />
+              <small className="muted">{cap ? L(`비우면 기본값 · 이 풀은 ${cap}분까지`, `empty: the default · this pool allows ${cap} min`) : L('0 = 기본값', '0 = the default')}</small></label>
+          </div>
+          <span className="field-label">{L('실행 환경', 'Environment')}</span>
+          <div className="form-row">
+            <label><span>{L('종류', 'Kind')}</span>
+              <select id="job-env" value={envKind} onChange={(e) => setEnvKind(e.target.value as 'none' | 'conda' | 'container')}>
+                <option value="none">{L('빌드 VM 그대로', 'The build VM as it is')}</option>
+                <option value="conda">conda</option>
+                <option value="container">{L('컨테이너 이미지', 'Container image')}</option>
+              </select></label>
+            {envKind === 'conda' && <label><span>{L('conda 환경 이름', 'conda environment')}</span><input id="job-conda" value={envName} placeholder="torch24" onChange={(e) => setEnvName(e.target.value.trim())} /></label>}
+            {envKind === 'container' && <label className="grow"><span>{L('이미지', 'Image')}{sel?.runtime ? ` (${sel.runtime})` : ''}</span><input id="job-image" value={image} placeholder="nvcr.io/nvidia/pytorch:24.08-py3" onChange={(e) => setImage(e.target.value.trim())} /></label>}
+          </div>
+          <div className="check-row">
+            <label className="check"><input type="checkbox" checked={mail} onChange={(e) => setMail(e.target.checked)} /><span>{L('끝나면 메일', 'Mail me when it ends')}</span></label>
+            <label className="check"><input type="checkbox" checked={hook} onChange={(e) => setHook(e.target.checked)} /><span>{L('끝나면 웹훅(메신저) 알림', 'Webhook (messenger) when it ends')}</span></label>
+          </div>
+        </>
+      )}
       <div className="form-row form-row-wide">
         <label><span>{L('작업 폴더 (빌드 VM 안)', 'Folder (on the build VM)')}</span><input id="job-dir" value={workdir} placeholder={folderOf(pool) ? `${folderOf(pool)}/<${L('작업 ID', 'job id')}>` : '/proj/zcu102'} onChange={(e) => setWorkdir(e.target.value.trim())} />
-          {folderOf(pool) && <small className="muted">{L(`비워 두면 내 스크래치 폴더 아래 작업마다 새 폴더(${folderOf(pool)}/작업 ID)에서 내 권한으로 실행합니다. 스크래치는 백업되지 않습니다.`,
-            `Left empty, each job runs as you in a new folder under your scratch (${folderOf(pool)}/<job id>). Scratch is not backed up.`)}</small>}</label>
+          {folderOf(pool) && <small className="muted">{L(`비워 두면 내 스크래치 폴더 아래 작업마다 새 폴더(${folderOf(pool)}/작업 ID)에서 내 권한으로 실행합니다. 결과도 거기 남고, 스크래치는 백업되지 않습니다.`,
+            `Left empty, each job runs as you in a new folder under your scratch (${folderOf(pool)}/<job id>); results stay there. Scratch is not backed up.`)}</small>}</label>
         {admin && <label><span>{L('사용자 (선택)', 'For user (optional)')}</span><input id="job-user" value={user} placeholder="alice" onChange={(e) => setUser(e.target.value.trim())} /></label>}
       </div>
-      <p className="muted small">{L('빌드 VM에는 게스트 에이전트가 있어야 하고, 프로젝트 폴더는 공유 저장소에 두세요(풀 정책 > 공유 저장소를 켜면 시작 전에 마운트를 확인합니다). 출력은 마지막 8KB만 남습니다.',
-        'Build VMs need the guest agent; keep projects on shared storage (pool policy > shared storage mounts it before the job starts). Only the last 8 KB of output is kept.')}</p>
+      <p className="muted small">{gpuMode
+        ? L('GPU 작업은 받은 GPU만 보입니다(CUDA_VISIBLE_DEVICES). 출력 전체는 작업 폴더의 moavi-job.log에, 마지막 20KB는 여기 남습니다. 최대 실행 시간이 지나면 끝냅니다.',
+          'A GPU job sees only the GPUs it got (CUDA_VISIBLE_DEVICES). The whole output goes to moavi-job.log in its folder, the last 20 KB stays here. It is ended at its time limit.')
+        : L('빌드 VM에는 게스트 에이전트가 있어야 하고, 프로젝트 폴더는 공유 저장소에 두세요(풀 정책 > 공유 저장소를 켜면 시작 전에 마운트를 확인합니다). 출력은 마지막 8KB만 남습니다.',
+          'Build VMs need the guest agent; keep projects on shared storage (pool policy > shared storage mounts it before the job starts). Only the last 8 KB of output is kept.')}</p>
     </Dialog>
   );
 }

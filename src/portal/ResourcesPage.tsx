@@ -7,6 +7,7 @@ import { LoadState } from '../components/LoadState';
 import { useLoad } from '../components/useLoad';
 import { useI18n } from '../i18n';
 import { UseChip } from '../components/WorkParts';
+import { MyGpuCard } from './WebIde';
 
 // 내 자원: accelerator cards, boards and desktops on loan to the user.
 export function ResourcesPage() {
@@ -51,6 +52,7 @@ export function ResourcesPage() {
           )}
         </LoadState>
       )}
+      <MyGpuCard />
       {folders.state === 'ok' && folders.data.length > 0 && (
         <section className="panel">
           <div className="panel-head">

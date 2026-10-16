@@ -28,6 +28,7 @@ import { RolesPage } from './pages/RolesPage';
 import { UsersPage } from './pages/UsersPage';
 import { AccelChecksPage } from './pages/AccelChecksPage';
 import { EnvCatalogPage } from './pages/EnvCatalogPage';
+import { GpuQueuePage, GpuQuotasPage, GpuUsagePage, IdeSessionsPage } from './pages/ResearchPages';
 import { BoardsPage, BuildFarmPage, CardUsagePage, DepartmentsPage, ExternalDesktopsPage, GatewaysPage, GoldenImagesPage, LicenseServersPage, SignupsPage, UsbLibraryPage } from './pages/NextPages';
 
 // Pages that exist so far; every other menu entry shows its planned phase.
@@ -74,6 +75,10 @@ function pageBody(moduleId: string, pageId: string, subId?: string) {
   if (key === 'users/departments') return <DepartmentsPage />;
   if (key === 'accel/boards') return <BoardsPage />;
   if (key === 'accel/buildfarm') return <BuildFarmPage />;
+  if (key === 'accel/gpuqueue') return <GpuQueuePage />;
+  if (key === 'accel/quotas') return <GpuQuotasPage />;
+  if (key === 'accel/gpuusage') return <GpuUsagePage />;
+  if (key === 'accel/ide') return <IdeSessionsPage />;
   if (key === 'accel/licenses') return <LicenseServersPage />;
   if (key === 'accel/usage') return <CardUsagePage />;
   if (key === 'accel/checks') return <AccelChecksPage />;

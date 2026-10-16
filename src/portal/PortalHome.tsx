@@ -14,6 +14,7 @@ import type { MessageKey } from '../i18n/messages';
 import { DesktopCard, relativeTime } from './DesktopCard';
 import { ExternalDesktops } from './ExternalDesktops';
 import { MyPools } from './MyPools';
+import { WebIdePanel } from './WebIde';
 
 // noVNC is only loaded when a console is opened
 const ConsoleWindow = lazy(() => import('./ConsoleWindow'));
@@ -239,6 +240,7 @@ export function PortalHome() {
             }}
           </LoadState>
         )}
+        <WebIdePanel />
         <MyPools onOpen={(id) => { desktops.reload(); setTimeout(() => document.getElementById(`dtile-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 600); }} />
         <ExternalDesktops />
       </div>

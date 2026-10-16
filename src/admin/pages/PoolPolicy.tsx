@@ -62,6 +62,7 @@ function Summary({ p, storage }: { p: PoolPolicy; storage: PoolStorage | null })
   if (!p.allow_power) chips.push(`${t('pol.s.power')}: ${t('pol.offShort')}`);
   if (p.max_session_hours) chips.push(`${t('pol.maxSession')} ${p.max_session_hours}${t('pol.hours')}`);
   if (p.defer_when_busy) chips.push(L(`작업 중이면 미루기 (최대 ${p.defer_max_hours}시간)`, `Wait while working (up to ${p.defer_max_hours} h)`));
+  if (p.web_ide?.length) chips.push(`${L('웹 IDE', 'Web IDE')}: ${p.web_ide.map((k) => (k === 'jupyter' ? 'JupyterLab' : 'VS Code')).join(' · ')}`);
   if (storage?.enabled) chips.push(`${L('공유 저장소', 'Shared storage')}: ${storage.kind.toUpperCase()} ${storage.server}`);
   return <div className="policy-chips">{chips.map((c) => <span key={c} className="chip">{c}</span>)}</div>;
 }
@@ -126,6 +127,33 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
           </div>
           <label className="check"><input type="checkbox" checked={p.spice_fullscreen} disabled={!p.protocols.includes('spice')}
             onChange={(e) => set('spice_fullscreen', e.target.checked)} /><span>{t('pol.fullscreen')}</span></label>
+          <span className="field-label">{L('웹 IDE (브라우저)', 'Web IDE (browser)')}</span>
+          <div className="mode-cards mode-cards-2">
+            {(['jupyter', 'vscode'] as const).map((k) => {
+              const on = (p.web_ide ?? []).includes(k);
+              return (
+                <label key={k} className={`mode-card${on ? ' on' : ''}`}>
+                  <input type="checkbox" checked={on} aria-label={k === 'jupyter' ? 'JupyterLab' : 'VS Code'}
+                    onChange={() => set('web_ide', (['jupyter', 'vscode'] as const).filter((x) => (x === k ? !on : (p.web_ide ?? []).includes(x))))} />
+                  <span className="strong">{k === 'jupyter' ? 'JupyterLab' : 'VS Code (code-server)'}</span>
+                  <span className="muted small">{k === 'jupyter' ? L('노트북 · 터미널. 사용자 계정으로, 홈 또는 스크래치 폴더에서', 'Notebooks and a terminal, as the user, in home or scratch')
+                    : L('브라우저 VS Code. Jupyter 인증 뒤에서 열림 (jupyter-vscode-proxy)', 'VS Code in the browser, behind the Jupyter sign-in (jupyter-vscode-proxy)')}</span>
+                </label>
+              );
+            })}
+          </div>
+          {(p.web_ide ?? []).length > 0 && (
+            <label>
+              <span>{L('쓰지 않으면 끄기', 'End when unused for')}</span>
+              <span className="with-unit">
+                <input type="number" min={10} max={10080} value={p.web_ide_idle_min ?? 240}
+                  onChange={(e) => set('web_ide_idle_min', Math.max(10, Math.min(10080, Number(e.target.value) || 240)))} />
+                <span className="muted small">{t('pol.min')}</span>
+              </span>
+              <small className="muted">{L('Linux 데스크톱 · 빌드 VM에 JupyterLab(과 code-server)이 설치돼 있어야 합니다. 가속 자원 > 웹 IDE 세션의 "템플릿 준비"를 보세요.',
+                'Linux desktops and build VMs need JupyterLab (and code-server) installed; see 가속 자원 > 웹 IDE 세션, "preparing the template".')}</small>
+            </label>
+          )}
         </div>
       )}
 
@@ -198,6 +226,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
         <div className="wiz-body">
           <dl className="review-list">
             <dt>{t('pol.s.conn')}</dt><dd>{p.protocols.map((x) => t(`pol.${x}` as MessageKey)).join(', ')}{p.spice_fullscreen ? ` · ${t('pol.fullscreen')}` : ''}</dd>
+            <dt>{L('웹 IDE', 'Web IDE')}</dt><dd>{(p.web_ide ?? []).length ? `${p.web_ide.map((k) => (k === 'jupyter' ? 'JupyterLab' : 'VS Code')).join(', ')} · ${L(`유휴 ${p.web_ide_idle_min}분 뒤 끔`, `ends after ${p.web_ide_idle_min} min unused`)}` : t('pol.offShort')}</dd>
             <dt>{t('pol.s.clip')}</dt><dd>{t(`pol.clip.${p.clipboard}` as MessageKey)}</dd>
             <dt>{t('pol.s.usb')}</dt><dd>{p.usb_redirect ? `${t('pol.on')}${p.usb_autoshare ? ` · ${t('pol.usbAuto')}` : ''}` : t('pol.offShort')}</dd>
             <dt>{t('pol.s.power')}</dt><dd>{[p.start_on_connect && t('pol.startOnConnect'),

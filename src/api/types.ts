@@ -41,7 +41,7 @@ export type Desktop = {
   pool_type?: string;
   last_connected?: string | null;
   gpu?: { mode: 'passthrough' | 'vgpu'; label: string };
-  policy?: { clipboard: Clipboard; allow_power: boolean; start_on_connect: boolean };
+  policy?: { clipboard: Clipboard; allow_power: boolean; start_on_connect: boolean; web_ide?: ('jupyter' | 'vscode')[] };
   // 공유 저장소: the user's folders on the pool's NAS, and how the last check went
   storage?: StoragePaths & { ok: boolean | null; code: string; warnings: string[] };
   // 작업 중 표시, 미뤄진 정리, 카드 사용률 (pegaprox/api/vlab_work.py)
@@ -148,6 +148,7 @@ export type PoolPolicy = {
   allow_power: boolean; max_session_hours: number;
   // a working desktop (busy GPU / CPU, a build job, the user's "작업 중") is not shut down or reset; the step waits
   defer_when_busy: boolean; busy_gpu_pct: number; busy_cpu_pct: number; defer_max_hours: number;
+  web_ide: ('jupyter' | 'vscode')[]; web_ide_idle_min: number;   // 웹 IDE (research.ts)
 };
 export type PoolPolicyAnswer = { policy: PoolPolicy; defaults: PoolPolicy; reset_allowed: boolean };
 

@@ -3,6 +3,7 @@
 // and the Windows client settings (pegaprox/api/vlab.py /api/vlab/admin/client).
 import { ApiError, isMock, request } from './client';
 import { mockHaVmids } from './ops';
+import type { GpuEnv, GpuJobFields, Notify, Runtime, WaitReason } from './research';
 
 export type Department = { id: string; name: string; parent_id: string | null; sort: number; members: number; created_at: string };
 export type Member = { username: string; department_id: string };
@@ -50,7 +51,8 @@ export type Board = {
 };
 export type BoardInput = { name: string; cluster_id: string; node: string; usb: string; kind: string; notes: string };
 export type FarmDesktop = { id: string; name: string; status: string; assigned_user: string | null; in_session: boolean; cpu: number; maxcpu?: number; mem: number; maxmem?: number };
-export type FarmPool = { id: string; name: string; cluster_id: string; total: number; running: number; in_use: number; free: number; cpu_pct: number; mem_used: number; mem_total: number; desktops: FarmDesktop[] };
+export type FarmPool = { id: string; name: string; cluster_id: string; total: number; running: number; in_use: number; free: number; cpu_pct: number; mem_used: number; mem_total: number; desktops: FarmDesktop[];
+  gpus_per_vm?: number; gpu_kind?: string; max_minutes?: number; runtime?: Runtime };
 export type PortCheck = { port: number; ok: boolean; ms: number; error: string };
 export type LicenseServer = {
   id: string; name: string; host: string; ports: number[]; cluster_id: string; vmid: number | null; fixed_mac: string; notes: string;
@@ -69,8 +71,13 @@ export type BuildJob = {
   id: string; pool_id: string; pool: string | null; username: string; name: string; command: string; workdir: string; status: JobStatus;
   desktop_id: string | null; desktop: string | null; pid: number | null; exit_code: number | null; output: string; error: string;
   created_at: string; started_at: string | null; finished_at: string | null;
+  // GPU jobs (research.ts): what it asked for, the GPUs it got, why it waits
+  gpus?: number; gpu_kind?: string; memory_gb?: number; max_minutes?: number; env?: GpuEnv | null; notify?: Notify;
+  gpu_index?: number[]; wait_reason?: WaitReason; gpu_job?: boolean;
 };
-export type JobInput = { pool_id: string; name: string; command: string; workdir: string; username?: string };
+// pool_id '' with gpus > 0: the queue picks any GPU pool granted to the user
+export type JobInput = { pool_id: string; name: string; command: string; workdir: string; username?: string } & GpuJobFields;
+export type JobPool = { id: string; name: string; workdir?: string; gpus_per_vm?: number; gpu_kind?: string; max_minutes?: number; runtime?: Runtime };
 export type CardRow = { card: string; resource_id: string; loans: number; hours: number; users: string[]; active: number; use_pct: number;
   // what the card really did while lent (GPU/NPU samples): average use, hours under the idle threshold or off, hours measured
   util_avg?: number | null; idle_hours?: number; measured_hours?: number; unmeasured_hours?: number };
@@ -166,7 +173,7 @@ const realNextApi = {
   route: async (poolId: string) => call<{ desktop: { id: string; name: string }; sessions: number; limit: number }>('POST', `/api/vlab/me/pools/${enc(poolId)}/route`),
   myExternalGuac: async (id: string) => call<{ url: string }>('GET', `/api/vlab/me/external/${enc(id)}/guac`),
   // pools[].workdir: the user's scratch folder when build jobs start there (each job in <workdir>/<job id>), else ''
-  myJobs: async () => call<{ jobs: BuildJob[]; pools: { id: string; name: string; workdir?: string }[] }>('GET', '/api/vlab/me/build-jobs'),
+  myJobs: async () => call<{ jobs: BuildJob[]; pools: JobPool[] }>('GET', '/api/vlab/me/build-jobs'),
   mySubmitJob: async (b: JobInput) => (await call<{ job: BuildJob }>('POST', '/api/vlab/me/build-jobs', b)).job,
   myCancelJob: async (id: string) => { await call('POST', `/api/vlab/me/build-jobs/${enc(id)}/cancel`); },
 
@@ -277,7 +284,18 @@ const farm: FarmPool[] = [
       { id: 'b4', name: 'vivado-build-04', status: 'running', assigned_user: null, in_session: true, cpu: 61.2, maxcpu: 16, mem: 52 * GB, maxmem: 64 * GB },
       { id: 'b5', name: 'vivado-build-05', status: 'running', assigned_user: null, in_session: false, cpu: 30.8, maxcpu: 16, mem: 92 * GB, maxmem: 64 * GB },
       { id: 'b6', name: 'vivado-build-06', status: 'stopped', assigned_user: null, in_session: false, cpu: 0, maxcpu: 16, mem: 0, maxmem: 64 * GB },
-    ] },
+    ], gpus_per_vm: 0, gpu_kind: '', max_minutes: 0, runtime: 'docker' },
+  { id: 'p_gpu', name: 'A100 학습 팜', cluster_id: 'c1', total: 3, running: 3, in_use: 0, free: 3, cpu_pct: 71.2, mem_used: 610 * GB, mem_total: 768 * GB,
+    desktops: [
+      { id: 'gb1', name: 'gpu-build-01', status: 'running', assigned_user: null, in_session: false, cpu: 88.0, maxcpu: 32, mem: 230 * GB, maxmem: 256 * GB },
+      { id: 'gb2', name: 'gpu-build-02', status: 'running', assigned_user: null, in_session: false, cpu: 74.5, maxcpu: 32, mem: 180 * GB, maxmem: 256 * GB },
+      { id: 'gb3', name: 'gpu-build-03', status: 'running', assigned_user: null, in_session: false, cpu: 51.0, maxcpu: 32, mem: 200 * GB, maxmem: 256 * GB },
+    ], gpus_per_vm: 4, gpu_kind: 'A100', max_minutes: 2880, runtime: 'docker' },
+  { id: 'p_l40', name: 'L40S 추론 팜', cluster_id: 'c1', total: 2, running: 2, in_use: 0, free: 2, cpu_pct: 22.4, mem_used: 90 * GB, mem_total: 256 * GB,
+    desktops: [
+      { id: 'lb1', name: 'l40s-01', status: 'running', assigned_user: null, in_session: false, cpu: 20.0, maxcpu: 16, mem: 45 * GB, maxmem: 128 * GB },
+      { id: 'lb2', name: 'l40s-02', status: 'running', assigned_user: null, in_session: false, cpu: 24.8, maxcpu: 16, mem: 45 * GB, maxmem: 128 * GB },
+    ], gpus_per_vm: 2, gpu_kind: 'L40S', max_minutes: 720, runtime: 'apptainer' },
 ];
 const licenses: LicenseServer[] = [
   { id: 'lic_1', name: 'FPGA 설계 툴 라이선스 (FlexLM)', host: 'lic01.univ.ac.kr', ports: [2100, 27000], cluster_id: 'lab-cluster', vmid: 210, fixed_mac: '52:54:00:1a:2b:3c',
@@ -300,6 +318,12 @@ const myPools: MyPool[] = [
     environment: { name: 'ubuntu-ai-pytorch', kind: 'ai', highlights: ['CUDA 12.4', 'PyTorch 2.4.1+cu124', 'NVIDIA driver 550.127.05'] } },
 ];
 const jobs: BuildJob[] = [
+  { id: 'job_g1', pool_id: 'p_gpu', pool: 'A100 학습 팜', username: 'alice', name: 'llama-7b LoRA', command: 'torchrun --nproc_per_node 4 train.py', workdir: '/nas/scratch/alice/job_g1',
+    status: 'running', desktop_id: 'gb1', desktop: 'gpu-build-01', pid: 5001, exit_code: null, output: '', error: '', created_at: iso(190), started_at: iso(185), finished_at: null,
+    gpus: 4, gpu_kind: 'A100', memory_gb: 200, max_minutes: 1440, env: { kind: 'container', image: 'nvcr.io/nvidia/pytorch:24.08-py3' }, notify: { mail: true }, gpu_index: [0, 1, 2, 3], gpu_job: true },
+  { id: 'job_g5', pool_id: '', pool: null, username: 'alice', name: 'ablation #2', command: 'python train.py --abl 2', workdir: '', status: 'queued', desktop_id: null, desktop: null,
+    pid: null, exit_code: null, output: '', error: '', created_at: iso(40), started_at: null, finished_at: null,
+    gpus: 1, gpu_kind: '', memory_gb: 32, max_minutes: 240, env: { kind: 'conda', name: 'torch24' }, notify: { mail: true, webhook: true }, gpu_index: [], wait_reason: 'quota_gpus', gpu_job: true },
   { id: 'job_1', pool_id: 'p_farm', pool: 'FPGA 빌드 팜', username: 'alice', name: 'zcu102 비트스트림', command: 'make bit', workdir: '/proj/zcu102', status: 'running',
     desktop_id: 'b4', desktop: 'vivado-build-04', pid: 4242, exit_code: null, output: '', error: '', created_at: iso(48), started_at: iso(47), finished_at: null },
   { id: 'job_2', pool_id: 'p_farm', pool: 'FPGA 빌드 팜', username: 'dave', name: 'vck190 합성', command: 'vivado -mode batch -source synth.tcl', workdir: '/proj/vck190',
@@ -514,11 +538,17 @@ const mockNextApi: NextApi = {
   },
   route: () => delay({ desktop: { id: 'd1', name: 'eda-server-02' }, sessions: 3, limit: 10 }),
   myExternalGuac: () => delay({ url: 'https://guac.univ.ac.kr:8443/guacamole/?data=mock' }),
-  myJobs: () => delay({ jobs: jobs.filter((j) => j.username === 'alice').map((j) => ({ ...j })), pools: [{ id: 'p_farm', name: 'FPGA 빌드 팜', workdir: '/nas/scratch/alice' }] }),
+  myJobs: () => delay({ jobs: jobs.filter((j) => j.username === 'alice').map((j) => ({ ...j })), pools: [{ id: 'p_farm', name: 'FPGA 빌드 팜', workdir: '/nas/scratch/alice', gpus_per_vm: 0 },
+    { id: 'p_gpu', name: 'A100 학습 팜', workdir: '/nas/scratch/alice', gpus_per_vm: 4, gpu_kind: 'A100', max_minutes: 2880, runtime: 'docker' }] }),
   mySubmitJob: (b) => {
     const id = nid('job');
-    const j: BuildJob = { id, pool_id: b.pool_id, pool: 'FPGA 빌드 팜', username: 'alice', name: b.name, command: b.command, workdir: b.workdir || `/nas/scratch/alice/${id}`,
-      status: 'queued', desktop_id: null, desktop: null, pid: null, exit_code: null, output: '', error: '', created_at: iso(0), started_at: null, finished_at: null };
+    if (b.gpus && b.gpus > 4) return fail(409, 'No GPU build pool you may use has that many GPUs of that kind');
+    const gpu = !!b.gpus;
+    const j: BuildJob = { id, pool_id: b.pool_id || (gpu ? 'p_gpu' : ''), pool: gpu ? 'A100 학습 팜' : 'FPGA 빌드 팜', username: 'alice', name: b.name, command: b.command, workdir: b.workdir || `/nas/scratch/alice/${id}`,
+      status: gpu ? 'running' : 'queued', desktop_id: gpu ? 'gb3' : null, desktop: gpu ? 'gpu-build-03' : null, pid: gpu ? 5100 : null, exit_code: null, output: '', error: '',
+      created_at: iso(0), started_at: gpu ? iso(0) : null, finished_at: null,
+      ...(gpu ? { gpus: b.gpus, gpu_kind: b.gpu_kind ?? '', memory_gb: b.memory_gb ?? 0, max_minutes: b.max_minutes ?? 1440, env: b.env ?? null, notify: b.notify ?? {},
+        gpu_index: Array.from({ length: b.gpus! }, (_, i) => i), gpu_job: true } : {}) };
     jobs.unshift(j); return delay({ ...j });
   },
   myCancelJob: (id) => { const j = jobs.find((x) => x.id === id)!; Object.assign(j, { status: 'cancelled', finished_at: iso(0) }); return delay(undefined); },

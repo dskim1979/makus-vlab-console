@@ -2,7 +2,7 @@
 export type IconName =
   | 'vm' | 'pool' | 'users' | 'lab' | 'fpga' | 'gpu' | 'npu' | 'layers' | 'link' | 'spark' | 'cluster' | 'ops'
   | 'home' | 'grid' | 'list' | 'refresh' | 'gear' | 'download' | 'book' | 'info' | 'logout'
-  | 'cpu' | 'memory' | 'usb' | 'globe' | 'box' | 'play' | 'chevron' | 'search' | 'star' | 'more' | 'plus' | 'shield' | 'clock' | 'sun' | 'moon' | 'support';
+  | 'cpu' | 'memory' | 'usb' | 'globe' | 'box' | 'play' | 'chevron' | 'search' | 'star' | 'more' | 'plus' | 'shield' | 'clock' | 'sun' | 'moon' | 'support' | 'code';
 
 const PATHS: Record<IconName, JSX.Element> = {
   vm: (<><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></>),
@@ -13,6 +13,7 @@ const PATHS: Record<IconName, JSX.Element> = {
   npu: (<><rect x="5" y="5" width="14" height="14" rx="2" /><circle cx="9.5" cy="9.5" r="1.4" /><circle cx="14.5" cy="9.5" r="1.4" /><circle cx="12" cy="14.5" r="1.4" /><path d="M10.6 10.4l.9 3M13.4 10.4l-.9 3M11 9.5h2M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" /></>),
   sun: (<><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>),
   moon: (<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />),
+  code: (<><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16" /></>),
   support: (<><path d="M4 13v-1a8 8 0 0 1 16 0v1" /><rect x="3" y="13" width="4" height="6" rx="1.5" /><rect x="17" y="13" width="4" height="6" rx="1.5" /><path d="M19 19a3 3 0 0 1-3 3h-3" /></>),
   gpu: (<><rect x="2" y="6" width="20" height="11" rx="2" /><circle cx="9" cy="11.5" r="3" /><path d="M16 9.5h3M16 13.5h3M5 17v2M9 17v2M13 17v2" /></>),
   layers: (<><path d="M12 3 2 8l10 5 10-5-10-5z" /><path d="m2 13 10 5 10-5" /><path d="m2 17.5 10 5 10-5" /></>),

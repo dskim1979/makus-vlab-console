@@ -64,6 +64,30 @@ docker compose up -d --force-recreate vlab-guac-key vlab-engine guacamole
 guacd·guacamole 컨테이너가 만들어지지 않고(이미 있으면 내려간다), 내장 게이트웨이는 "사용 안 함" 이 된다. 다시 켜려면 줄을 지우고 `docker compose up -d`.
 별도로 둔 Guacamole 을 쓰려면 끈 다음 **게이트웨이** 화면에서 그 서버(주소·포트·공유 키)를 추가한다.
 
+## 웹 IDE (JupyterLab · VS Code)
+같은 443 의 `/ide/<세션>/` 경로로 나간다. 더 열 포트는 없고, **vlab-proxy(이 서버) → 데스크톱 · 빌드 VM 의 8890-8989/tcp** 만 열려 있으면 된다
+(사용자 PC 에는 열지 않는다).
+
+- 동작: 포털에서 IDE 를 열면 엔진이 게스트 에이전트로 사용자 계정의 `jupyter lab`(VS Code 는 `jupyter server` + jupyter-vscode-proxy 로
+  127.0.0.1 의 code-server)을 띄운다. 토큰은 표준입력으로만 넘기고 명령 줄에 남기지 않는다. 엔진은 1분짜리 일회용 링크
+  `/ide/<세션>/lab?moavi_ide=…` 를 주고, nginx 는 `/ide/` 의 모든 요청을 엔진 `/api/vlab/ide/auth` 에 먼저 묻는다(auth_request).
+  링크 → 그 경로 전용 쿠키(HttpOnly · Secure, 12시간) → 엔진이 VM 주소와 IDE 토큰을 헤더로 답하고, nginx 가 토큰을 붙여 VM 으로 넘긴다.
+  링크가 만료되거나 IDE 가 끝났으면 포털(`/?ide=expired`)로 돌아간다.
+- 설정은 `deploy/nginx/vlab.conf` 에 들어 있다: `location /ide/`, `location = /_moavi_ide_auth`(internal), 그리고 `/api/` 의
+  `proxy_set_header X-Moavi-Ide-Subrequest ""`(사용자가 이 헤더로 엔진 확인 경로를 직접 부르지 못하게). 다른 프록시를 앞에 두면
+  `X-Moavi-Ide-Subrequest` 헤더를 밖에서 받지 않게 같은 처리를 한다.
+- 템플릿(데스크톱 · 빌드 VM 이미지) 준비 — Linux:
+  ```bash
+  apt install -y qemu-guest-agent && systemctl enable --now qemu-guest-agent
+  python3 -m venv /opt/jupyter && /opt/jupyter/bin/pip install 'jupyterlab>=4' jupyter-server-proxy jupyter-vscode-proxy
+  ln -s /opt/jupyter/bin/jupyter /usr/local/bin/jupyter
+  curl -fsSL https://code-server.dev/install.sh | sh          # VS Code 를 쓸 때
+  ```
+  사용자 계정이 VM 안에 있어야 한다(AD/LDAP + SSSD, 공유 저장소와 같은 조건). GPU 작업용으로 NVIDIA 드라이버 · CUDA,
+  컨테이너를 쓰면 Docker + NVIDIA Container Toolkit(또는 Podman CDI · Apptainer), conda 는 `/opt/conda` 나 각자의 `~/miniconda3`.
+- 풀에서 켜기: 데스크톱 풀 > 풀 > 정책 > 접속 > **웹 IDE**(JupyterLab / VS Code, 유휴 시간). 빌드 팜 풀은 가속 자원 > GPU 작업 큐 >
+  풀별 GPU 작업 설정에서 VM 당 GPU 장 수 · 종류 · 최대 실행 시간 · 컨테이너 런타임을 정한다.
+
 ## 인증서 바꾸기
 정식 인증서(`tls.crt` — 중간 인증서까지 이어 붙인 것, `tls.key`)를 볼륨에 넣고 프록시를 다시 시작한다.
 
@@ -98,6 +122,9 @@ docker run --rm -v vlab_vlab-config:/data -v "$PWD":/backup alpine \
 | 브라우저 RDP 가 502 | Guacamole 이 안 떠 있다: `.env` 에 `VLAB_GUACAMOLE=0` 이 있는지, `docker compose logs vlab-guac-key guacamole` (`VLAB_GUAC_KEY` 형식이 틀리면 키 단계에서 멈춘다) |
 | 브라우저 RDP 링크가 로그인 화면/거부 | 엔진과 guacamole 의 키가 다르다(키를 바꾼 뒤 둘 다 다시 만들지 않음 — 위 "키 바꾸기"), 또는 서버 시계가 틀리다(링크 5분 유효) |
 | Guacamole 화면 뒤 "연결 오류" | guacd → 데스크톱 3389, 데스크톱의 RDP 허용·NLA 설정. `docker compose logs guacd` |
+| 웹 IDE 가 포털로 돌아옴(`?ide=expired`) | 링크는 1분 · 한 번만. 포털에서 다시 "열기". IDE 가 유휴 시간으로 꺼졌으면 다시 시작 |
+| 웹 IDE 가 502 | vlab-proxy → VM 8890-8989/tcp 가 막혀 있거나 IDE 가 아직 뜨는 중. 가속 자원 > 웹 IDE 세션의 상태 · 오류, VM 의 `~/.moavi/ide-<세션>.log` |
+| 웹 IDE "설치돼 있지 않음" | 템플릿에 jupyter(VS Code 는 code-server 도)가 없음 — 위 "템플릿 준비" |
 | 클러스터 연결 실패 | 엔진 컨테이너에서 노드 8006 접속, 사용자/비밀번호, 인증서 확인 옵션 |
 
 ```bash

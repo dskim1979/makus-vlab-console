@@ -1502,3 +1502,27 @@ fieldset.plain:disabled { opacity: .55; }
   .ds-grid { grid-template-columns: 1fr; }
 }
 .table-scroll + .panel, .empty + .panel { margin-top: .9rem; }
+
+/* AI · GPU 연구: GPU 작업 큐 · 할당량 · GPU-시간 · 웹 IDE (research.ts) */
+.gpu-chip { display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap; }
+.bar-fill.warn { background: var(--warn); }
+.gpu-pools { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: .75rem; }
+.gpu-pool { display: flex; flex-direction: column; gap: .35rem; padding: .75rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
+.quota-use { display: inline-flex; flex-direction: column; gap: .3rem; min-width: 9rem; }
+.share-cell { display: flex; align-items: center; gap: .5rem; min-width: 8rem; }
+.share-cell .bar-track { flex: 1; }
+.gpu-quota { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: .75rem; margin: .25rem 0 .75rem; }
+.gpu-quota-item { display: flex; flex-direction: column; gap: .3rem; padding: .7rem .9rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); }
+.gpu-quota-item.wide { grid-column: span 2; }
+.gpu-quota-item .big { font-size: 1.5rem; font-weight: 700; }
+.ide-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .75rem; }
+.ide-target { display: flex; align-items: center; flex-wrap: wrap; gap: .6rem .8rem; padding: .7rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.ide-name { display: flex; flex-direction: column; min-width: 10rem; flex: 1; }
+.ide-actions { display: inline-flex; flex-wrap: wrap; gap: .4rem; }
+.ide-target select { height: 34px; }
+.guide-list { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: .45rem; line-height: 1.55; }
+.guide-list .code { word-break: break-all; }
+@media (max-width: 640px) {
+  .gpu-quota-item.wide { grid-column: auto; }
+  .ide-actions { width: 100%; }
+}
