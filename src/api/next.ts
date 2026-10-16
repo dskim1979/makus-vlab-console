@@ -5,7 +5,7 @@ import { ApiError, isMock, request } from './client';
 import { mockHaVmids } from './ops';
 import type { GpuEnv, GpuJobFields, Notify, Runtime, WaitReason } from './research';
 
-export type Department = { id: string; name: string; parent_id: string | null; sort: number; members: number; created_at: string };
+export type Department = { id: string; name: string; parent_id: string | null; sort: number; members: number; created_at: string; manager?: string };
 export type Member = { username: string; department_id: string };
 export type SignupStatus = 'pending' | 'approved' | 'rejected';
 export type Signup = {
@@ -97,7 +97,7 @@ const A = '/api/vlab/admin';
 
 const realNextApi = {
   departments: async () => (await call<{ departments: Department[] }>('GET', `${A}/departments`)).departments,
-  saveDepartment: async (id: string | null, b: { name: string; parent_id: string | null; sort?: number }) =>
+  saveDepartment: async (id: string | null, b: { name: string; parent_id: string | null; sort?: number; manager?: string }) =>
     (await call<{ department: Department }>(id ? 'PUT' : 'POST', id ? `${A}/departments/${enc(id)}` : `${A}/departments`, b)).department,
   deleteDepartment: async (id: string) => { await call('DELETE', `${A}/departments/${enc(id)}`); },
   members: async (id: string, children: boolean) =>
@@ -215,7 +215,7 @@ const deps: Department[] = [
   { id: 'dep_eng', name: '공과대학', parent_id: null, sort: 0, members: 0, created_at: iso(9000) },
   { id: 'dep_ee', name: '전자공학과', parent_id: 'dep_eng', sort: 0, members: 0, created_at: iso(9000) },
   { id: 'dep_cs', name: '컴퓨터공학과', parent_id: 'dep_eng', sort: 1, members: 0, created_at: iso(9000) },
-  { id: 'dep_lab', name: 'FPGA 설계 연구실', parent_id: 'dep_ee', sort: 0, members: 0, created_at: iso(8000) },
+  { id: 'dep_lab', name: 'FPGA 설계 연구실', parent_id: 'dep_ee', sort: 0, members: 0, created_at: iso(8000), manager: 'admin' },
   { id: 'dep_rnd', name: '연구개발본부', parent_id: null, sort: 1, members: 0, created_at: iso(8000) },
 ];
 const memberOf: Record<string, string> = { alice: 'dep_lab', bob: 'dep_cs', carol: 'dep_rnd', dave: 'dep_ee' };
@@ -362,8 +362,8 @@ const mockNextApi: NextApi = {
     if (!b.name.trim()) return fail(400, 'name is required');
     if (id) { const d = deps.find((x) => x.id === id); if (!d) return fail(404, 'Department not found');
       if (b.parent_id && under(id).has(b.parent_id)) return fail(400, 'A department cannot move under itself');
-      Object.assign(d, { name: b.name, parent_id: b.parent_id }); return delay({ ...d }); }
-    const d = { id: nid('dep'), name: b.name, parent_id: b.parent_id, sort: b.sort ?? 0, members: 0, created_at: iso(0) };
+      Object.assign(d, { name: b.name, parent_id: b.parent_id }, b.manager !== undefined ? { manager: b.manager } : {}); return delay({ ...d }); }
+    const d = { id: nid('dep'), name: b.name, parent_id: b.parent_id, sort: b.sort ?? 0, members: 0, created_at: iso(0), manager: b.manager ?? '' };
     deps.push(d); return delay({ ...d });
   },
   deleteDepartment: (id) => {

@@ -1553,3 +1553,5 @@ fieldset.plain:disabled { opacity: .55; }
 .chip-pick input { margin: 0; }
 .ops-row label.check { display: flex; align-items: flex-start; gap: 8px; }
 .ops-row label.check input { margin-top: 3px; }
+/* 내 계정 > 알림 메일 (components/MyAccountDialog.tsx) */
+.notice-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 4px 16px; }
