@@ -644,6 +644,9 @@ fieldset.choices legend { font-size: .85rem; font-weight: 550; margin-bottom: .3
 
 /* ---------- backup ---------- */
 .bk-section { margin-bottom: 1rem; }
+.al-count { margin-left: .5rem; vertical-align: middle; }
+.al-channels { border: 1px solid var(--border); border-radius: var(--radius); padding: .6rem .8rem .7rem; margin: 0; }
+.al-channels legend { padding: 0 .3rem; font-size: .8rem; color: var(--muted); }
 .health .muted.small { margin-left: .25rem; }
 
 /* ---------- infrastructure monitoring (Grafana-like panels) ---------- */
@@ -693,7 +696,7 @@ fieldset.choices legend { font-size: .85rem; font-weight: 550; margin-bottom: .3
 .alert-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
 .alert-list li { display: flex; align-items: flex-start; gap: .5rem; }
 .alert-msg { display: flex; flex-direction: column; font-size: .84rem; }
-.sev-chip { flex: none; font-size: .7rem; font-weight: 700; padding: .05rem .45rem; border-radius: 999px; background: var(--surface-3); color: var(--muted); }
+.sev-chip { flex: none; white-space: nowrap; font-size: .7rem; font-weight: 700; padding: .05rem .45rem; border-radius: 999px; background: var(--surface-3); color: var(--muted); }
 .sev-chip.sev-warning { background: var(--warn-soft); color: var(--warn); }
 .sev-chip.sev-critical { background: var(--danger-soft); color: var(--danger); }
 .sev-chip.sev-info { background: var(--accent-soft); color: var(--accent); }

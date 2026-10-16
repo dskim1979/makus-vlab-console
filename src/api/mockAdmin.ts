@@ -2,7 +2,7 @@
 import type { AdminApi } from './admin';
 import { ApiError } from './client';
 import { mockBranding } from './mock';
-import type { AccelDevice, BackupJob, VmBackup, AccelUser, AdminDesktop, AdminLease, PoolPolicy, ClusterNode, ClusterStorage, Guest, PciMapping, Pool, SessionRow, VgpuProfile } from './types';
+import type { ActiveAlert, AlertChannel, AlertMute, AlertRule, AccelDevice, BackupJob, VmBackup, AccelUser, AdminDesktop, AdminLease, PoolPolicy, ClusterNode, ClusterStorage, Guest, PciMapping, Pool, SessionRow, VgpuProfile } from './types';
 
 const CLUSTER = { id: 'lab-cluster', name: 'LAB-PVE', connected: true, host: '10.20.0.11', connection_error: null as string | null, pools: 0 };
 const clusters = [CLUSTER];
@@ -141,6 +141,44 @@ function live(d: AdminDesktop): AdminDesktop {
     ? { mode: pool.settings.gpu.mode as 'vgpu' | 'passthrough', label: pool.settings.gpu.label || pool.settings.gpu.mdev_type || pool.settings.gpu.mapping || '' } : undefined;
   return { ...d, state: g?.status === 'running' ? 'ready' : 'stopped', has_base: withBase.has(d.id), usage: usage(d.vmid, g?.status === 'running'), gpu };
 }
+
+// 운영 > 경보: rules, firing incidents, mutes, notification channels
+// the engine writes local time without a zone (datetime.now().isoformat())
+const localIso = (ms: number) => new Date(ms - new Date(ms).getTimezoneOffset() * 60e3).toISOString().slice(0, 19);
+const minsAgo = (m: number) => localIso(Date.now() - m * 60e3);
+const mockRules: AlertRule[] = [
+  { id: 'r-cpu', name: '노드 CPU 과부하', metric: 'cpu', operator: '>', threshold: 90, target_type: 'cluster', target_id: null,
+    channels: ['email', 'ch-slack'], severity: 'critical', enabled: true },
+  { id: 'r-mem', name: '메모리 80% 초과', metric: 'memory', operator: '>', threshold: 80, target_type: 'cluster', target_id: null,
+    channels: ['ch-slack'], severity: 'warning', enabled: true },
+  { id: 'r-bk', name: '백업 실패', metric: 'task_failed', operator: 'event', threshold: 1, target_type: 'cluster', target_id: null,
+    channels: ['email'], severity: 'auto', enabled: true, notify_resolved: true },
+  { id: 'r-disk', name: '로컬 디스크 85%', metric: 'disk', operator: '>', threshold: 85, target_type: 'node', target_id: 'pve3',
+    channels: [], severity: 'info', enabled: false },
+];
+const mockActive: ActiveAlert[] = [
+  { id: 7, alert_id: 'r-mem', severity: 'warning', message: 'Memory above 80%', target_type: 'node', target_name: 'pve3', metric: 'memory',
+    current_value: 82.4, threshold: 80, operator: '>', triggered_at: minsAgo(42), last_fired_at: minsAgo(2), acked_at: null, acked_by: null,
+    escalation_step: 0, object_key: 'node:pve3', muted_until: null },
+  { id: 9, alert_id: 'r-bk', severity: 'critical', message: 'vzdump failed: lab-win11-03 (VM 302)', target_type: 'vm', target_name: 'lab-win11-03',
+    metric: 'task_failed', current_value: null, threshold: 1, operator: 'event', triggered_at: minsAgo(185), last_fired_at: minsAgo(185),
+    acked_at: minsAgo(170), acked_by: 'admin', escalation_step: 1, object_key: 'task:vzdump:302', muted_until: null },
+];
+const mockMutes: AlertMute[] = [
+  { id: 'mu-1', cluster_id: CLUSTER.id, rule_id: 'r-disk', object_key: 'node:pve3', object_label: 'pve3',
+    until: localIso(Date.now() + 5 * 36e5), reason: '디스크 증설 작업', created_by: 'admin', created_at: minsAgo(60) },
+];
+const mockChannels: AlertChannel[] = [
+  { id: 'ch-slack', name: '운영팀 Slack', type: 'slack', url: 'https://hooks.slack.com/services/T000/B000/XXXX', enabled: true },
+  { id: 'ch-ntfy', name: '야간 당직 ntfy', type: 'ntfy', url: 'https://ntfy.sh', topic: 'moavi-oncall', enabled: true },
+];
+// the engine never hands a webhook URL or token back (alerts.py _mask_channel)
+const maskChannel = (c: AlertChannel): AlertChannel => ({ ...c,
+  url: c.url.length > 32 ? `${c.url.slice(0, 24)}…${c.url.slice(-6)}` : c.url ? '********' : '',
+  ...(c.token ? { token: '********' } : {}), ...(c.topic ? { topic: '********' } : {}) });
+const liveMutes = () => mockMutes.filter((m) => Date.parse(m.until) > Date.now());
+const muteOf = (a: ActiveAlert) => liveMutes().find((m) =>
+  (!m.rule_id || m.rule_id === a.alert_id) && (!m.object_key || m.object_key === a.object_key));
 
 const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 120));
 const fail = (status: number, msg: string) => Promise.reject(new ApiError(status, msg));
@@ -296,11 +334,93 @@ export const mockAdminApi: AdminApi = {
         { storage: 'nfs-iso', node: null, type: 'nfs', used: 1.4 * TB, total: 8 * TB },
         { storage: 'local-lvm', node: 'pve3', type: 'lvmthin', used: 0.6 * TB, total: 1.8 * TB },
       ],
-      alerts: [
-        { id: 7, severity: 'warning', message: 'Memory above 80%', target_type: 'node', target_name: 'pve3', metric: 'mem',
-          triggered_at: new Date(Date.now() - 42 * 60e3).toISOString(), acked_at: null },
-      ],
+      alerts: mockActive.map(({ id, severity, message, target_type, target_name, metric, triggered_at, acked_at }) =>
+        ({ id, severity, message, target_type, target_name, metric, triggered_at, acked_at })),
     });
+  },
+  alerts: (cid) => cid !== CLUSTER.id ? fail(404, 'Cluster not found') : delay({
+    rules: mockRules.map((r) => ({ ...r })), mutes: liveMutes().map((m) => ({ ...m })),
+    active: mockActive.map((a) => ({ ...a, muted_until: muteOf(a)?.until ?? null })) }),
+  createAlertRule: (cid, r) => {
+    if (cid !== CLUSTER.id) return fail(404, 'Cluster not found');
+    if (r.target_type === 'vm' && !/^\d+$/.test(String(r.target_id ?? ''))) return fail(400, 'a VM target needs its numeric ID');
+    if (r.target_type === 'node' && !String(r.target_id ?? '').trim()) return fail(400, 'a node target needs the node name');
+    const rule: AlertRule = { ...r, id: `r-${seq++}`, cluster_id: cid, created_at: new Date().toISOString() };
+    mockRules.push(rule);
+    return delay({ ...rule });
+  },
+  updateAlertRule: (_cid, id, r) => {
+    const rule = mockRules.find((x) => x.id === id);
+    if (!rule) return fail(404, 'Alert not found');
+    Object.assign(rule, r);
+    return delay({ ...rule });
+  },
+  deleteAlertRule: (_cid, id) => {
+    const i = mockRules.findIndex((x) => x.id === id);
+    if (i >= 0) mockRules.splice(i, 1);
+    for (let k = mockMutes.length - 1; k >= 0; k--) if (mockMutes[k].rule_id === id) mockMutes.splice(k, 1);
+    return delay(undefined);
+  },
+  ackAlert: (_cid, firedId) => {
+    const a = mockActive.find((x) => String(x.id) === String(firedId));
+    if (!a) return fail(404, 'Active alert not found or already resolved');
+    a.acked_at = localIso(Date.now());
+    a.acked_by = 'admin';
+    return delay(undefined);
+  },
+  muteAlert: (cid, m) => {
+    let rule_id = '', object_key = '', object_label: string | null = null;
+    if ('active_alert_id' in m) {
+      const a = mockActive.find((x) => String(x.id) === String(m.active_alert_id));
+      if (!a) return fail(404, 'Active alert not found');
+      object_label = a.target_name;
+      if (m.whole_object) object_key = a.object_key ?? '';
+      else { rule_id = a.alert_id; object_key = a.object_key ?? ''; }
+    } else {
+      if (!mockRules.some((r) => r.id === m.rule_id)) return fail(404, 'Alert not found');
+      rule_id = m.rule_id;
+    }
+    const now = Date.now();
+    const mute: AlertMute = { id: `mu-${seq++}`, cluster_id: cid, rule_id, object_key, object_label,
+      until: localIso(now + m.minutes * 60e3), reason: m.reason || null,
+      created_by: 'admin', created_at: localIso(now) };
+    mockMutes.push(mute);
+    return delay({ ...mute });
+  },
+  unmuteAlert: (_cid, id) => {
+    const i = mockMutes.findIndex((x) => x.id === id);
+    if (i < 0) return fail(404, 'Mute not found');
+    mockMutes.splice(i, 1);
+    return delay(undefined);
+  },
+  alertChannels: () => delay(mockChannels.map(maskChannel)),
+  createAlertChannel: (c) => {
+    if (!c.url) return fail(400, 'url required');
+    const ch: AlertChannel = { id: `ch-${seq++}`, name: c.name || 'channel', type: c.type || 'generic', url: c.url,
+      ...(c.token ? { token: c.token } : {}), ...(c.topic ? { topic: c.topic } : {}), enabled: c.enabled ?? true };
+    mockChannels.push(ch);
+    return delay(maskChannel(ch));
+  },
+  updateAlertChannel: (id, c) => {
+    const ch = mockChannels.find((x) => x.id === id);
+    if (!ch) return fail(404, 'channel not found');
+    for (const [k, v] of Object.entries(c)) {
+      if (['url', 'token', 'topic'].includes(k) && typeof v === 'string' && (v.includes('…') || v === '********')) continue;
+      (ch as unknown as Record<string, unknown>)[k] = v;
+    }
+    return delay(maskChannel(ch));
+  },
+  deleteAlertChannel: (id) => {
+    const i = mockChannels.findIndex((x) => x.id === id);
+    if (i < 0) return fail(404, 'channel not found');
+    mockChannels.splice(i, 1);
+    return delay(undefined);
+  },
+  testAlertChannel: (id) => {
+    const ch = mockChannels.find((x) => x.id === id);
+    if (!ch) return fail(404, 'channel not found');
+    return delay(ch.enabled ? { ok: true, detail: 'Delivered' }
+      : { ok: false, detail: 'Delivery failed — check the channel URL and that the endpoint is reachable' });
   },
   pbsServers: () => delay([
     { id: 'pbs1', name: 'PBS 본사', host: '10.20.0.40', port: 8007, enabled: true, connected: true },

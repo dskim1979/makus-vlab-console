@@ -5,6 +5,7 @@ import { findModule } from './modules';
 import { AccelInventoryPage, MappingsPage, VgpuProfilesPage } from './pages/AccelPages';
 import { LeasesPage } from './pages/LeasesPage';
 import { AccessPage } from './pages/AccessPage';
+import { AlertsPage } from './pages/AlertsPage';
 import { AuditPage } from './pages/AuditPage';
 import { BackupPage } from './pages/BackupPage';
 import { BrandingPage } from './pages/BrandingPage';
@@ -29,6 +30,7 @@ function pageBody(moduleId: string, pageId: string, subId?: string) {
   if (key === 'ops/sessions') return <SessionsPage />;
   if (key === 'ops/summary') return <SummaryPage />;
   if (key === 'ops/audit') return <AuditPage />;
+  if (key === 'ops/alerts') return <AlertsPage />;
   if (key === 'ops/backup') return <BackupPage />;
   if (key === 'ops/branding') return <BrandingPage />;
   if (key === 'ops/reports') return <UsagePage />;

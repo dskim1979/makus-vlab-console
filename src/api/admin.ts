@@ -1,7 +1,7 @@
 // Admin console calls: /api/vlab/admin/* only (makus-vlab pegaprox/api/vlab.py).
 import { ApiError, isMock, request } from './client';
 import { mockAdminApi } from './mockAdmin';
-import type { Infra, InfraRange, AdminDesktop, AssignableUser, AccelInventory, AdminLease, AuditPage, BackupJob, BackupStorage, Branding, BrandingSlot, PbsServer, VmBackup, PoolPolicy, PoolPolicyAnswer, AuditQuery, GpuApplyResult, GpuPolicy, VgpuProfile, PowerAction, ClusterNode, ClusterStorage, PlatformSettings, UsageReport, Directory, DirectoryTest, CloneResult, Cluster, Guest, NewCluster, Pool, PoolResetResult, PoolType, SessionRow, Summary, Template, UserAccess } from './types';
+import type { AlertChannel, AlertChannelInput, AlertRule, AlertRuleInput, AlertMute, ClusterAlerts, MuteInput, Infra, InfraRange, AdminDesktop, AssignableUser, AccelInventory, AdminLease, AuditPage, BackupJob, BackupStorage, Branding, BrandingSlot, PbsServer, VmBackup, PoolPolicy, PoolPolicyAnswer, AuditQuery, GpuApplyResult, GpuPolicy, VgpuProfile, PowerAction, ClusterNode, ClusterStorage, PlatformSettings, UsageReport, Directory, DirectoryTest, CloneResult, Cluster, Guest, NewCluster, Pool, PoolResetResult, PoolType, SessionRow, Summary, Template, UserAccess } from './types';
 
 // Calls that must succeed: a non-2xx answer throws with the engine's own message.
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -56,6 +56,32 @@ const realAdminApi = {
   },
   infra: async (clusterId: string, range: InfraRange) =>
     call<Infra>('GET', `/api/vlab/admin/clusters/${enc(clusterId)}/infra?range=${range}`),
+  alerts: async (clusterId: string) => call<ClusterAlerts>('GET', `/api/vlab/admin/clusters/${enc(clusterId)}/alerts`),
+  createAlertRule: async (clusterId: string, r: AlertRuleInput) =>
+    (await call<{ alert: AlertRule }>('POST', `/api/vlab/admin/clusters/${enc(clusterId)}/alerts/rules`, r)).alert,
+  updateAlertRule: async (clusterId: string, ruleId: string, r: Partial<AlertRuleInput>) =>
+    (await call<{ alert: AlertRule }>('PUT', `/api/vlab/admin/clusters/${enc(clusterId)}/alerts/rules/${enc(ruleId)}`, r)).alert,
+  deleteAlertRule: async (clusterId: string, ruleId: string) => {
+    await call('DELETE', `/api/vlab/admin/clusters/${enc(clusterId)}/alerts/rules/${enc(ruleId)}`);
+  },
+  ackAlert: async (clusterId: string, firedId: string | number) => {
+    await call('POST', `/api/vlab/admin/clusters/${enc(clusterId)}/alerts/active/${enc(String(firedId))}/ack`);
+  },
+  muteAlert: async (clusterId: string, m: MuteInput) =>
+    (await call<{ mute: AlertMute }>('POST', `/api/vlab/admin/clusters/${enc(clusterId)}/alerts/mutes`, m)).mute,
+  unmuteAlert: async (clusterId: string, muteId: string) => {
+    await call('DELETE', `/api/vlab/admin/clusters/${enc(clusterId)}/alerts/mutes/${enc(muteId)}`);
+  },
+  alertChannels: async () => (await call<{ channels: AlertChannel[] }>('GET', '/api/vlab/admin/alert-channels')).channels,
+  createAlertChannel: async (c: AlertChannelInput) =>
+    (await call<{ channel: AlertChannel }>('POST', '/api/vlab/admin/alert-channels', c)).channel,
+  updateAlertChannel: async (id: string, c: AlertChannelInput) =>
+    (await call<{ channel: AlertChannel }>('PUT', `/api/vlab/admin/alert-channels/${enc(id)}`, c)).channel,
+  deleteAlertChannel: async (id: string) => { await call('DELETE', `/api/vlab/admin/alert-channels/${enc(id)}`); },
+  testAlertChannel: async (id: string) => {
+    const { data } = await request<{ success?: boolean; detail?: string; error?: string }>('POST', `/api/vlab/admin/alert-channels/${enc(id)}/test`);
+    return { ok: !!data?.success, detail: data?.detail || data?.error || '' };
+  },
   pbsServers: async () => call<PbsServer[]>('GET', '/api/vlab/admin/pbs'),
   desktopBackups: async (desktopId: string) => {
     const r = await call<{ backups?: VmBackup[] } | VmBackup[]>('GET', `/api/vlab/admin/desktops/${enc(desktopId)}/backups`);

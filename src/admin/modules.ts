@@ -97,11 +97,12 @@ export const MODULES: AdminModule[] = [
   {
     id: 'ops', icon: 'ops', tone: 'slate',
     label: { ko: '운영', en: 'Operations' },
-    summary: { ko: '시스템 요약, 접속 기록, 사용률 보고서, 백업(PBS), 작업 기록, 설정, 화이트라벨', en: 'Summary, sessions, usage, backup (PBS), audit, settings, white label' },
+    summary: { ko: '시스템 요약, 접속 기록, 사용률 보고서, 경보, 백업(PBS), 작업 기록, 설정, 화이트라벨', en: 'Summary, sessions, usage, alerts, backup (PBS), audit, settings, white label' },
     pages: [
       { id: 'summary', label: { ko: '시스템 요약', en: 'System summary' }, phase: 1 },
       { id: 'sessions', label: { ko: '접속 기록', en: 'Session log' }, phase: 1 },
       { id: 'reports', label: { ko: '사용률 보고서', en: 'Usage reports' }, phase: 1 },
+      { id: 'alerts', label: { ko: '경보', en: 'Alerts' }, phase: 1 },
       { id: 'backup', label: { ko: '백업 (PBS)', en: 'Backup (PBS)' }, phase: 1 },
       { id: 'audit', label: { ko: '작업 기록(감사)', en: 'Audit log' }, phase: 1 },
       { id: 'settings', label: { ko: '플랫폼 설정', en: 'Platform settings' }, phase: 1 },

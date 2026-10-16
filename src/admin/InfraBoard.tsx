@@ -108,7 +108,7 @@ function Panels({ d }: { d: Infra }) {
         <Legend series={cluster.map((s) => ({ ...s, value: s.points.length ? `${s.points[s.points.length - 1].v.toFixed(1)}%` : undefined }))} />
         <TimeSeries series={cluster} unit="%" max={100} area fmtTime={(ts, s) => (s ? axisTime(ts, true) : fmtTime(ts, false))} empty={empty} />
       </Panel>
-      <Panel className="span-4" title={t('inf.alerts')} to="/admin/ops/summary" count={d.alerts.length}>
+      <Panel className="span-4" title={t('inf.alerts')} to="/admin/ops/alerts" count={d.alerts.length}>
         {d.alerts.length === 0 ? (
           <div className="all-clear"><span className="hdot ok" aria-hidden="true" />{t('inf.noAlerts')}</div>
         ) : (

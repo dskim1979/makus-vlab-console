@@ -277,3 +277,33 @@ export interface Infra {
   alerts: { id: number | string; severity: string; message: string; target_type: string; target_name: string;
     metric: string; triggered_at: string; acked_at: string | null }[];
 }
+
+// 운영 > 경보: the engine's alert rules, firing incidents, mutes and notification channels
+// (core routes reached through /api/vlab/admin/clusters/<id>/alerts and /alert-channels)
+export type AlertSeverity = 'auto' | 'critical' | 'warning' | 'info';
+export type AlertTargetType = 'cluster' | 'node' | 'vm';
+export interface AlertRule {
+  id: string; name: string; cluster_id?: string; metric: string; operator: string; threshold: number;
+  target_type: AlertTargetType; target_id: string | number | null; channels: string[];
+  severity: AlertSeverity; enabled: boolean; notify_resolved?: boolean; created_at?: string;
+}
+export type AlertRuleInput = Pick<AlertRule, 'name' | 'metric' | 'operator' | 'threshold' | 'target_type' | 'target_id' |
+  'channels' | 'severity' | 'enabled'> & { notify_resolved?: boolean };
+export interface ActiveAlert {
+  id: number | string; alert_id: string; severity: string; message: string; target_type: string; target_name: string;
+  metric: string; current_value: number | null; threshold: number | null; operator: string | null;
+  triggered_at: string; last_fired_at: string | null; acked_at: string | null; acked_by: string | null;
+  escalation_step: number | null; object_key: string | null; muted_until: string | null;
+}
+export interface AlertMute {
+  id: string; cluster_id: string; rule_id: string; object_key: string; object_label: string | null;
+  until: string; reason: string | null; created_by: string; created_at: string;
+}
+export interface ClusterAlerts { rules: AlertRule[]; active: ActiveAlert[]; mutes: AlertMute[] }
+export type MuteInput = { minutes: number; reason?: string } & (
+  { rule_id: string } | { active_alert_id: string | number; whole_object?: boolean });
+export type ChannelType = 'slack' | 'discord' | 'teams' | 'ntfy' | 'generic';
+export interface AlertChannel {
+  id: string; name: string; type: ChannelType; url: string; token?: string; topic?: string; enabled: boolean;
+}
+export type AlertChannelInput = Partial<Omit<AlertChannel, 'id'>>;
