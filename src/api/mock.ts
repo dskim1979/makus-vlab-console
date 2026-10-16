@@ -1,6 +1,6 @@
 // Fake engine for `npm run dev:mock`: lets the screens run without vlab-engine.
 import { ApiError, type Api } from './client';
-import type { AuthStatus, Branding, Desktop, Lease, User, KioskInfo } from './types';
+import type { AuthStatus, Branding, Desktop, Lease, Notice, User, KioskInfo } from './types';
 
 // Kept in sessionStorage so a page reload stays signed in, like the real session cookie.
 const KEY = 'vlab.mock.user';
@@ -45,6 +45,27 @@ export const mockBranding: Branding = {
   primaryColor: '', footerText: '', loginTagline: '', docsUrl: '', supportUrl: '', hideVersion: false,
 };
 
+// notices, shared with the admin mock (플랫폼 설정 > 공지): one running for everyone, one for
+// administrators, one that starts tomorrow
+const inHours = (h: number) => new Date(Date.now() + h * 36e5).toISOString().slice(0, 19) + 'Z';
+export const mockNotices: Notice[] = [
+  { id: 'a1b2c3d4e5f60718', text: '이번 주 토요일 02:00~06:00 정기 점검으로 데스크톱 접속이 중단됩니다. 작업 중인 파일을 미리 저장하세요.',
+    severity: 'warning', audience: 'all', starts_at: null, expires_at: inHours(72), rev: 1, state: 'running',
+    created_at: inHours(-2), created_by: 'admin', updated_at: inHours(-2), updated_by: 'admin' },
+  { id: '0f1e2d3c4b5a6978', text: '새 골든 이미지(Windows 11 24H2) 배포가 끝났습니다. 강의실 풀은 다음 수업부터 적용됩니다.',
+    severity: 'info', audience: 'admins', starts_at: null, expires_at: null, rev: 1, state: 'running',
+    created_at: inHours(-30), created_by: 'admin', updated_at: inHours(-30), updated_by: 'admin' },
+  { id: '9988776655443322', text: '다음 주부터 외부망 접속은 RDP 게이트웨이로만 됩니다.',
+    severity: 'info', audience: 'all', starts_at: inHours(24), expires_at: inHours(24 * 8), rev: 1, state: 'scheduled',
+    created_at: inHours(-1), created_by: 'admin', updated_at: inHours(-1), updated_by: 'admin' },
+];
+
+export function noticeState(n: Pick<Notice, 'starts_at' | 'expires_at'>, now = Date.now()): Notice['state'] {
+  if (n.expires_at && new Date(n.expires_at).getTime() <= now) return 'ended';
+  if (n.starts_at && new Date(n.starts_at).getTime() > now) return 'scheduled';
+  return 'running';
+}
+
 // the kiosk in mock mode: room 교육장 A, a session running now
 function mockKioskInfo(): KioskInfo {
   const now = new Date();
@@ -85,6 +106,13 @@ export const mockApi: Api = {
     return delay({ latest_version: '0.9.0', min_version: '', download_url: '', protocol: 'auto', support_url: 'https://support.makussystems.co.kr/' });
   },
   async myLeases() { return delay(leases); },
+  async notices() {
+    const admin = current?.role === 'admin';
+    const order = { critical: 0, warning: 1, info: 2 };
+    return delay(mockNotices.filter((n) => noticeState(n) === 'running' && (n.audience === 'all' || admin))
+      .sort((a, b) => order[a.severity] - order[b.severity])
+      .map((n) => ({ id: n.id, text: n.text, severity: n.severity, rev: n.rev, expires_at: n.expires_at })));
+  },
   async kiosk(key) {
     if (!key.startsWith('mdt_')) throw new ApiError(401, 'BAD_KEY');
     return delay(mockKioskInfo());

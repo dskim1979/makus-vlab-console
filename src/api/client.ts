@@ -1,4 +1,4 @@
-import type { AuthStatus, Branding, ClientConfig, ConnectInfo, Desktop, KioskInfo, Lease, LoginResult, PowerAction, User } from './types';
+import type { ActiveNotice, AuthStatus, Branding, ClientConfig, ConnectInfo, Desktop, KioskInfo, Lease, LoginResult, PowerAction, User } from './types';
 import { mockApi } from './mock';
 
 export class ApiError extends Error {
@@ -131,6 +131,14 @@ const realApi = {
       const { status, data } = await request<ClientConfig>('GET', '/api/vlab/client/config');
       return status === 200 ? data : null;
     } catch { return null; }
+  },
+
+  // notices for the signed-in user (portal and console top); none when the engine predates them
+  async notices(): Promise<ActiveNotice[]> {
+    try {
+      const { status, data } = await request<{ banners: ActiveNotice[] }>('GET', '/api/vlab/banners');
+      return status === 200 ? data.banners ?? [] : [];
+    } catch { return []; }
   },
 
   async myLeases(): Promise<Lease[]> {

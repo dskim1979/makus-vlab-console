@@ -1226,3 +1226,20 @@ a.kcell:hover { background: var(--surface-2); }
   .perm-list { grid-template-columns: 1fr; }
   .pw-input { flex-wrap: wrap; }
 }
+
+/* notices (플랫폼 설정 > 공지): bars under the top bar */
+.notice-bars { display: flex; flex-direction: column; }
+.notice-bar { display: flex; align-items: flex-start; gap: .6rem; padding: .5rem 1rem; font-size: .86rem;
+  background: var(--accent-soft); color: var(--accent); border-bottom: 1px solid color-mix(in srgb, currentColor 18%, transparent); }
+.notice-bar.notice-warning { background: var(--warn-soft); color: var(--warn); }
+.notice-bar.notice-critical { background: var(--danger-soft); color: var(--danger); }
+.notice-kind { flex: none; font-weight: 650; font-size: .76rem; padding: .1rem .5rem; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent); white-space: nowrap; }
+.notice-text { flex: 1; min-width: 0; overflow-wrap: anywhere; color: var(--text); line-height: 1.45; }
+.notice-close { flex: none; border: 0; background: none; color: inherit; font-size: 1.15rem; line-height: 1; cursor: pointer;
+  padding: 0 .25rem; border-radius: var(--radius-sm); }
+.notice-close:hover { background: color-mix(in srgb, currentColor 14%, transparent); }
+.dialog-sub { margin: .6rem 0 0; font-size: .9rem; font-weight: 650; color: var(--text-2); }
+.page-sub-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+.page-sub-row .page-sub { display: inline-flex; align-items: center; gap: .2rem; }
+.notice-cell { max-width: 32rem; overflow-wrap: anywhere; }

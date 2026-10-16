@@ -50,6 +50,7 @@ export function PoolsPage() {
                 <tr key={p.id}>
                   <td>
                     <Link to={`/admin/pools/list/${p.id}`} className="strong">{p.name}</Link>
+                    {!p.enabled && <span className="chip chip-off">{t('pool.off')}</span>}
                     {p.description && <div className="muted small">{p.description}</div>}
                   </td>
                   <td>{t(`pooltype.${p.type}` as MessageKey)}</td>

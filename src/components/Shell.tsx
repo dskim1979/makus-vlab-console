@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { CompanyNotice } from './CompanyNotice';
+import { NoticeBanners } from './NoticeBanners';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 
@@ -18,6 +19,7 @@ export function Shell({ children }: { children: ReactNode }) {
         {consoleMode && <Sidebar open={menu} onNavigate={() => setMenu(false)} />}
         {consoleMode && menu && <div className="sidebar-scrim" onClick={() => setMenu(false)} />}
         <div className="app-content">
+          <NoticeBanners />
           {children}
           {!consoleMode && <footer className="ws-foot"><CompanyNotice /></footer>}
         </div>

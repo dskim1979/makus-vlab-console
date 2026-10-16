@@ -7,6 +7,7 @@ import { LoadState } from '../../components/LoadState';
 import { StateBadge } from '../../components/StateBadge';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
+import { PoolEditDialog } from './PoolEdit';
 import { PoolGpuPanel } from './PoolGpu';
 import { PoolPolicyPanel } from './PoolPolicy';
 import { PoolGrantsPanel } from './PoolGrants';
@@ -20,6 +21,7 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
   const users = useLoad(adminApi.users);
   const [adding, setAdding] = useState(false);
   const [cloning, setCloning] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'info' | 'error'; text: string } | null>(null);
 
   // while clones are running, look again every 5 seconds until they turn ready
@@ -91,7 +93,14 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
           </span>
         )}
       </div>
-      {pool && <h2 className="page-sub">{pool.name}</h2>}
+      {pool && (
+        <div className="page-sub-row">
+          <h2 className="page-sub">{pool.name}{!pool.enabled && <span className="chip chip-off">{t('pool.off')}</span>}</h2>
+          <button type="button" className="btn" onClick={() => setEditing(true)}>{t('pool.edit')}</button>
+        </div>
+      )}
+      {pool?.description && <p className="muted small">{pool.description}</p>}
+      {pool && !pool.enabled && <div className="alert" role="status">{t('pool.offNote')}</div>}
 
       <div className="toolbar">
         <button type="button" className="btn primary" disabled={!pool} onClick={() => setCloning(true)}>{t('clone.open')}</button>
@@ -127,6 +136,11 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
           </table>
         )}
       </LoadState>
+
+      {editing && pool && (
+        <PoolEditDialog pool={pool} onClose={() => setEditing(false)}
+          onSaved={() => { setEditing(false); setNotice({ kind: 'info', text: t('pool.saved') }); pools.reload(); desktops.reload(); }} />
+      )}
 
       {cloning && pool && (
         <CloneDialog pool={pool} onClose={() => setCloning(false)}

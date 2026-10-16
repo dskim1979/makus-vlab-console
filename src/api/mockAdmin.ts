@@ -1,7 +1,7 @@
 // Fake admin API for `npm run dev:mock`: same rules as the engine, kept in memory.
 import type { AdminApi } from './admin';
 import { ApiError } from './client';
-import { mockBranding } from './mock';
+import { mockBranding, mockNotices, noticeState } from './mock';
 import type { Lab, LabAfter, LabSchedule, Terminal, ActiveAlert, AlertChannel, AlertMute, AlertRule, AccelDevice, BackupJob, VmBackup, AccelUser, AdminDesktop, AdminLease, PoolPolicy, ClusterNode, ClusterStorage, Guest, PciMapping, Pool, SessionRow, VgpuProfile } from './types';
 
 const CLUSTER = { id: 'lab-cluster', name: 'LAB-PVE', connected: true, host: '10.20.0.11', connection_error: null as string | null, pools: 0 };
@@ -751,6 +751,34 @@ export const mockAdminApi: AdminApi = {
     if (!p.name.trim()) return fail(400, 'name is required');
     return delay(addPool(p.name.trim(), p.type));
   },
+  updatePool: (id, u) => {
+    const p = pools.find((x) => x.id === id);
+    if (!p) return fail(404, 'Pool not found');
+    const changed: string[] = [];
+    if (u.name !== undefined) {
+      const name = u.name.trim();
+      if (!name || name.length > 80) return fail(400, 'name is required (at most 80 characters)');
+      if (name !== p.name) { p.name = name; changed.push('name'); }
+    }
+    if (u.description !== undefined && u.description.trim() !== p.description) { p.description = u.description.trim(); changed.push('description'); }
+    if (u.enabled !== undefined && u.enabled !== p.enabled) { p.enabled = u.enabled; changed.push('enabled'); }
+    if (u.settings) {
+      const s = { ...(p.settings ?? {}) };
+      if (u.settings.max_sessions !== undefined) {
+        if (p.type !== 'shared') return fail(400, 'max_sessions is for shared pools only');
+        if (!(u.settings.max_sessions >= 1 && u.settings.max_sessions <= 500)) return fail(400, 'max_sessions must be 1 to 500');
+        if (s.shared?.max_sessions !== u.settings.max_sessions) { s.shared = { ...s.shared, max_sessions: u.settings.max_sessions }; changed.push('max_sessions'); }
+      }
+      for (const k of ['rdp_gateway_id', 'guac_gateway_id'] as const) {
+        if (u.settings[k] === undefined || (s[k] ?? '') === (u.settings[k] ?? '')) continue;
+        if (u.settings[k]) s[k] = u.settings[k]!; else delete s[k];
+        changed.push(k);
+      }
+      p.settings = s;
+    }
+    desks.forEach((d) => { if (d.pool_id === p.id) d.pool = p.name; });
+    return delay({ pool: { ...p, desktops: desks.filter((d) => d.pool_id === p.id).length }, changed });
+  },
   deletePool: (id) => {
     if (desks.some((d) => d.pool_id === id)) return fail(409, 'The pool still has desktops - take them out first');
     pools.splice(pools.findIndex((p) => p.id === id), 1);
@@ -872,12 +900,57 @@ export const mockAdminApi: AdminApi = {
   desktops: () => delay(desks.map(live)),
   sessions: (f = {}) => delay(sessions.filter((x) =>
     (!f.username || x.username === f.username) && (!f.pool_id || x.pool_id === f.pool_id)).slice(0, f.limit ?? 200)),
+  endSession: (id) => {
+    const s = sessions.find((x) => x.id === id);
+    if (!s) return fail(404, 'Session not found');
+    if (s.ended_at) return fail(409, 'The session has already ended');
+    return delay(endOne(s));
+  },
+  endUserSessions: (username) => delay(sessions.filter((x) => x.username === username && !x.ended_at).map(endOne)),
+  notices: () => delay(mockNotices.map((n) => ({ ...n, state: noticeState(n) }))),
+  saveNotice: (id, b) => {
+    const cur = id ? mockNotices.find((n) => n.id === id) : undefined;
+    if (id && !cur) return fail(404, 'Notice not found');
+    const next = { text: '', severity: 'info' as const, audience: 'all' as const, starts_at: null, expires_at: null, ...cur, ...b };
+    if (!next.text.trim()) return fail(400, 'Enter the text of the banner');
+    if (next.text.length > 500) return fail(400, 'The text is longer than 500 characters');
+    if (next.audience !== 'all' && next.audience !== 'admins') return fail(400, 'audience is all or admins');
+    if (b.expires_at && new Date(b.expires_at).getTime() <= Date.now()) return fail(400, 'The expiry time has already passed');
+    if (next.starts_at && next.expires_at && new Date(next.starts_at) >= new Date(next.expires_at)) return fail(400, 'The notice must start before it ends');
+    const at = new Date().toISOString().slice(0, 19) + 'Z';
+    if (cur) {
+      if (b.text !== undefined && b.text !== cur.text) cur.rev += 1;
+      Object.assign(cur, next, { updated_at: at, updated_by: 'admin' });
+      cur.state = noticeState(cur);
+      return delay({ ...cur });
+    }
+    if (mockNotices.length >= 20) return fail(409, 'There are already 20 notices - delete one first');
+    const n = { ...next, id: Math.random().toString(16).slice(2, 10).padEnd(16, '0'), rev: 1, state: noticeState(next),
+      created_at: at, created_by: 'admin', updated_at: at, updated_by: 'admin' };
+    mockNotices.push(n);
+    return delay({ ...n });
+  },
+  deleteNotice: (id) => {
+    const i = mockNotices.findIndex((n) => n.id === id);
+    if (i < 0) return fail(404, 'Notice not found');
+    mockNotices.splice(i, 1);
+    return delay(undefined);
+  },
 };
+
+function endOne(s: SessionRow) {
+  s.ended_at = new Date().toISOString().slice(0, 19) + '+00:00';
+  s.result = 'terminated';
+  return { id: s.id, username: s.username, protocol: s.protocol, hung_up: s.protocol === 'vnc' ? 1 : 0,
+    record_only: s.protocol !== 'vnc' };
+}
 
 const ago = (h: number) => new Date(Date.now() - h * 36e5).toISOString().slice(0, 19) + '+00:00';
 const sessions: SessionRow[] = [
   { id: 's4', username: 'alice', desktop_id: 'desk_2', desktop: 'lab-win11-01', vmid: 300, pool_id: 'pool_1', pool: '공용 LAB A',
     protocol: 'vnc', client_ip: '10.20.1.31', started_at: ago(0.3), ended_at: null, result: 'started' },
+  { id: 's5', username: 'bob', desktop_id: 'desk_6', desktop: 'vivado-build-01', vmid: 400, pool_id: 'pool_5', pool: 'FPGA 빌드 팜',
+    protocol: 'spice', client_ip: '10.20.3.7', started_at: ago(1.2), ended_at: null, result: 'started' },
   { id: 's3', username: 'bob', desktop_id: 'desk_6', desktop: 'vivado-build-01', vmid: 400, pool_id: 'pool_5', pool: 'FPGA 빌드 팜',
     protocol: 'spice', client_ip: '10.20.3.7', started_at: ago(5), ended_at: ago(5), result: 'ended' },
   { id: 's2', username: 'alice', desktop_id: 'desk_2', desktop: 'lab-win11-01', vmid: 300, pool_id: 'pool_1', pool: '공용 LAB A',

@@ -104,7 +104,14 @@ export type Pool = {
   created_by: string;
   desktops: number;
   assigned: number;
-  settings?: { gpu?: GpuPolicy; protocols?: string[]; templates?: number[]; policy?: PoolPolicy };
+  settings?: { gpu?: GpuPolicy; protocols?: string[]; templates?: number[]; policy?: PoolPolicy;
+    shared?: { max_sessions?: number }; rdp_gateway_id?: string; guac_gateway_id?: string };
+};
+
+// PUT /api/vlab/admin/pools/<id>: what the pool form changes (the cluster and the type stay)
+export type PoolUpdate = {
+  name?: string; description?: string; enabled?: boolean;
+  settings?: { max_sessions?: number; rdp_gateway_id?: string | null; guac_gateway_id?: string | null };
 };
 
 // --- pool policy (데스크톱 풀 > 풀 > 정책) ------------------------------------------
@@ -202,6 +209,21 @@ export type SessionRow = {
   ended_at: string | null;
   result: string;
 };
+
+// POST /api/vlab/admin/sessions/<id>/end: record_only when the engine does not carry the
+// connection (SPICE, RDP, browser RDP) - the viewer stays open on the user's side
+export type EndedSession = { id: string; username: string; protocol: string; hung_up: number; record_only: boolean };
+
+// notices (플랫폼 설정 > 공지): the engine's broadcast banners with a start and an audience
+export type NoticeSeverity = 'info' | 'warning' | 'critical';
+export type Notice = {
+  id: string; text: string; severity: NoticeSeverity; audience: 'all' | 'admins' | 'other';
+  starts_at: string | null; expires_at: string | null; rev: number; state: 'scheduled' | 'running' | 'ended';
+  created_at: string | null; created_by: string | null; updated_at: string | null; updated_by: string | null;
+};
+export type NoticeInput = { text: string; severity: NoticeSeverity; audience: 'all' | 'admins'; starts_at: string | null; expires_at: string | null };
+// GET /api/vlab/banners: what the signed-in user sees now
+export type ActiveNotice = { id: string; text: string; severity: NoticeSeverity; rev: number; expires_at: string | null };
 
 export type Template = {
   vmid: number; name: string; node: string; type: 'qemu' | 'lxc'; spec: { cpu?: number; memory_gb?: number; disk_gb?: number };

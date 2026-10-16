@@ -1,7 +1,7 @@
 // Admin console calls: /api/vlab/admin/* only (makus-vlab pegaprox/api/vlab.py).
 import { ApiError, isMock, request } from './client';
 import { mockAdminApi } from './mockAdmin';
-import type { Lab, LabInput, LabRun, LabSchedule, LabScheduleInput, Terminal, RightSizing, AlertChannel, AlertChannelInput, AlertRule, AlertRuleInput, AlertMute, ClusterAlerts, MuteInput, Infra, InfraRange, AdminDesktop, AssignableUser, AccelInventory, AdminLease, AuditPage, BackupJob, BackupStorage, Branding, BrandingSlot, PbsServer, VmBackup, PoolPolicy, PoolPolicyAnswer, AuditQuery, GpuApplyResult, GpuPolicy, VgpuProfile, PowerAction, ClusterNode, ClusterStorage, PlatformSettings, UsageReport, Directory, DirectoryTest, CloneResult, Cluster, Guest, NewCluster, Pool, PoolResetResult, PoolType, SessionRow, Summary, Template, UserAccess } from './types';
+import type { Lab, LabInput, LabRun, LabSchedule, LabScheduleInput, Terminal, RightSizing, AlertChannel, AlertChannelInput, AlertRule, AlertRuleInput, AlertMute, ClusterAlerts, MuteInput, Infra, InfraRange, AdminDesktop, AssignableUser, AccelInventory, AdminLease, AuditPage, BackupJob, BackupStorage, Branding, BrandingSlot, PbsServer, VmBackup, PoolPolicy, PoolPolicyAnswer, AuditQuery, GpuApplyResult, GpuPolicy, VgpuProfile, PowerAction, ClusterNode, ClusterStorage, PlatformSettings, UsageReport, Directory, DirectoryTest, CloneResult, Cluster, Guest, NewCluster, Pool, PoolResetResult, PoolType, PoolUpdate, EndedSession, Notice, NoticeInput, SessionRow, Summary, Template, UserAccess } from './types';
 
 // Calls that must succeed: a non-2xx answer throws with the engine's own message.
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -154,6 +154,8 @@ const realAdminApi = {
   createPool: async (p: { name: string; type: PoolType; cluster_id: string; description?: string }) =>
     (await call<{ pool: Pool }>('POST', '/api/vlab/admin/pools', p)).pool,
   deletePool: async (poolId: string) => { await call('DELETE', `/api/vlab/admin/pools/${enc(poolId)}`); },
+  updatePool: async (poolId: string, p: PoolUpdate) =>
+    call<{ pool: Pool; changed: string[] }>('PUT', `/api/vlab/admin/pools/${enc(poolId)}`, p),
 
   poolDesktops: async (poolId: string) =>
     (await call<{ desktops: AdminDesktop[] }>('GET', `/api/vlab/admin/pools/${enc(poolId)}/desktops`)).desktops,
@@ -193,6 +195,14 @@ const realAdminApi = {
     const qs = q.toString();
     return (await call<{ sessions: SessionRow[] }>('GET', `/api/vlab/admin/sessions${qs ? `?${qs}` : ''}`)).sessions;
   },
+  endSession: async (sessionId: string) =>
+    (await call<{ session: EndedSession }>('POST', `/api/vlab/admin/sessions/${enc(sessionId)}/end`)).session,
+  endUserSessions: async (username: string) =>
+    (await call<{ ended: EndedSession[] }>('POST', `/api/vlab/admin/users/${enc(username)}/sessions/end`)).ended,
+  notices: async () => (await call<{ banners: Notice[] }>('GET', '/api/vlab/admin/banners')).banners,
+  saveNotice: async (id: string | null, n: Partial<NoticeInput>) =>
+    (await call<{ banner: Notice }>(id ? 'PUT' : 'POST', id ? `/api/vlab/admin/banners/${enc(id)}` : '/api/vlab/admin/banners', n)).banner,
+  deleteNotice: async (id: string) => { await call('DELETE', `/api/vlab/admin/banners/${enc(id)}`); },
 };
 
 export type AdminApi = typeof realAdminApi;
