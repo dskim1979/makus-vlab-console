@@ -38,7 +38,7 @@ const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 150));
 
 // the white label, shared with the admin mock (운영 > 화이트라벨)
 export const mockBranding: Branding = {
-  enabled: false, appName: 'MAKUS vLAB', browserTitle: '', logoUrl: '', loginLogoUrl: '', faviconUrl: '',
+  enabled: false, appName: 'MOAVI Desk', browserTitle: '', logoUrl: '', loginLogoUrl: '', faviconUrl: '',
   primaryColor: '', footerText: '', loginTagline: '', docsUrl: '', supportUrl: '', hideVersion: false,
 };
 

@@ -1,8 +1,8 @@
 // The one place the product's name and look are defined.
-// The product name is not decided yet: change it here only.
+// MOAVI Desk: the VDI product of the MOAVI family. Change the name here only.
 export const BRAND = {
-  productName: 'MAKUS vLAB',
-  productTag: { ko: '가칭', en: 'working name' },
+  productName: 'MOAVI Desk',
+  family: 'MOAVI',
   company: { ko: '(주)매커스시스템즈', en: 'MAKUS SYSTEMS Co., Ltd.' },
   tagline: {
     ko: '연구·개발·교육을 위한 가상 데스크톱과 자원 할당',

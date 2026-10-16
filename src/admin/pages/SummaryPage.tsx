@@ -24,7 +24,7 @@ export function SummaryPage() {
               <h2 className="section-title">{t('sum.versions')}</h2>
               <dl className="about-list">
                 <dt>{t('sum.console')}</dt><dd>{__APP_VERSION__}</dd>
-                <dt>{t('sum.engine')}</dt><dd>{s.versions.engine} · vLAB API {s.versions.vlab_api}</dd>
+                <dt>{t('sum.engine')}</dt><dd>{s.versions.engine} · Desk API {s.versions.vlab_api}</dd>
                 {s.versions.build && <><dt>{t('sum.build')}</dt><dd>{s.versions.build}</dd></>}
                 <dt>{t('about.engine')}</dt>
                 <dd>

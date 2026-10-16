@@ -66,7 +66,7 @@ export function LoginPage() {
         <div className="login-brand">
           <BrandMark size={44} />
           <div>
-            <h1><BrandName withTag /></h1>
+            <h1><BrandName /></h1>
             <p className="muted">{b.loginTagline || pick(BRAND.tagline)}</p>
           </div>
         </div>

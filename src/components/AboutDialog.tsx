@@ -21,7 +21,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
       <div className="dialog-head">
         <BrandMark size={36} />
         <div>
-          <div className="dialog-title"><BrandName withTag /></div>
+          <div className="dialog-title"><BrandName /></div>
           <div className="muted">{pick(BRAND.tagline)}</div>
         </div>
       </div>

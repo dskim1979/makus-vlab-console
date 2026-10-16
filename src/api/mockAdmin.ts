@@ -226,7 +226,7 @@ export const mockAdminApi: AdminApi = {
   branding: () => delay({ ...mockBranding }),
   saveBranding: (b) => {
     const hex = /^#?[0-9a-f]{6}$/i.test(b.primaryColor) ? (b.primaryColor.startsWith('#') ? b.primaryColor : '#' + b.primaryColor).toLowerCase() : '';
-    Object.assign(mockBranding, { ...b, primaryColor: hex, appName: b.appName.trim() || 'MAKUS vLAB',
+    Object.assign(mockBranding, { ...b, primaryColor: hex, appName: b.appName.trim() || 'MOAVI Desk',
       logoUrl: mockBranding.logoUrl, loginLogoUrl: mockBranding.loginLogoUrl, faviconUrl: mockBranding.faviconUrl });
     return delay({ ...mockBranding });
   },

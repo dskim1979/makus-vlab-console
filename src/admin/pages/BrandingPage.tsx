@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { adminApi } from '../../api/admin';
 import type { Branding, BrandingSlot } from '../../api/types';
+import { BRAND } from '../../brand';
 import { useBranding } from '../../branding';
 import { BrandMark } from '../../components/Brand';
 import { Icon } from '../../components/Icon';
@@ -125,15 +126,15 @@ function BrandingForm({ initial }: { initial: Branding }) {
         <div className="wl-pv-login">
           <div className="wl-pv-card">
             {b.loginLogoUrl || b.logoUrl ? <img src={b.loginLogoUrl || b.logoUrl} alt="" className="wl-pv-logo" /> : <BrandMark size={34} />}
-            <div className="strong">{b.enabled ? b.appName : 'MAKUS vLAB'}</div>
+            <div className="strong">{b.enabled ? b.appName : BRAND.productName}</div>
             <div className="muted small">{b.loginTagline || pick({ ko: '연구·개발·교육을 위한 가상 데스크톱과 자원 할당', en: 'Virtual desktops and shared resources for R&D and labs' })}</div>
             <span className="wl-pv-btn" style={{ background: color }}>{t('login.submit' as MessageKey)}</span>
           </div>
         </div>
         <div className="wl-pv-bar">
-          {b.logoUrl ? <img src={b.logoUrl} alt="" className="wl-pv-barlogo" /> : <><BrandMark size={20} /><span className="strong">{b.enabled ? b.appName : 'MAKUS vLAB'}</span></>}
+          {b.logoUrl ? <img src={b.logoUrl} alt="" className="wl-pv-barlogo" /> : <><BrandMark size={20} /><span className="strong">{b.enabled ? b.appName : BRAND.productName}</span></>}
         </div>
-        <p className="muted small">{b.footerText || '© (주)매커스시스템즈 · MAKUS vLAB'}</p>
+        <p className="muted small">{b.footerText || `© (주)매커스시스템즈 · ${BRAND.productName}`}</p>
       </aside>
     </div>
   );

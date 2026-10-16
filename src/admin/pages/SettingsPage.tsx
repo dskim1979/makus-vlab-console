@@ -177,7 +177,7 @@ function SettingsForm({ initial, onSaved }: { initial: PlatformSettings; onSaved
           <label><span>{t('set.fromEmail')}</span>
             <input type="email" value={v.smtp_from_email} placeholder="vlab@lab.example" onChange={(e) => set('smtp_from_email', e.target.value)} /></label>
           <label><span>{t('set.fromName')}</span>
-            <input value={v.smtp_from_name} placeholder="MAKUS vLAB" onChange={(e) => set('smtp_from_name', e.target.value)} /></label>
+            <input value={v.smtp_from_name} placeholder="MOAVI Desk" onChange={(e) => set('smtp_from_name', e.target.value)} /></label>
         </div>
         <label><span>{t('set.recipients')}</span>
           <input value={recipients} placeholder="ops@lab.example, it@lab.example" onChange={(e) => setRecipients(e.target.value)} />

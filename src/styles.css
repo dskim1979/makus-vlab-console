@@ -1,4 +1,4 @@
-/* MAKUS vLAB console - design system v3 (docs/vlab-design.md 4-4).
+/* MOAVI Desk console - design system v3 (docs/vlab-design.md 4-4).
    Two frames like commercial VDI products: the user's workspace (scene band, tiles) and the
    admin console (dark top bar, light navigation, quiet cards and tables). One accent colour;
    status colours only for status; icons in text colour. */
@@ -614,9 +614,9 @@ fieldset.choices legend { font-size: .85rem; font-weight: 550; margin-bottom: .3
 .console-clip-actions { display: flex; align-items: center; gap: .6rem; color: var(--muted); }
 
 /* ---------- brand (MAKUS) ---------- */
-.brand-makus { color: var(--head-muted); font-weight: 600; letter-spacing: .02em; }
-.brand-product { font-weight: 800; letter-spacing: .01em; }
-.brand-v { color: var(--accent); }
+.brand-family { font-weight: 800; letter-spacing: .04em; }
+.brand-vi { color: #2FD4C4; }
+.brand-product { font-weight: 500; letter-spacing: .01em; }
 .tb-brand .brand-product { color: #fff; }
 .brand-logo { height: 28px; max-width: 200px; object-fit: contain; display: block; }
 .brand-logo-login { height: 44px; max-width: 220px; object-fit: contain; }

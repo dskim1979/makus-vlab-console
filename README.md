@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="docs/images/portal.png" alt="MAKUS vLAB 작업 공간" width="900">
+  <img src="docs/images/portal.png" alt="MOAVI Desk 작업 공간" width="900">
 </p>
 
-<h1 align="center">MAKUS vLAB 콘솔</h1>
+<h1 align="center">MOAVI Desk 콘솔</h1>
 
 <p align="center">
   연구소·기업·교육 기관의 LAB과 FPGA 개발 조직을 위한 가상 데스크톱(VDI) — <b>사용자 작업 공간</b>과 <b>관리 콘솔</b>
