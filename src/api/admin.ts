@@ -1,7 +1,7 @@
 // Admin console calls: /api/vlab/admin/* only (makus-vlab pegaprox/api/vlab.py).
 import { ApiError, isMock, request } from './client';
 import { mockAdminApi } from './mockAdmin';
-import type { AlertChannel, AlertChannelInput, AlertRule, AlertRuleInput, AlertMute, ClusterAlerts, MuteInput, Infra, InfraRange, AdminDesktop, AssignableUser, AccelInventory, AdminLease, AuditPage, BackupJob, BackupStorage, Branding, BrandingSlot, PbsServer, VmBackup, PoolPolicy, PoolPolicyAnswer, AuditQuery, GpuApplyResult, GpuPolicy, VgpuProfile, PowerAction, ClusterNode, ClusterStorage, PlatformSettings, UsageReport, Directory, DirectoryTest, CloneResult, Cluster, Guest, NewCluster, Pool, PoolResetResult, PoolType, SessionRow, Summary, Template, UserAccess } from './types';
+import type { RightSizing, AlertChannel, AlertChannelInput, AlertRule, AlertRuleInput, AlertMute, ClusterAlerts, MuteInput, Infra, InfraRange, AdminDesktop, AssignableUser, AccelInventory, AdminLease, AuditPage, BackupJob, BackupStorage, Branding, BrandingSlot, PbsServer, VmBackup, PoolPolicy, PoolPolicyAnswer, AuditQuery, GpuApplyResult, GpuPolicy, VgpuProfile, PowerAction, ClusterNode, ClusterStorage, PlatformSettings, UsageReport, Directory, DirectoryTest, CloneResult, Cluster, Guest, NewCluster, Pool, PoolResetResult, PoolType, SessionRow, Summary, Template, UserAccess } from './types';
 
 // Calls that must succeed: a non-2xx answer throws with the engine's own message.
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -54,6 +54,8 @@ const realAdminApi = {
   deleteBackupJob: async (clusterId: string, jobId: string) => {
     await call('DELETE', `/api/vlab/admin/clusters/${enc(clusterId)}/backup/jobs/${enc(jobId)}`);
   },
+  rightsizing: async (clusterId: string, days: 7 | 30) =>
+    call<RightSizing>('GET', `/api/vlab/admin/clusters/${enc(clusterId)}/rightsizing?days=${days}`),
   infra: async (clusterId: string, range: InfraRange) =>
     call<Infra>('GET', `/api/vlab/admin/clusters/${enc(clusterId)}/infra?range=${range}`),
   alerts: async (clusterId: string) => call<ClusterAlerts>('GET', `/api/vlab/admin/clusters/${enc(clusterId)}/alerts`),

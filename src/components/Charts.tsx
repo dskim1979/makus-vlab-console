@@ -63,7 +63,7 @@ export function TimeSeries({ series, height = 200, unit = '', max, area = false,
   return (
     <div className="ts" ref={ref} style={{ height }}>
       {width > 0 && (
-        <svg width={w} height={h} role="img" aria-label={series.map((s) => s.name).join(', ')}>
+        <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} role="img" aria-label={series.map((s) => s.name).join(', ')}>
           <defs>
             {series.map((s, i) => (
               <linearGradient key={i} id={`${gid}-${i}`} x1="0" y1="0" x2="0" y2="1">

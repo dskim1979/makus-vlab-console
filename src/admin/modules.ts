@@ -60,10 +60,10 @@ export const MODULES: AdminModule[] = [
   },
   {
     id: 'labs', icon: 'lab', tone: 'orange',
-    label: { ko: '랩', en: 'Labs' },
-    summary: { ko: '랩(공용 공간), 단말, 사용 일정, 일정형 풀', en: 'Labs (shared spaces), terminals, schedules, scheduled pools' },
+    label: { ko: 'LAB', en: 'Labs' },
+    summary: { ko: 'LAB(공용 공간), 단말, 사용 일정, 일정형 풀', en: 'Labs (shared spaces), terminals, schedules, scheduled pools' },
     pages: [
-      { id: 'list', label: { ko: '랩 관리', en: 'Labs' }, phase: 2 },
+      { id: 'list', label: { ko: 'LAB 관리', en: 'Labs' }, phase: 2 },
       { id: 'terminals', label: { ko: '단말 관리', en: 'Terminals' }, phase: 2 },
       { id: 'schedules', label: { ko: '사용 일정', en: 'Schedules' }, phase: 2 },
       { id: 'pools', label: { ko: '일정형 풀', en: 'Scheduled pools' }, phase: 2 },
@@ -72,13 +72,13 @@ export const MODULES: AdminModule[] = [
   {
     id: 'accel', icon: 'gpu', tone: 'green', vlabOnly: true,
     label: { ko: '가속 자원', en: 'Accelerators' },
-    summary: { ko: 'GPU·vGPU, FPGA 카드, 리소스 매핑, 대여, 보드 랩, 빌드 팜, 라이선스', en: 'GPU and vGPU, FPGA cards, resource mappings, loans, board lab, build farm, licences' },
+    summary: { ko: 'GPU·vGPU, FPGA 카드, 리소스 매핑, 대여, 보드 LAB, 빌드 팜, 라이선스', en: 'GPU and vGPU, FPGA cards, resource mappings, loans, board lab, build farm, licences' },
     pages: [
       { id: 'inventory', label: { ko: 'GPU·가속 카드 재고', en: 'GPU and card inventory' }, phase: 1 },
       { id: 'vgpu', label: { ko: 'vGPU 프로필', en: 'vGPU profiles' }, phase: 1 },
       { id: 'mappings', label: { ko: '리소스 매핑', en: 'Resource mappings' }, phase: 1 },
       { id: 'leases', label: { ko: '카드 대여 현황', en: 'Card loans' }, phase: 1 },
-      { id: 'boards', label: { ko: '보드 랩(JTAG)', en: 'Board lab (JTAG)' }, phase: 3 },
+      { id: 'boards', label: { ko: '보드 LAB(JTAG)', en: 'Board lab (JTAG)' }, phase: 3 },
       { id: 'buildfarm', label: { ko: '빌드 팜', en: 'Build farm' }, phase: 3 },
       { id: 'licenses', label: { ko: '라이선스 서버', en: 'License servers' }, phase: 3 },
     ],
@@ -102,6 +102,7 @@ export const MODULES: AdminModule[] = [
       { id: 'summary', label: { ko: '시스템 요약', en: 'System summary' }, phase: 1 },
       { id: 'sessions', label: { ko: '접속 기록', en: 'Session log' }, phase: 1 },
       { id: 'reports', label: { ko: '사용률 보고서', en: 'Usage reports' }, phase: 1 },
+      { id: 'report', label: { ko: '운영 보고서 (PDF)', en: 'Operations report (PDF)' }, phase: 1 },
       { id: 'alerts', label: { ko: '경보', en: 'Alerts' }, phase: 1 },
       { id: 'backup', label: { ko: '백업 (PBS)', en: 'Backup (PBS)' }, phase: 1 },
       { id: 'audit', label: { ko: '작업 기록(감사)', en: 'Audit log' }, phase: 1 },

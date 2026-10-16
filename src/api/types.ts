@@ -307,3 +307,19 @@ export interface AlertChannel {
   id: string; name: string; type: ChannelType; url: string; token?: string; topic?: string; enabled: boolean;
 }
 export type AlertChannelInput = Partial<Omit<AlertChannel, 'id'>>;
+
+// GET /api/vlab/admin/clusters/<id>/rightsizing - which VMs need more / can give back
+export interface RightSizingFlag {
+  kind: string; severity: string; detail: string; rationale: string;
+  current?: number; recommended?: number; current_gb?: number; recommended_gb?: number;
+}
+export interface RightSizingRow {
+  vmid: string; type: string; name: string; node: string; cpu_avg: number; cpu_p95: number; mem_avg: number; mem_max: number;
+  maxcpu: number; maxmem_gb: number; samples: number; flags: RightSizingFlag[]; actions: string[];
+  desktop_id: string | null; desktop: string | null; pool_id: string | null; pool: string | null; assigned_to: string | null;
+}
+export interface RightSizing {
+  cluster_id: string; days: number; snapshots: number; min_samples: number; total_vms: number;
+  counts: { grow: number; reclaim: number; idle: number; ok: number; no_data: number };
+  recommendations: RightSizingRow[];
+}

@@ -66,7 +66,7 @@ function addDesk(pool: Pool, vmid: number, user: string | null = null) {
 }
 
 {
-  const a = addPool('공용 랩 A', 'reset');
+  const a = addPool('공용 LAB A', 'reset');
   addDesk(a, 300, 'alice'); addDesk(a, 301); addDesk(a, 302);
   desks.forEach((d) => withBase.add(d.id));   // the sample lab already has its bases
   const b = addPool('FPGA 빌드 팜', 'buildfarm');
@@ -298,6 +298,30 @@ export const mockAdminApi: AdminApi = {
     return delay(undefined);
   },
   deleteBackupJob: (_cid, jobId) => { mockJobs.splice(mockJobs.findIndex((j) => j.id === jobId), 1); return delay(undefined); },
+  rightsizing: (cid, days) => {
+    if (cid !== CLUSTER.id) return fail(404, 'Cluster not found');
+    const row = (vmid: number, name: string, cpu: [number, number], mem: [number, number], cores: number, gb: number,
+                 flags: { kind: string; current?: number; recommended?: number; current_gb?: number; recommended_gb?: number }[]) => {
+      const d = desks.find((x) => x.vmid === vmid);
+      const p = d ? pools.find((x) => x.id === d.pool_id) : undefined;
+      const act = (k: string) => (k.startsWith('under') ? 'grow' : k === 'idle' ? 'idle' : 'reclaim');
+      return { vmid: String(vmid), type: 'qemu', name, node: d?.node ?? 'pve1', cpu_avg: cpu[0], cpu_p95: cpu[1], mem_avg: mem[0], mem_max: mem[1],
+        maxcpu: cores, maxmem_gb: gb, samples: days * 288,
+        flags: flags.map((f) => ({ severity: f.kind.startsWith('under') ? 'warning' : 'info', detail: '', rationale: '', ...f })),
+        actions: [...new Set(flags.map((f) => act(f.kind)))].sort(),
+        desktop_id: d?.id ?? null, desktop: d?.name ?? null, pool_id: p?.id ?? null, pool: p?.name ?? null, assigned_to: d?.assigned_user ?? null };
+    };
+    return delay({
+      cluster_id: cid, days, snapshots: days * 288, min_samples: 24, total_vms: 12,
+      counts: { grow: 2, reclaim: 2, idle: 1, ok: 6, no_data: 1 },
+      recommendations: [
+        row(400, 'vivado-build-01', [71, 96], [78, 94], 16, 64, [{ kind: 'undersized_cpu', current: 16, recommended: 20 }, { kind: 'undersized_mem', current_gb: 64, recommended_gb: 96 }]),
+        row(401, 'vivado-build-02', [58, 91], [61, 72], 16, 64, [{ kind: 'undersized_cpu', current: 16, recommended: 20 }]),
+        row(300, 'lab-win11-01', [3.1, 17], [21, 34], 8, 16, [{ kind: 'oversized_cpu', current: 8, recommended: 4 }, { kind: 'oversized_mem', current_gb: 16, recommended_gb: 8 }]),
+        row(301, 'lab-win11-02', [0.4, 1.8], [12, 19], 4, 8, [{ kind: 'idle' }, { kind: 'oversized_mem', current_gb: 8, recommended_gb: 4 }]),
+      ],
+    });
+  },
   infra: (cid, range) => {
     if (cid !== CLUSTER.id) return fail(404, 'Cluster not found');
     const GB = 1024 ** 3, TB = 1024 ** 4;
@@ -708,11 +732,11 @@ export const mockAdminApi: AdminApi = {
 
 const ago = (h: number) => new Date(Date.now() - h * 36e5).toISOString().slice(0, 19) + '+00:00';
 const sessions: SessionRow[] = [
-  { id: 's4', username: 'alice', desktop_id: 'desk_2', desktop: 'lab-win11-01', vmid: 300, pool_id: 'pool_1', pool: '공용 랩 A',
+  { id: 's4', username: 'alice', desktop_id: 'desk_2', desktop: 'lab-win11-01', vmid: 300, pool_id: 'pool_1', pool: '공용 LAB A',
     protocol: 'vnc', client_ip: '10.20.1.31', started_at: ago(0.3), ended_at: null, result: 'started' },
   { id: 's3', username: 'bob', desktop_id: 'desk_6', desktop: 'vivado-build-01', vmid: 400, pool_id: 'pool_5', pool: 'FPGA 빌드 팜',
     protocol: 'spice', client_ip: '10.20.3.7', started_at: ago(5), ended_at: ago(5), result: 'ended' },
-  { id: 's2', username: 'alice', desktop_id: 'desk_2', desktop: 'lab-win11-01', vmid: 300, pool_id: 'pool_1', pool: '공용 랩 A',
+  { id: 's2', username: 'alice', desktop_id: 'desk_2', desktop: 'lab-win11-01', vmid: 300, pool_id: 'pool_1', pool: '공용 LAB A',
     protocol: 'vnc', client_ip: '10.20.1.31', started_at: ago(26), ended_at: ago(24.5), result: 'ended' },
   { id: 's1', username: 'bob', desktop_id: 'desk_6', desktop: 'vivado-build-01', vmid: 400, pool_id: 'pool_5', pool: 'FPGA 빌드 팜',
     protocol: 'vnc', client_ip: '10.20.3.7', started_at: ago(50), ended_at: ago(46), result: 'ended' },
@@ -721,8 +745,8 @@ const sessions: SessionRow[] = [
 const auditLog = [
   ['admin', 'vlab.desktop.assign', 'qemu/301: - -> bob', 0.2],
   ['alice', 'vm.console', "vLAB: vnc to desktop 'lab-win11-01' (qemu/300)", 0.4],
-  ['admin', 'vlab.desktop.clone', "3/3 from template 900 into pool '공용 랩 A'", 2],
-  ['admin', 'vlab.pool.reset', "pool '공용 랩 A': 2 reset, 1 skipped, 0 failed", 3],
+  ['admin', 'vlab.desktop.clone', "3/3 from template 900 into pool '공용 LAB A'", 2],
+  ['admin', 'vlab.pool.reset', "pool '공용 LAB A': 2 reset, 1 skipped, 0 failed", 3],
   ['admin', 'settings.ldap', 'LDAP settings updated (enabled=True)', 20],
   ['admin', 'cluster.added', 'Added Proxmox cluster: LAB-PVE (10.20.0.11)', 30],
   ['bob', 'vm.start', "vLAB: start desktop 'vivado-build-01' (qemu/400)", 40],

@@ -9,6 +9,7 @@ import { useLoad } from '../components/useLoad';
 import { useI18n } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
 import { bytes, Meter, useCluster } from './pages/ClusterPages';
+import { RightSizingSummary, RightSizingTable } from './RightSizing';
 
 // Infrastructure monitoring on the dashboard, panel by panel like the engine's own
 // dashboard and its Grafana board: health score, CPU / memory / VMs / sessions with their
@@ -57,6 +58,7 @@ export function InfraBoard() {
       <LoadState value={data} retry={reload}>
         {(d) => <Panels d={d} />}
       </LoadState>
+      <RightSizingPanel cid={cid} days={range === '30d' ? 30 : 7} />
     </section>
   );
 }
@@ -170,6 +172,25 @@ function Panels({ d }: { d: Infra }) {
             );
           })}
         </div>
+      </Panel>
+    </div>
+  );
+}
+
+function RightSizingPanel({ cid, days }: { cid?: string; days: 7 | 30 }) {
+  const { t } = useI18n();
+  const rs = useLoad(useCallback(() => (cid ? adminApi.rightsizing(cid, days) : new Promise<never>(() => {})), [cid, days]), [cid, days]);
+  return (
+    <div className="pgrid rs-grid">
+      <Panel className="span-12" title={`${t('rs.title')} · ${t('rs.basis').replace('{d}', String(days))}`} to="/admin/ops/report">
+        <LoadState value={rs} retry={rs.reload}>
+          {(r) => (
+            <div className="rs-body">
+              <RightSizingSummary r={r} />
+              <RightSizingTable r={r} limit={6} />
+            </div>
+          )}
+        </LoadState>
       </Panel>
     </div>
   );

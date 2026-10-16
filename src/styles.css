@@ -705,3 +705,62 @@ fieldset.choices legend { font-size: .85rem; font-weight: 550; margin-bottom: .3
 .issues ul { margin: .3rem 0 0; padding-left: 1.1rem; font-size: .8rem; color: var(--text-2); }
 .state-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: .4rem; background: var(--subtle); }
 .state-dot.ok { background: var(--ok); } .state-dot.bad { background: var(--danger); }
+
+/* ---------- right-sizing ---------- */
+.rs-grid { margin-top: .75rem; }
+.pgrid > .span-12 { grid-column: span 12; }
+.rs-body { display: flex; flex-direction: column; gap: .75rem; }
+.rs-counts { display: flex; gap: .6rem; flex-wrap: wrap; }
+.rs-count { display: flex; align-items: baseline; gap: .45rem; padding: .45rem .8rem; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--border); }
+.rs-n { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rs-l { font-size: .8rem; color: var(--muted); }
+.rs-count.rs-grow .rs-n { color: var(--warn); } .rs-count.rs-reclaim .rs-n { color: var(--accent); }
+.rs-count.rs-idle .rs-n { color: var(--subtle); } .rs-count.rs-ok .rs-n { color: var(--ok); }
+.rs-chip { display: inline-block; margin: 0 .3rem .2rem 0; font-size: .72rem; font-weight: 700; padding: .08rem .5rem; border-radius: 999px; }
+.rs-chip.rs-grow { background: var(--warn-soft); color: var(--warn); }
+.rs-chip.rs-reclaim { background: var(--accent-soft); color: var(--accent); }
+.rs-chip.rs-idle { background: var(--surface-3); color: var(--muted); }
+.rs-table th:nth-child(1) { width: 32%; } .rs-table th:nth-child(2) { width: 18%; } .rs-table th:nth-child(3), .rs-table th:nth-child(4) { width: 25%; }
+.rs-up { color: var(--warn); font-weight: 700; } .rs-down { color: var(--accent); font-weight: 700; }
+
+/* ---------- operations report (print to PDF) ---------- */
+.report { max-width: 1000px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.6rem 1.8rem; display: flex; flex-direction: column; gap: 1.3rem; }
+.rep-head { display: flex; align-items: center; gap: 1.2rem; padding-bottom: 1rem; border-bottom: 2px solid var(--accent); }
+.rep-head h1 { font-size: 1.45rem; }
+.rep-brand { display: flex; align-items: center; gap: .5rem; font-size: 1.1rem; }
+.rep-made { margin-left: auto; }
+.rep-sec h2 { margin: 0 0 .6rem; font-size: 1rem; }
+.rep-kpis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .6rem; }
+@media (max-width: 900px) { .rep-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.rep-kpi { display: flex; flex-direction: column; padding: .6rem .75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
+.rep-kpi-l { font-size: .74rem; color: var(--muted); } .rep-kpi-v { font-size: 1.4rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.rep-kpi-s { font-size: .72rem; color: var(--subtle); }
+.rep-two { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+@media (max-width: 900px) { .rep-two { grid-template-columns: 1fr; } }
+.rep-foot { border-top: 1px solid var(--border); padding-top: .7rem; text-align: center; }
+.report .table-scroll, .report .table { width: 100%; }
+
+@media print {
+  @page { size: A4; margin: 12mm; }
+  :root {
+    color-scheme: light;
+    --bg: #ffffff; --surface: #ffffff; --surface-2: #f5f7fa; --surface-3: #eef1f5;
+    --border: #d9dee6; --border-strong: #c3cad5; --text: #111827; --text-2: #1f2937; --muted: #4b5563; --subtle: #6b7280;
+    --accent: #0f7f7f; --accent-soft: #e2f3f3; --ok: #15803d; --ok-soft: #e6f4ea; --warn: #b45309; --warn-soft: #fdf1e2;
+    --danger: #b91c1c; --danger-soft: #fdeaea; --head: #ffffff;
+  }
+  body, .app, .app-content, .page { background: #fff !important; }
+  .topbar, .sidebar, .sidebar-scrim, .page-head, .no-print, .ws-foot { display: none !important; }
+  .app-body, .app-content, .page { display: block !important; margin: 0 !important; padding: 0 !important; max-width: none !important; }
+  .report { border: 0; padding: 0; gap: 1rem; }
+  .rep-sec, .rep-two > div { break-inside: avoid; }
+  .report { max-width: none; font-size: 12px; }
+  .ts svg { width: 100%; height: auto; }
+  .ts { height: auto !important; }
+  .rep-two { grid-template-columns: 1fr 1fr; }
+  .rep-kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .report .table { box-shadow: none; }
+  .report .table-scroll { overflow: visible; }
+  .ts-tip, .ts-cross { display: none; }
+  a { color: inherit; }
+}

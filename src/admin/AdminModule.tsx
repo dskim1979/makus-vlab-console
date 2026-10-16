@@ -19,6 +19,7 @@ import { PoolsPage } from './pages/PoolsPage';
 import { SessionsPage } from './pages/SessionsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SummaryPage } from './pages/SummaryPage';
+import { ReportPage } from './pages/ReportPage';
 import { UsagePage } from './pages/UsagePage';
 import { UsersPage } from './pages/UsersPage';
 
@@ -34,6 +35,7 @@ function pageBody(moduleId: string, pageId: string, subId?: string) {
   if (key === 'ops/backup') return <BackupPage />;
   if (key === 'ops/branding') return <BrandingPage />;
   if (key === 'ops/reports') return <UsagePage />;
+  if (key === 'ops/report') return <ReportPage />;
   if (key === 'ops/settings') return <SettingsPage />;
   if (key === 'cluster/connections') return <ClustersPage />;
   if (key === 'accel/inventory') return <AccelInventoryPage />;
