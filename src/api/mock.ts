@@ -1,6 +1,6 @@
 // Fake engine for `npm run dev:mock`: lets the screens run without vlab-engine.
 import { ApiError, type Api } from './client';
-import type { AuthStatus, Branding, Desktop, Lease, User } from './types';
+import type { AuthStatus, Branding, Desktop, Lease, User, KioskInfo } from './types';
 
 // Kept in sessionStorage so a page reload stays signed in, like the real session cookie.
 const KEY = 'vlab.mock.user';
@@ -42,6 +42,21 @@ export const mockBranding: Branding = {
   primaryColor: '', footerText: '', loginTagline: '', docsUrl: '', supportUrl: '', hideVersion: false,
 };
 
+// the kiosk in mock mode: room 교육장 A, a session running now
+function mockKioskInfo(): KioskInfo {
+  const now = new Date();
+  const p2 = (n: number) => String(n).padStart(2, '0');
+  // local wall-clock text, as the engine sends it
+  const at = (h: number, m = 0) => { const x = new Date(now); x.setHours(h, m, 0, 0); return `${x.getFullYear()}-${p2(x.getMonth() + 1)}-${p2(x.getDate())}T${p2(x.getHours())}:${p2(x.getMinutes())}`; };
+  const h = now.getHours();
+  return {
+    terminal: { id: 'term_a4', name: 'A-PC-04' }, lab: { id: 'lab_a', name: '교육장 A', location: '본관 3층 301호' },
+    current: { schedule_id: 'sch_1', pool_id: 'pool_c', pool: '교육장 A 수업용', title: '파이썬 데이터 분석', start: at(h), end: at(h + 2), preparing: false },
+    next: { schedule_id: 'sch_2', pool_id: 'pool_c', pool: '교육장 A 수업용', title: 'FPGA 설계 기초', start: at(h + 3), end: at(h + 5) },
+    now: at(now.getHours(), now.getMinutes()),
+  };
+}
+
 export const mockApi: Api = {
   async branding() { return delay({ ...mockBranding }); },
   async authStatus(): Promise<AuthStatus> {
@@ -64,6 +79,22 @@ export const mockApi: Api = {
   async logout() { current = null; save(null); },
   async myDesktops() { return delay(desktops); },
   async myLeases() { return delay(leases); },
+  async kiosk(key) {
+    if (!key.startsWith('mdt_')) throw new ApiError(401, 'BAD_KEY');
+    return delay(mockKioskInfo());
+  },
+  async kioskStart(key) {
+    if (!key.startsWith('mdt_')) throw new ApiError(401, 'BAD_KEY');
+    if (!current) throw new ApiError(401, 'Sign in first');
+    let d = desktops.find((x) => x.id === 'k1');
+    if (!d) {
+      d = { id: 'k1', name: 'class-win11-04', pool: '교육장 A 수업용', state: 'ready', os: 'Windows 11', spec: { cpu: 4, memory_gb: 8 },
+        protocols: ['vnc', 'spice'], pool_type: 'classroom', last_connected: null };
+      desktops.push(d);
+    }
+    return delay({ ...mockKioskInfo(), desktop: { id: d.id, name: d.name } });
+  },
+
   async connect(desktopId, protocol) {
     const d = desktops.find((x) => x.id === desktopId);
     if (!d) throw new ApiError(404, 'Desktop not found');

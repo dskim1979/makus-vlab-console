@@ -163,6 +163,7 @@ export function TerminalsPage() {
   const terms = useLoad(adminApi.terminals);
   const labs = useLoad(adminApi.labs);
   const [adding, setAdding] = useState(false);
+  const [keyOf, setKeyOf] = useState<{ terminal: Terminal; key: string } | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
   const { ago } = useWhen();
   const labFilter = params.get('lab') ?? '';
@@ -172,6 +173,11 @@ export function TerminalsPage() {
 
   async function update(x: Terminal, body: Parameters<typeof adminApi.updateTerminal>[1]) {
     try { await adminApi.updateTerminal(x.id, body); terms.reload(); labs.reload(); } catch (e) { setNotice({ kind: 'error', text: (e as Error).message }); }
+  }
+  async function makeKey(x: Terminal) {
+    if (x.has_key && !confirm(t('term.keyAgain'))) return;
+    try { const r = await adminApi.terminalKey(x.id); setKeyOf({ terminal: r.terminal, key: r.key }); terms.reload(); }
+    catch (e) { setNotice({ kind: 'error', text: (e as Error).message }); }
   }
   async function remove(x: Terminal) {
     if (!confirm(t('term.deleteConfirm').replace('{name}', x.name || x.mac))) return;
@@ -228,6 +234,8 @@ export function TerminalsPage() {
                         <td className="actions">
                           {x.state === 'pending' && <button type="button" className="btn small-btn primary" disabled={!x.lab_id && !labList.length}
                             title={!x.lab_id ? t('term.approveHint') : ''} onClick={() => update(x, { state: 'approved' })}>{t('term.approve')}</button>}
+                          <button type="button" className="btn-ghost small-btn" disabled={!x.lab_id} title={!x.lab_id ? t('term.keyNeedsLab') : ''}
+                            onClick={() => makeKey(x)}>{t(x.has_key ? 'term.keyNew' : 'term.key')}</button>
                           <button type="button" className="btn-ghost small-btn danger" onClick={() => remove(x)}>{t('common.delete')}</button>
                         </td>
                       </tr>
@@ -237,11 +245,35 @@ export function TerminalsPage() {
               </div>
             )}
             <p className="muted small">{t('term.note')}</p>
+            {keyOf && <KeyDialog terminal={keyOf.terminal} kioskKey={keyOf.key} onClose={() => setKeyOf(null)} />}
             {adding && <TerminalDialog labs={labList} defaultLab={labFilter} onClose={() => setAdding(false)} onDone={() => { setAdding(false); terms.reload(); labs.reload(); }} />}
           </>
         );
       }}
     </LoadState>
+  );
+}
+
+function KeyDialog({ terminal, kioskKey, onClose }: { terminal: Terminal; kioskKey: string; onClose: () => void }) {
+  const { t } = useI18n();
+  const [copied, setCopied] = useState(false);
+  const url = `${window.location.origin}/kiosk`;
+  function copy() {
+    navigator.clipboard?.writeText(kioskKey).then(() => setCopied(true), () => setCopied(false));
+  }
+  return (
+    <Dialog open title={t('term.keyTitle').replace('{name}', terminal.name || terminal.mac)} onClose={onClose} onSubmit={onClose} submitLabel={t('about.close')}>
+      <p className="muted">{t('term.keyHow')}</p>
+      <ol className="key-steps">
+        <li>{t('term.keyStep1')} <code className="code">{url}</code></li>
+        <li>{t('term.keyStep2')}</li>
+      </ol>
+      <div className="key-box">
+        <code id="kiosk-key-value">{kioskKey}</code>
+        <button type="button" className="btn small-btn" onClick={copy}>{t(copied ? 'term.copied' : 'term.copy')}</button>
+      </div>
+      <div className="alert small">{t('term.keyOnce')}</div>
+    </Dialog>
   );
 }
 

@@ -63,6 +63,7 @@ const realAdminApi = {
     (await call<{ terminal: Terminal }>('POST', '/api/vlab/admin/terminals', body)).terminal,
   updateTerminal: async (id: string, body: { name?: string; lab_id?: string | null; state?: Terminal['state'] }) =>
     (await call<{ terminal: Terminal }>('PUT', `/api/vlab/admin/terminals/${enc(id)}`, body)).terminal,
+  terminalKey: async (id: string) => call<{ key: string; terminal: Terminal }>('POST', `/api/vlab/admin/terminals/${enc(id)}/key`),
   deleteTerminal: async (id: string) => { await call('DELETE', `/api/vlab/admin/terminals/${enc(id)}`); },
   labSchedules: async () => (await call<{ schedules: LabSchedule[] }>('GET', '/api/vlab/admin/lab-schedules')).schedules,
   saveLabSchedule: async (id: string | null, body: LabScheduleInput) =>

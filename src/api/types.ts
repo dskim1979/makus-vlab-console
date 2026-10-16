@@ -77,8 +77,12 @@ export type Lab = { id: string; name: string; location: string; description: str
   created_at: string; terminals: number; pending: number; schedules: number; current: LabSlot | null; next: LabSlot | null };
 export type LabInput = { name: string; location?: string; description?: string; seats?: number };
 export type Terminal = { id: string; lab_id: string | null; name: string; mac: string; ip: string; state: 'pending' | 'approved';
-  registered_by: string; last_seen: string | null; created_at: string };
+  registered_by: string; last_seen: string | null; created_at: string; has_key?: boolean };
 export type LabAfter = 'reset' | 'off' | 'none';
+// GET /api/vlab/kiosk (terminal key): the room and what runs now and next
+export type KioskSlot = LabSlot & { pool: string | null };
+export type KioskInfo = { terminal: { id: string; name: string }; lab: { id: string; name: string; location: string };
+  current: KioskSlot | null; next: KioskSlot | null; now: string };
 export type LabSchedule = { id: string; lab_id: string; pool_id: string; title: string; weekdays: number[]; start_time: string;
   end_time: string; prepare_min: number; after: LabAfter; enabled: boolean; last_prepared: string; last_finished: string;
   lab: string | null; pool: string | null; pool_type: PoolType | null };

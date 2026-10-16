@@ -394,6 +394,12 @@ export const mockAdminApi: AdminApi = {
     Object.assign(t, Object.fromEntries(Object.entries(body).filter(([, v]) => v !== undefined)));
     return delay({ ...t });
   },
+  terminalKey: (id) => {
+    const t = mockTerminals.find((x) => x.id === id);
+    if (!t) return fail(404, 'Terminal not found');
+    Object.assign(t, { state: 'approved', has_key: true });
+    return delay({ key: `mdt_${Math.random().toString(36).slice(2, 10)}${Math.random().toString(36).slice(2, 10)}`, terminal: { ...t } });
+  },
   deleteTerminal: (id) => {
     const i = mockTerminals.findIndex((x) => x.id === id);
     if (i < 0) return fail(404, 'Terminal not found');

@@ -4,6 +4,7 @@ import { AdminHome } from './admin/AdminHome';
 import { AdminModule } from './admin/AdminModule';
 import { useAuth } from './auth/AuthContext';
 import { LoginPage } from './auth/LoginPage';
+import { KioskPage } from './kiosk/KioskPage';
 import { Shell } from './components/Shell';
 import { useI18n } from './i18n';
 import { PortalHome } from './portal/PortalHome';
@@ -23,6 +24,7 @@ export function App() {
   const { loading, user, isAdmin } = useAuth();
   return (
     <Routes>
+      <Route path="/kiosk" element={<KioskPage />} />
       <Route path="/login" element={!loading && user ? <Navigate to={isAdmin ? '/admin' : '/'} replace /> : <LoginPage />} />
       <Route path="/" element={<RequireAuth><PortalHome /></RequireAuth>} />
       <Route path="/resources" element={<RequireAuth><ResourcesPage /></RequireAuth>} />

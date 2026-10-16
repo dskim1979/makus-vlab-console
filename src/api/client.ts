@@ -1,4 +1,4 @@
-import type { AuthStatus, Branding, ConnectInfo, Desktop, Lease, LoginResult, PowerAction, User } from './types';
+import type { AuthStatus, Branding, ConnectInfo, Desktop, KioskInfo, Lease, LoginResult, PowerAction, User } from './types';
 import { mockApi } from './mock';
 
 export class ApiError extends Error {
@@ -10,7 +10,7 @@ export class ApiError extends Error {
 // Same origin as the engine (vlab-proxy in production, Vite proxy in dev).
 // The session lives in the engine's session_id cookie; X-Requested-With satisfies
 // the engine's CSRF guard for /api/* calls.
-export async function request<T>(method: string, path: string, body?: unknown): Promise<{ status: number; data: T }> {
+export async function request<T>(method: string, path: string, body?: unknown, extra?: Record<string, string>): Promise<{ status: number; data: T }> {
   let res: Response;
   try {
     res = await fetch(path, {
@@ -19,6 +19,7 @@ export async function request<T>(method: string, path: string, body?: unknown): 
       headers: {
         'X-Requested-With': 'XMLHttpRequest',
         ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+        ...(extra ?? {}),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
@@ -108,6 +109,20 @@ const realApi = {
     const { status, data } = await request<Partial<Branding>>('GET', '/api/vlab/branding');
     if (status !== 200) throw new ApiError(status, 'branding_unavailable');
     return data ?? {};
+  },
+
+  // LAB kiosk (/kiosk): the terminal key identifies the room's PC
+  async kiosk(key: string): Promise<KioskInfo> {
+    const { status, data } = await request<KioskInfo & { error?: string; code?: string }>('GET', '/api/vlab/kiosk', undefined, { 'X-Terminal-Key': key });
+    if (status !== 200) throw new ApiError(status, data?.code || data?.error || `HTTP ${status}`, data);
+    return data;
+  },
+
+  async kioskStart(key: string): Promise<KioskInfo & { desktop: { id: string; name: string } }> {
+    const { status, data } = await request<KioskInfo & { desktop: { id: string; name: string }; error?: string; code?: string }>(
+      'POST', '/api/vlab/kiosk/start', {}, { 'X-Terminal-Key': key });
+    if (status !== 200) throw new ApiError(status, data?.code || data?.error || `HTTP ${status}`, data);
+    return data;
   },
 
   async myLeases(): Promise<Lease[]> {
