@@ -53,6 +53,7 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
           <NavLink to="/" end>{t('nav.home')}</NavLink>
           <NavLink to="/resources">{t('nav.resources')}</NavLink>
           <NavLink to="/reserve">{t('nav.reserve')}</NavLink>
+          <NavLink to="/data">{t('nav.data')}</NavLink>
         </nav>
       )}
 

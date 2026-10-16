@@ -11,6 +11,7 @@ import { Shell } from './components/Shell';
 import { TermsGate } from './components/Terms';
 import { useI18n } from './i18n';
 import { PortalHome } from './portal/PortalHome';
+import { DataPage } from './portal/DataPage';
 import { ReservePage } from './portal/ReservePage';
 import { ResourcesPage } from './portal/ResourcesPage';
 
@@ -37,6 +38,7 @@ export function App() {
       <Route path="/" element={<RequireAuth><PortalHome /></RequireAuth>} />
       <Route path="/resources" element={<RequireAuth><ResourcesPage /></RequireAuth>} />
       <Route path="/reserve" element={<RequireAuth><ReservePage /></RequireAuth>} />
+      <Route path="/data" element={<RequireAuth><DataPage /></RequireAuth>} />
       <Route path="/admin" element={<RequireAuth admin><AdminHome /></RequireAuth>} />
       <Route path="/admin/:moduleId" element={<RequireAuth admin><AdminModule /></RequireAuth>} />
       <Route path="/admin/:moduleId/:pageId" element={<RequireAuth admin><AdminModule /></RequireAuth>} />

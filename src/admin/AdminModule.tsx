@@ -6,6 +6,7 @@ import { AccelInventoryPage, MappingsPage, VgpuProfilesPage } from './pages/Acce
 import { LeasesPage } from './pages/LeasesPage';
 import { LabSchedulesPage, LabsPage, ScheduledPoolsPage, TerminalsPage } from './pages/LabPages';
 import { ReservationsPage } from './pages/ReservationsPage';
+import { DataPoliciesPage, DataReportPage, DataRequestsPage, DataUsagePage, DatasetsPage } from './pages/DataPages';
 import { AccessPage } from './pages/AccessPage';
 import { AlertsPage } from './pages/AlertsPage';
 import { AuditPage } from './pages/AuditPage';
@@ -76,6 +77,11 @@ function pageBody(moduleId: string, pageId: string, subId?: string) {
   if (key === 'accel/licenses') return <LicenseServersPage />;
   if (key === 'accel/usage') return <CardUsagePage />;
   if (key === 'accel/checks') return <AccelChecksPage />;
+  if (key === 'data/datasets') return <DatasetsPage />;
+  if (key === 'data/requests') return <DataRequestsPage />;
+  if (key === 'data/policies') return <DataPoliciesPage />;
+  if (key === 'data/usage') return <DataUsagePage />;
+  if (key === 'data/report') return <DataReportPage />;
   return null;
 }
 

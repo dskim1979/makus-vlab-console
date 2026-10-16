@@ -90,6 +90,18 @@ export const MODULES: AdminModule[] = [
     ],
   },
   {
+    id: 'data', icon: 'layers', tone: 'pink',
+    label: { ko: '연구 데이터', en: 'Research data' },
+    summary: { ko: '데이터셋 카탈로그(읽기 전용 마운트), 반출 승인, 풀별 반출 · 업로드 규칙, 용량, 반출 보고서', en: 'Dataset catalog (read-only mounts), export approvals, export and upload rules, capacity, export report' },
+    pages: [
+      { id: 'datasets', label: { ko: '데이터셋', en: 'Datasets' }, phase: 1 },
+      { id: 'requests', label: { ko: '반출 승인', en: 'Export approvals' }, phase: 1 },
+      { id: 'policies', label: { ko: '반출 · 업로드 규칙', en: 'Export and upload rules' }, phase: 1 },
+      { id: 'usage', label: { ko: '용량', en: 'Capacity' }, phase: 1 },
+      { id: 'report', label: { ko: '반출 보고서', en: 'Export report' }, phase: 1 },
+    ],
+  },
+  {
     id: 'cluster', icon: 'cluster', tone: 'navy',
     label: { ko: '클러스터', en: 'Cluster' },
     summary: { ko: '클러스터 연결, 개요, 노드(유지보수), 스토리지, 고가용성(HA)', en: 'Cluster connection, overview, nodes (maintenance), storage, high availability' },

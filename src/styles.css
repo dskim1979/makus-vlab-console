@@ -1475,3 +1475,30 @@ fieldset.plain:disabled { opacity: .55; }
 .use-line { width: 100%; height: 64px; display: block; margin: .6rem 0; background: var(--surface-2, transparent); border-radius: 6px; }
 .use-line-path { fill: none; stroke: var(--accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
 .use-line-th { stroke: var(--warn, #c77700); stroke-width: 1; stroke-dasharray: 4 4; vector-effect: non-scaling-stroke; }
+
+/* 연구 데이터 (portal > 데이터, console > 연구 데이터) */
+.data-where { margin-bottom: .9rem; }
+.data-crumbs { gap: .15rem; }
+.data-crumb { display: inline-flex; align-items: center; gap: .15rem; color: var(--subtle); }
+.data-file { word-break: break-all; }
+.up-row { display: grid; grid-template-columns: minmax(120px, 1.2fr) minmax(120px, 2fr) auto auto; align-items: center; gap: .3rem .75rem; }
+.up-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.up-hash { grid-column: 1 / -1; }
+.ds-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: .9rem; }
+.ds-card { display: flex; flex-direction: column; gap: .55rem; }
+.ds-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .6rem; }
+.ds-head .card-title { margin: 0; }
+.ds-desc { margin: 0; color: var(--text-2); white-space: pre-line; }
+.ds-meta { display: grid; grid-template-columns: auto 1fr; gap: .2rem .8rem; margin: 0; }
+.ds-meta dt { color: var(--muted); }
+.ds-meta dd { margin: 0; word-break: break-word; }
+.ds-paths { display: flex; flex-direction: column; gap: .25rem; }
+.ds-paths code { word-break: break-all; }
+.data-bar { grid-template-columns: minmax(110px, 1fr) 3fr 80px; }
+.data-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: .9rem; margin-bottom: 1rem; }
+@media (max-width: 640px) {
+  .up-row { grid-template-columns: 1fr auto; }
+  .up-row .bar-track { grid-column: 1 / -1; }
+  .ds-grid { grid-template-columns: 1fr; }
+}
+.table-scroll + .panel, .empty + .panel { margin-top: .9rem; }

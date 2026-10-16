@@ -36,6 +36,7 @@ export const messages = {
   'nav.workspace': { ko: '작업 공간', en: 'Workspace' },
   'nav.resources': { ko: '내 자원', en: 'My resources' },
   'nav.reserve': { ko: '예약', en: 'Bookings' },
+  'nav.data': { ko: '데이터', en: 'Data' },
   'nav.manage': { ko: '관리', en: 'Administration' },
   'nav.dashboard': { ko: '대시보드', en: 'Dashboard' },
   'quick.title': { ko: '빠른 작업', en: 'Quick actions' },
