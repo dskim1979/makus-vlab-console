@@ -5,6 +5,7 @@ import { Dialog } from '../../components/Dialog';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
+import { SettingsStatus } from '../../components/SettingsShell';
 import { useI18n } from '../../i18n';
 
 type Notice = { kind: 'info' | 'error'; text: string };
@@ -59,15 +60,21 @@ export function LeasesPage() {
       <LoadState value={leases} retry={leases.reload}>
         {(list) => {
           const active = list.filter((l) => l.state === 'active');
-          const soon = active.filter((l) => l.ends_at && new Date(l.ends_at).getTime() - Date.now() < DAY);
+          const remain = (l: AdminLease) => (l.ends_at ? new Date(l.ends_at).getTime() - Date.now() : Infinity);
+          const soon = active.filter((l) => remain(l) > 0 && remain(l) < DAY);
+          const week = active.filter((l) => remain(l) > 0 && remain(l) < 7 * DAY);
+          const overdue = active.filter((l) => remain(l) <= 0);
+          const kinds = (['gpu', 'fpga', 'npu'] as const).map((k) => [k, active.filter((l) => l.resource_type === k).length] as const).filter(([, n]) => n);
           return (
             <>
-              <div className="stats">
-                <div className="stat static tone-green"><span className="stat-icon"><Icon name="spark" size={18} /></span>
-                  <span className="stat-label">{t('ln.active')}</span><span className="stat-value">{active.length}</span></div>
-                <div className="stat static tone-orange"><span className="stat-icon"><Icon name="info" size={18} /></span>
-                  <span className="stat-label">{t('ln.dueSoon')}</span><span className="stat-value">{soon.length}</span></div>
-              </div>
+              <SettingsStatus items={[
+                { label: t('ln.active'), value: String(active.length), tone: active.length ? 'ok' : 'off' },
+                { label: t('ln.dueSoon'), value: String(soon.length), tone: soon.length ? 'warn' : undefined },
+                { label: t('ln.dueWeek'), value: String(week.length) },
+                { label: t('ln.overdueN'), value: String(overdue.length), tone: overdue.length ? 'warn' : undefined },
+                { label: t('ln.borrowers'), value: String(new Set(active.map((l) => l.username)).size) },
+                { label: t('ln.kinds'), value: kinds.length ? kinds.map(([k, n]) => `${k.toUpperCase()} ${n}`).join(' · ') : '-' },
+              ]} />
               {list.length === 0 ? <div className="empty"><p>{t('ln.empty')}</p></div> : (
                 <div className="table-scroll">
                   <table className="table compact-head">
