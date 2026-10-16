@@ -49,6 +49,12 @@ export function MyPools({ onOpen }: { onOpen: (desktopId: string) => void }) {
               <h3>{p.name}</h3>
               <span className="muted small">{p.description || (p.action === 'shared' ? L('공유 풀', 'Shared pool') : L('전용 풀', 'Dedicated pool'))}
                 {p.action === 'claim' && ` · ${L(`남은 ${p.free}대`, `${p.free} left`)}`}</span>
+              {p.environment && (
+                <div className="chip-row env-portal" title={L(`환경: ${p.environment.name}`, `Environment: ${p.environment.name}`)}>
+                  <span className="chip">{p.environment.name}</span>
+                  {p.environment.highlights.map((h) => <span key={h} className="chip chip-accent">{h}</span>)}
+                </div>
+              )}
               {note?.id === p.id && <div className={`small ${note.error ? 'text-danger' : 'muted'}`} role={note.error ? 'alert' : 'status'}>{note.text}</div>}
             </div>
             <button type="button" className="btn connect" disabled={busy !== null || (p.action === 'claim' && p.free < 1 && p.mine.length === 0)}

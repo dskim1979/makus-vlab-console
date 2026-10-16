@@ -26,6 +26,7 @@ import { UsagePage } from './pages/UsagePage';
 import { RolesPage } from './pages/RolesPage';
 import { UsersPage } from './pages/UsersPage';
 import { AccelChecksPage } from './pages/AccelChecksPage';
+import { EnvCatalogPage } from './pages/EnvCatalogPage';
 import { BoardsPage, BuildFarmPage, CardUsagePage, DepartmentsPage, ExternalDesktopsPage, GatewaysPage, GoldenImagesPage, LicenseServersPage, SignupsPage, UsbLibraryPage } from './pages/NextPages';
 
 // Pages that exist so far; every other menu entry shows its planned phase.
@@ -64,6 +65,7 @@ function pageBody(moduleId: string, pageId: string, subId?: string) {
   if (key === 'users/roles') return <RolesPage />;
   if (key === 'users/access') return <AccessPage username={subId} />;
   if (key === 'vms/golden') return <GoldenImagesPage />;
+  if (key === 'vms/environments') return <EnvCatalogPage />;
   if (key === 'pools/gateways') return <GatewaysPage />;
   if (key === 'pools/usb') return <UsbLibraryPage />;
   if (key === 'pools/external') return <ExternalDesktopsPage />;

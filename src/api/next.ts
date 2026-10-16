@@ -62,7 +62,8 @@ export type LicenseServer = {
 export type LicenseInput = { name: string; host: string; ports: string; cluster_id: string; vmid: number | null; fixed_mac: string; notes: string; watch: boolean };
 export type GrantType = 'user' | 'department' | 'group';
 export type Grant = { pool_id?: string; subject_type: GrantType; subject_id: string; include_children: number | boolean };
-export type MyPool = { id: string; name: string; type: string; description: string; action: 'claim' | 'shared' | 'other'; desktops: number; free: number; mine: string[] };
+export type MyPool = { id: string; name: string; type: string; description: string; action: 'claim' | 'shared' | 'other'; desktops: number; free: number; mine: string[];
+  environment?: { name: string; kind: 'ai' | 'fpga' | 'npu' | 'general'; highlights: string[] } | null };
 export type JobStatus = 'queued' | 'running' | 'done' | 'failed' | 'cancelled';
 export type BuildJob = {
   id: string; pool_id: string; pool: string | null; username: string; name: string; command: string; workdir: string; status: JobStatus;
@@ -249,6 +250,12 @@ const golden: GoldenImage[] = [
   { id: 'gold_2', cluster_id: 'c1', node: 'pve2', vmid: 9002, name: 'ubuntu-fpga-빌드', current_version: 'gold-20261002-140000', notes: 'Vivado 도구는 NFS /tools 마운트',
     created_by: 'admin', created_at: iso(15000), status: 'running', pools: ['FPGA 빌드 팜'],
     versions: [{ name: 'gold-20261002-140000', description: 'PetaLinux 추가', time: Date.now() / 1000 - 14 * 86400 }] },
+  { id: 'gold_3', cluster_id: 'lab-cluster', node: 'pve2', vmid: 9003, name: 'ubuntu-ai-pytorch', current_version: 'gold-20261012-100000', notes: 'CUDA 12.4 · PyTorch · Jupyter',
+    created_by: 'admin', created_at: iso(12000), status: 'running', pools: ['LLM 실습 (A100 MIG)'],
+    versions: [{ name: 'gold-20261012-100000', description: 'PyTorch 2.4 · CUDA 12.4', time: Date.now() / 1000 - 4 * 86400 }] },
+  { id: 'gold_4', cluster_id: 'lab-cluster', node: 'pve3', vmid: 9004, name: 'ubuntu-npu-sdk', current_version: 'gold-20261005-110000', notes: 'Rebellions · FuriosaAI SDK',
+    created_by: 'admin', created_at: iso(9000), status: 'stopped', pools: [],
+    versions: [{ name: 'gold-20261005-110000', description: 'RBLN SDK 0.5', time: Date.now() / 1000 - 11 * 86400 }] },
 ];
 const boards: Board[] = [
   { id: 'brd_1', name: 'ZCU102 #1', cluster_id: 'c1', node: 'pve1', usb: '03fd:0008', kind: 'ZCU102', notes: '랙 A-3', attached_desktop: 'd2', attached_vmid: 302,
@@ -287,6 +294,8 @@ const maxSessions: Record<string, number> = {};
 const myPools: MyPool[] = [
   { id: 'p_res', name: '연구원 전용 VM', type: 'dedicated', description: '신규 연구원용 Windows 11', action: 'claim', desktops: 12, free: 4, mine: [] },
   { id: 'p_term', name: '공용 리눅스 서버', type: 'shared', description: 'EDA 툴 · 터미널 서버', action: 'shared', desktops: 3, free: 3, mine: [] },
+  { id: 'p_llm', name: 'LLM 실습 (A100 MIG)', type: 'dedicated', description: 'A100 3g.40gb 한 조각씩', action: 'claim', desktops: 4, free: 2, mine: [],
+    environment: { name: 'ubuntu-ai-pytorch', kind: 'ai', highlights: ['CUDA 12.4', 'PyTorch 2.4.1+cu124', 'NVIDIA driver 550.127.05'] } },
 ];
 const jobs: BuildJob[] = [
   { id: 'job_1', pool_id: 'p_farm', pool: 'FPGA 빌드 팜', username: 'alice', name: 'zcu102 비트스트림', command: 'make bit', workdir: '/proj/zcu102', status: 'running',

@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { adminApi } from '../../api/admin';
+import { envApi } from '../../api/envmig';
 import { nextApi } from '../../api/next';
 import type { Board, BuildJob, CardRow, ClientSettings, Department, ExternalDesktop, Gateway, GatewayKind, GoldenImage, JobStatus, LicenseServer, RolloutResult, Signup, SignupSettings, SignupStatus, UsbCategory, UsbDevice, VerifyMode } from '../../api/next';
 import { Dialog } from '../../components/Dialog';
@@ -42,6 +44,8 @@ function Intro({ children }: { children: React.ReactNode }) {
 export function GoldenImagesPage() {
   const { L } = useL();
   const images = useLoad(nextApi.goldenImages);
+  const envs = useLoad(envApi.environments);
+  const envOf = (id: string) => (envs.state === 'ok' ? envs.data.environments.find((e) => e.golden_id === id) : undefined);
   const [adding, setAdding] = useState(false);
   const [versionOf, setVersionOf] = useState<GoldenImage | null>(null);
   const [deployOf, setDeployOf] = useState<GoldenImage | null>(null);
@@ -84,6 +88,11 @@ export function GoldenImagesPage() {
                     <div><dt>{L('쓰는 풀', 'Pools')}</dt><dd>{g.pools.length ? g.pools.join(', ') : '-'}</dd></div>
                   </dl>
                   {g.notes && <p className="muted small lab-desc">{g.notes}</p>}
+                  {(envOf(g.id)?.highlights.length ?? 0) > 0 && (
+                    <Link className="chip-row env-highlights" to="/admin/vms/environments" title={L('환경 카탈로그에서 보기', 'Open in the environment catalogue')}>
+                      {envOf(g.id)!.highlights.map((h) => <span key={h} className="chip chip-accent">{h}</span>)}
+                    </Link>
+                  )}
                   {g.rollout && g.rollout.length > 0 && (
                     <ul className="ver-list rollout-list">
                       {g.rollout.map((r) => (

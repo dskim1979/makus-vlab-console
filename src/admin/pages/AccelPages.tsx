@@ -6,6 +6,7 @@ import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import { ClusterFrame, Meter, useCluster } from './ClusterPages';
+import { MigPanel } from './MigPanel';
 
 // 가속 자원 > GPU·가속 카드 재고 · vGPU 프로필 · 리소스 매핑 (docs/vlab-design.md 10-0)
 
@@ -39,7 +40,7 @@ function Users({ list }: { list: AccelUser[] }) {
 
 export function AccelInventoryPage() {
   const { t } = useI18n();
-  const { inv } = useInventory();
+  const { current, inv } = useInventory();
   const [kind, setKind] = useState<'' | AccelKind>('');
   return (
     <ClusterFrame reload={inv.reload}>
@@ -68,6 +69,7 @@ export function AccelInventoryPage() {
                   <div className="hw-grid">{list.map((d) => <DeviceCard key={`${d.node}/${d.pciid}`} d={d} />)}</div>
                 )}
                 <p className="muted small">{t('ac.note')}</p>
+                {current && (kind === '' || kind === 'gpu') && r.devices.some((d) => d.vendor_id === '10de') && <MigPanel clusterId={current.id} />}
               </>
             );
           }}

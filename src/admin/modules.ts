@@ -27,13 +27,14 @@ export const MODULES: AdminModule[] = [
   {
     id: 'vms', icon: 'vm', tone: 'blue',
     label: { ko: '가상머신', en: 'Virtual machines' },
-    summary: { ko: '데스크톱 VM, ISO로 VM 만들기, 템플릿, 골든 이미지(버전·배포)', en: 'Desktop VMs, VMs from an ISO, templates, golden images' },
+    summary: { ko: '데스크톱 VM, ISO로 VM 만들기, 템플릿, 골든 이미지(버전·배포), 연구 환경 카탈로그', en: 'Desktop VMs, VMs from an ISO, templates, golden images, research environments' },
     pages: [
       { id: 'desktops', label: { ko: '데스크톱(VM) 관리', en: 'Desktop VMs' }, phase: 1 },
       { id: 'create', label: { ko: 'VM 만들기', en: 'Make a VM' }, phase: 1 },
       { id: 'isos', label: { ko: 'ISO · 이미지 관리', en: 'ISO library' }, phase: 1 },
       { id: 'templates', label: { ko: '템플릿 관리', en: 'Templates' }, phase: 1 },
       { id: 'golden', label: { ko: '골든 이미지 관리', en: 'Golden images' }, phase: 1 },
+      { id: 'environments', label: { ko: '환경 카탈로그', en: 'Environment catalogue' }, phase: 1 },
     ],
   },
   {
@@ -75,7 +76,7 @@ export const MODULES: AdminModule[] = [
   {
     id: 'accel', icon: 'gpu', tone: 'green', vlabOnly: true,
     label: { ko: '가속 자원', en: 'Accelerators' },
-    summary: { ko: 'GPU·vGPU, FPGA·NPU 카드, 리소스 매핑, 대여, 보드 LAB, 빌드 팜·작업 큐, 라이선스, 사용 보고서', en: 'GPU and vGPU, FPGA cards, resource mappings, loans, board lab, build farm, licences' },
+    summary: { ko: 'GPU·vGPU·MIG, FPGA·NPU 카드, 리소스 매핑, 대여, 보드 LAB, 빌드 팜·작업 큐, 라이선스, 사용 보고서', en: 'GPU, vGPU and MIG, FPGA cards, resource mappings, loans, board lab, build farm, licences' },
     pages: [
       { id: 'inventory', label: { ko: 'GPU·가속 카드 재고', en: 'GPU and card inventory' }, phase: 1 },
       { id: 'vgpu', label: { ko: 'vGPU 프로필', en: 'vGPU profiles' }, phase: 1 },

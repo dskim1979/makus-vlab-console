@@ -177,6 +177,8 @@ const MOCK_DEVICES: Omit<AccelDevice, 'used_by' | 'mappings'>[] = [
   { node: 'pve1', pciid: '0000:41:00.0', kind: 'gpu', vendor: 'NVIDIA', vendor_id: '10de', device_id: '25b6', model: 'A16 (GA107GL)', subsystem: 'A16 64GB', iommu_group: 40, vgpu_capable: true },
   { node: 'pve1', pciid: '0000:42:00.0', kind: 'gpu', vendor: 'NVIDIA', vendor_id: '10de', device_id: '25b6', model: 'A16 (GA107GL)', subsystem: 'A16 64GB', iommu_group: 41, vgpu_capable: true },
   { node: 'pve2', pciid: '0000:61:00.0', kind: 'gpu', vendor: 'NVIDIA', vendor_id: '10de', device_id: '26b9', model: 'L40S (AD102GL)', subsystem: 'L40S 48GB', iommu_group: 22, vgpu_capable: true },
+  { node: 'pve2', pciid: '0000:a1:00.0', kind: 'gpu', vendor: 'NVIDIA', vendor_id: '10de', device_id: '20b5', model: 'GA100 [A100 PCIe 80GB]', subsystem: 'A100 80GB · MIG', iommu_group: 25, vgpu_capable: true },
+  { node: 'pve2', pciid: '0000:a1:00.4', kind: 'gpu', vendor: 'NVIDIA', vendor_id: '10de', device_id: '20b5', model: 'GA100 [A100 PCIe 80GB] (VF)', subsystem: 'SR-IOV VF', iommu_group: 26, vgpu_capable: true, virtual_function: true },
   { node: 'pve2', pciid: '0000:81:00.0', kind: 'gpu', vendor: 'AMD', vendor_id: '1002', device_id: '7448', model: 'Radeon PRO W7900', subsystem: '48GB', iommu_group: 30, vgpu_capable: false },
   { node: 'pve3', pciid: '0000:c1:00.0', kind: 'fpga', vendor: 'AMD Xilinx', vendor_id: '10ee', device_id: '5004', model: 'Alveo U250', subsystem: 'XDMA', iommu_group: 51, vgpu_capable: false },
   { node: 'pve3', pciid: '0000:c2:00.0', kind: 'fpga', vendor: 'AMD Xilinx', vendor_id: '10ee', device_id: '5058', model: 'Alveo U55C', subsystem: 'HBM2e 16GB', iommu_group: 52, vgpu_capable: false },
@@ -188,6 +190,7 @@ const MOCK_MAPPINGS: Omit<PciMapping, 'used_by' | 'pools'>[] = [
   { id: 'gpu-a16', description: 'NVIDIA A16 vGPU (pve1, 2장)', mdev: true,
     devices: [{ node: 'pve1', path: '0000:41:00.0', id: '10de:25b6' }, { node: 'pve1', path: '0000:42:00.0', id: '10de:25b6' }] },
   { id: 'gpu-l40s', description: 'NVIDIA L40S (AI·렌더링)', mdev: true, devices: [{ node: 'pve2', path: '0000:61:00.0', id: '10de:26b9' }] },
+  { id: 'gpu-a100', description: 'NVIDIA A100 80GB VF (pve2, MIG-backed vGPU)', mdev: true, devices: [{ node: 'pve2', path: '0000:a1:00.4', id: '10de:20b5' }] },
   { id: 'gpu-w7900', description: 'AMD Radeon PRO W7900 전체', mdev: false, devices: [{ node: 'pve2', path: '0000:81:00.0', id: '1002:7448' }] },
 ];
 const FPGA_MAPPINGS: Omit<PciMapping, 'used_by' | 'pools'>[] = [
@@ -309,6 +312,13 @@ export const mockAdminApi: AdminApi = {
     const dev = MOCK_DEVICES.find((d) => d.node === node && d.pciid === pciid);
     if (!dev) return fail(404, 'no such card');
     if (!dev.vgpu_capable) return delay([]);
+    if (dev.device_id === '20b5') {   // A100 in MIG mode: only the MIG-backed profiles
+      const mk = (type: string, name: string, gb: number, max: number, available: number, slices: number): VgpuProfile => ({ type, name,
+        description: `num_heads=1, frl_config=60, framebuffer=${gb * 1024}M, max_resolution=4096x2160, max_instance=${max}`, available,
+        framebuffer_mb: gb * 1024, max_instance: max, heads: 1, max_resolution: '4096x2160', mig_slices: slices });
+      return delay([mk('nvidia-699', 'NVIDIA A100D-1-10C', 10, 7, 1, 1), mk('nvidia-700', 'NVIDIA A100D-2-20C', 20, 3, 0, 2),
+        mk('nvidia-701', 'NVIDIA A100D-3-40C', 40, 2, 0, 3), mk('nvidia-702', 'NVIDIA A100D-4-40C', 40, 1, 0, 4), mk('nvidia-703', 'NVIDIA A100D-7-80C', 80, 1, 0, 7)]);
+    }
     const used = pools.filter((p) => p.settings?.gpu?.mode === 'vgpu' && MOCK_MAPPINGS.some((m) => m.id === p.settings!.gpu!.mapping
       && m.devices.some((x) => x.path === pciid))).reduce((n, p) => n + desks.filter((d) => d.pool_id === p.id).length, 0);
     return delay(a16Profiles(Math.min(used, 8)));

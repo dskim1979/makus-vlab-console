@@ -146,7 +146,7 @@ export type PoolPolicy = {
 export type PoolPolicyAnswer = { policy: PoolPolicy; defaults: PoolPolicy; reset_allowed: boolean };
 
 // --- accelerators (가속 자원, docs/vlab-design.md 10-0) ---------------------------
-export type GpuPolicy = { mode: 'none' | 'passthrough' | 'vgpu'; mapping?: string; mdev_type?: string; label?: string; x_vga?: boolean };
+export type GpuPolicy = { mode: 'none' | 'passthrough' | 'vgpu'; mapping?: string; mdev_type?: string; label?: string; x_vga?: boolean; mig?: boolean };
 export type AccelUser = { vmid: number; name: string; node: string; status: string; slot: string; mdev: string | null;
   desktop_id: string | null; pool: string | null };
 export type AccelKind = 'gpu' | 'fpga' | 'npu';
@@ -157,7 +157,7 @@ export type PciMapping = { id: string; description: string; mdev: boolean; devic
 export type AccelInventory = { devices: AccelDevice[]; mappings: PciMapping[]; mappings_readable: boolean; unreadable_nodes: string[];
   summary: { gpus: number; fpgas: number; npus?: number; vgpu_capable: number; in_use: number } };
 export type VgpuProfile = { type: string; name: string; description: string; available: number; framebuffer_mb: number | null;
-  max_instance: number | null; heads: number | null; max_resolution: string };
+  max_instance: number | null; heads: number | null; max_resolution: string; mig_slices?: number | null };
 export type AdminLease = {
   id: string; resource_type: 'fpga' | 'gpu' | 'npu' | 'card' | 'usb'; resource_id: string; resource_name: string; username: string;
   cluster_id: string; vmid: number; starts_at: string; ends_at: string | null; returned_at: string | null;

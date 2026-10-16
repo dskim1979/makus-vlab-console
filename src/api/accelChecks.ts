@@ -10,6 +10,12 @@ export type AccelFinding = {
 export type AccelCheckResult = { findings: AccelFinding[]; checked_vms: number; counts: Record<CheckSeverity, number> };
 
 const MOCK: AccelFinding[] = [
+  { code: 'MIG_TIMESLICED', severity: 'warn', name: 'lab-win11-05', vmid: 304, desktop_id: 'x5', slot: 'hostpci15',
+    ko: 'NVIDIA A100 80GB PCIe (GPU 1)가 MIG 모드입니다. MIG 카드에는 시분할 vGPU 프로필(A100-4C 같은)이 나오지 않으니, 이 vGPU가 MIG-backed 프로필(A100-3-20C 같은)이 아니면 VM이 켜지지 않습니다. 풀 GPU 정책에서 MIG-backed 프로필을 고르세요.',
+    en: 'NVIDIA A100 80GB PCIe (GPU 1) is in MIG mode. Time-sliced vGPU profiles (like A100-4C) are not offered on a MIG card, so unless this vGPU is a MIG-backed profile (like A100-3-20C) the VM does not start. Pick a MIG-backed profile in the pool GPU policy.' },
+  { code: 'MIG_PENDING', severity: 'warn', name: 'pve2 GPU 1',
+    ko: 'pve2의 NVIDIA A100 80GB PCIe(GPU 1) MIG 모드 변경(disabled → enabled)이 GPU 리셋이나 노드 재부팅을 기다립니다. 그 전까지는 이전 모드로 동작합니다.',
+    en: 'The MIG mode change of NVIDIA A100 80GB PCIe (GPU 1) on pve2 (disabled -> enabled) waits for a GPU reset or a node reboot; until then the old mode holds.' },
   { code: 'SAME_MAPPING', severity: 'error', name: 'ai-ws-03', vmid: 312, desktop_id: 'd4', slot: 'hostpci14',
     ko: "같은 매핑 'gpu-a16'이 hostpci15와 hostpci14에 두 번 붙어 있습니다(풀 GPU 정책과 카드 대여가 겹침). VM이 켜지지 않거나 카드 두 장을 차지합니다.",
     en: "Mapping 'gpu-a16' sits in hostpci15 and hostpci14 (the pool GPU policy and a loan overlap): the VM may not start or takes two cards." },
