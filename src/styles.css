@@ -1133,3 +1133,30 @@ a.kcell:hover { background: var(--surface-2); }
   .kiosk-time { font-size: 1.8rem; }
   .kiosk-foot { flex-wrap: wrap; padding: .8rem 1.2rem 1rem; }
 }
+
+/* next-phase pages (admin/pages/NextPages.tsx), sign-up, external desktops */
+.page-intro { margin: -.25rem 0 .9rem; max-width: 960px; line-height: 1.55; }
+.panel-title { font-size: .95rem; font-weight: 650; margin: 0; }
+.split-2 { display: grid; grid-template-columns: minmax(240px, 340px) minmax(0, 1fr); gap: 1rem; align-items: start; }
+@media (max-width: 900px) { .split-2 { grid-template-columns: minmax(0, 1fr); } }
+.dep-tree { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.dep-node { width: 100%; display: flex; align-items: center; gap: .45rem; padding: .4rem .55rem; border-radius: 6px; border: 0;
+  background: transparent; color: var(--text); font: inherit; font-size: .88rem; text-align: left; cursor: pointer; }
+.dep-node:hover { background: var(--surface-2); }
+.dep-node.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.dep-node .muted { margin-left: auto; }
+.ver-list { list-style: none; margin: .25rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .3rem; }
+.ver-list li { display: flex; align-items: center; gap: .55rem; font-size: .82rem; padding: .3rem .45rem; border-radius: 6px; background: var(--surface-2); }
+.ver-list li .muted { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.farm-cpu { min-width: 150px; }
+.farm-cpu .bar-track { width: 110px; margin-bottom: .2rem; }
+.settings-narrow { max-width: 720px; }
+.login-signup { text-align: center; margin: 0; }
+.signup-card { max-width: 460px; }
+.ext-section { margin-top: 1.6rem; display: flex; flex-direction: column; gap: .6rem; }
+.ext-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: .8rem; }
+.ext-card { display: flex; align-items: center; gap: .8rem; padding: .85rem 1rem; border-radius: var(--radius); background: var(--surface);
+  border: 1px solid var(--border); box-shadow: var(--shadow-1); }
+.ext-icon { flex: none; width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.ext-body { flex: 1; min-width: 0; }
+.ext-body h3 { margin: 0; font-size: .95rem; }

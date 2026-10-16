@@ -10,6 +10,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useI18n } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
 import { DesktopCard, relativeTime } from './DesktopCard';
+import { ExternalDesktops } from './ExternalDesktops';
 
 // noVNC is only loaded when a console is opened
 const ConsoleWindow = lazy(() => import('./ConsoleWindow'));
@@ -222,6 +223,7 @@ export function PortalHome() {
             }}
           </LoadState>
         )}
+        <ExternalDesktops />
       </div>
 
       {open && (

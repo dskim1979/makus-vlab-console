@@ -887,6 +887,7 @@ export const messages = {
   'hub.general': { ko: '일반', en: 'General' },
   'hub.directory': { ko: '도메인(AD/LDAP)', en: 'Directory (AD/LDAP)' },
   'hub.branding': { ko: '화이트라벨', en: 'White label' },
+  'hub.client': { ko: '클라이언트', en: 'Client' },
   'hub.tabs': { ko: '설정 종류', en: 'Settings' },
   'sum.aboutHint': { ko: '버전과 기반 기술은 오른쪽 위 사용자 메뉴의 "정보"에서 봅니다.', en: 'Versions and the base technology are under About in the user menu, top right.' },
   'common.edit': { ko: '편집', en: 'Edit' },

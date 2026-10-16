@@ -21,6 +21,7 @@ import { SummaryPage } from './pages/SummaryPage';
 import { ReportPage } from './pages/ReportPage';
 import { UsagePage } from './pages/UsagePage';
 import { UsersPage } from './pages/UsersPage';
+import { BoardsPage, BuildFarmPage, DepartmentsPage, ExternalDesktopsPage, GatewaysPage, GoldenImagesPage, LicenseServersPage, SignupsPage, UsbLibraryPage } from './pages/NextPages';
 
 // Pages that exist so far; every other menu entry shows its planned phase.
 function pageBody(moduleId: string, pageId: string, subId?: string) {
@@ -51,6 +52,15 @@ function pageBody(moduleId: string, pageId: string, subId?: string) {
   if (key === 'labs/pools') return <ScheduledPoolsPage />;
   if (key === 'users/list') return <UsersPage />;
   if (key === 'users/access') return <AccessPage username={subId} />;
+  if (key === 'vms/golden') return <GoldenImagesPage />;
+  if (key === 'pools/gateways') return <GatewaysPage />;
+  if (key === 'pools/usb') return <UsbLibraryPage />;
+  if (key === 'pools/external') return <ExternalDesktopsPage />;
+  if (key === 'users/signups') return <SignupsPage />;
+  if (key === 'users/departments') return <DepartmentsPage />;
+  if (key === 'accel/boards') return <BoardsPage />;
+  if (key === 'accel/buildfarm') return <BuildFarmPage />;
+  if (key === 'accel/licenses') return <LicenseServersPage />;
   return null;
 }
 

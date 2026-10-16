@@ -27,11 +27,11 @@ export const MODULES: AdminModule[] = [
   {
     id: 'vms', icon: 'vm', tone: 'blue',
     label: { ko: '가상머신', en: 'Virtual machines' },
-    summary: { ko: '데스크톱 VM, 템플릿, 골든 이미지', en: 'Desktop VMs, templates, golden images' },
+    summary: { ko: '데스크톱 VM, 템플릿, 골든 이미지(버전·배포)', en: 'Desktop VMs, templates, golden images' },
     pages: [
       { id: 'desktops', label: { ko: '데스크톱(VM) 관리', en: 'Desktop VMs' }, phase: 1 },
       { id: 'templates', label: { ko: '템플릿 관리', en: 'Templates' }, phase: 1 },
-      { id: 'golden', label: { ko: '골든 이미지 관리', en: 'Golden images' }, phase: 2 },
+      { id: 'golden', label: { ko: '골든 이미지 관리', en: 'Golden images' }, phase: 1 },
     ],
   },
   {
@@ -40,9 +40,9 @@ export const MODULES: AdminModule[] = [
     summary: { ko: '풀 정책, 게이트웨이, USB 장치, 데스크톱 상태', en: 'Pool policies, gateways, USB devices, desktop status' },
     pages: [
       { id: 'list', label: { ko: '풀 관리', en: 'Pools' }, phase: 1 },
-      { id: 'gateways', label: { ko: '게이트웨이', en: 'Gateways' }, phase: 2 },
-      { id: 'usb', label: { ko: 'USB 장치 라이브러리', en: 'USB device library' }, phase: 2 },
-      { id: 'external', label: { ko: '외부 데스크톱', en: 'External desktops' }, phase: 4 },
+      { id: 'gateways', label: { ko: '게이트웨이', en: 'Gateways' }, phase: 1 },
+      { id: 'usb', label: { ko: 'USB 장치 라이브러리', en: 'USB device library' }, phase: 1 },
+      { id: 'external', label: { ko: '외부 데스크톱', en: 'External desktops' }, phase: 1 },
       { id: 'status', label: { ko: '데스크톱 상태', en: 'Desktop status' }, phase: 1 },
     ],
   },
@@ -52,8 +52,8 @@ export const MODULES: AdminModule[] = [
     summary: { ko: '사용자, 가입 심사, 부서, 유효 권한', en: 'Users, sign-up review, departments, effective access' },
     pages: [
       { id: 'list', label: { ko: '사용자 목록', en: 'Users' }, phase: 1 },
-      { id: 'signups', label: { ko: '가입 심사', en: 'Sign-up review' }, phase: 2 },
-      { id: 'departments', label: { ko: '부서 관리', en: 'Departments' }, phase: 2 },
+      { id: 'signups', label: { ko: '가입 심사', en: 'Sign-up review' }, phase: 1 },
+      { id: 'departments', label: { ko: '부서 관리', en: 'Departments' }, phase: 1 },
       { id: 'access', label: { ko: '유효 권한 조회', en: 'Effective access' }, phase: 1 },
     ],
   },
@@ -77,9 +77,9 @@ export const MODULES: AdminModule[] = [
       { id: 'vgpu', label: { ko: 'vGPU 프로필', en: 'vGPU profiles' }, phase: 1 },
       { id: 'mappings', label: { ko: '리소스 매핑', en: 'Resource mappings' }, phase: 1 },
       { id: 'leases', label: { ko: '카드 대여 현황', en: 'Card loans' }, phase: 1 },
-      { id: 'boards', label: { ko: '보드 LAB(JTAG)', en: 'Board lab (JTAG)' }, phase: 3 },
-      { id: 'buildfarm', label: { ko: '빌드 팜', en: 'Build farm' }, phase: 3 },
-      { id: 'licenses', label: { ko: '라이선스 서버', en: 'License servers' }, phase: 3 },
+      { id: 'boards', label: { ko: '보드 LAB(JTAG)', en: 'Board lab (JTAG)' }, phase: 1 },
+      { id: 'buildfarm', label: { ko: '빌드 팜', en: 'Build farm' }, phase: 1 },
+      { id: 'licenses', label: { ko: '라이선스 서버', en: 'License servers' }, phase: 1 },
     ],
   },
   {

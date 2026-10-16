@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { nextApi } from '../api/next';
 import { api, isMock } from '../api/client';
 import { BRAND } from '../brand';
 import { useBranding, useSupportUrl } from '../branding';
@@ -30,6 +31,8 @@ export function LoginPage() {
   const next = from && from !== '/' ? from : undefined;
 
   const [username, setUsername] = useState('');
+  const [signupOpen, setSignupOpen] = useState(false);
+  useEffect(() => { nextApi.signupConfig().then((c) => setSignupOpen(c.enabled)); }, []);
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
   const [totp, setTotp] = useState('');
@@ -118,6 +121,9 @@ export function LoginPage() {
             </a>
           )}
           {unauth?.ldap_enabled && <p className="muted small">{t('login.ldapOn')}</p>}
+          {signupOpen && step === 'password' && (
+            <p className="muted small login-signup">{pick({ ko: '계정이 없나요?', en: 'No account?' })} <Link to="/signup">{pick({ ko: '가입 신청', en: 'Ask for one' })}</Link></p>
+          )}
         </form>
       </main>
 
