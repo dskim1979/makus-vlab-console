@@ -101,6 +101,9 @@ const MOCK_DEVICES: Omit<AccelDevice, 'used_by' | 'mappings'>[] = [
   { node: 'pve2', pciid: '0000:81:00.0', kind: 'gpu', vendor: 'AMD', vendor_id: '1002', device_id: '7448', model: 'Radeon PRO W7900', subsystem: '48GB', iommu_group: 30, vgpu_capable: false },
   { node: 'pve3', pciid: '0000:c1:00.0', kind: 'fpga', vendor: 'AMD Xilinx', vendor_id: '10ee', device_id: '5004', model: 'Alveo U250', subsystem: 'XDMA', iommu_group: 51, vgpu_capable: false },
   { node: 'pve3', pciid: '0000:c2:00.0', kind: 'fpga', vendor: 'AMD Xilinx', vendor_id: '10ee', device_id: '5058', model: 'Alveo U55C', subsystem: 'HBM2e 16GB', iommu_group: 52, vgpu_capable: false },
+  { node: 'pve3', pciid: '0000:d1:00.0', kind: 'npu', vendor: 'FuriosaAI', vendor_id: '1ed2', device_id: '0001', model: 'RNGD', subsystem: 'HBM3 48GB', iommu_group: 61, vgpu_capable: false },
+  { node: 'pve3', pciid: '0000:d2:00.1', kind: 'npu', vendor: 'Rebellions', vendor_id: '1eff', device_id: '1221', model: 'RBLN-CA22 (VF)', subsystem: 'ATOM', iommu_group: 62, vgpu_capable: false, virtual_function: true },
+  { node: 'pve3', pciid: '0000:d2:00.2', kind: 'npu', vendor: 'Rebellions', vendor_id: '1eff', device_id: '1221', model: 'RBLN-CA22 (VF)', subsystem: 'ATOM', iommu_group: 63, vgpu_capable: false, virtual_function: true },
 ];
 const MOCK_MAPPINGS: Omit<PciMapping, 'used_by' | 'pools'>[] = [
   { id: 'gpu-a16', description: 'NVIDIA A16 vGPU (pve1, 2장)', mdev: true,
@@ -111,6 +114,9 @@ const MOCK_MAPPINGS: Omit<PciMapping, 'used_by' | 'pools'>[] = [
 const FPGA_MAPPINGS: Omit<PciMapping, 'used_by' | 'pools'>[] = [
   { id: 'fpga-u250', description: 'AMD Xilinx Alveo U250 (pve3)', mdev: false, devices: [{ node: 'pve3', path: '0000:c1:00.0', id: '10ee:5004' }] },
   { id: 'fpga-u55c', description: 'AMD Xilinx Alveo U55C (pve3)', mdev: false, devices: [{ node: 'pve3', path: '0000:c2:00.0', id: '10ee:5058' }] },
+  { id: 'npu-rngd', description: 'FuriosaAI RNGD (pve3)', mdev: false, devices: [{ node: 'pve3', path: '0000:d1:00.0', id: '1ed2:0001' }] },
+  { id: 'npu-atom-vf', description: 'Rebellions ATOM VF (pve3, 2개)', mdev: false,
+    devices: [{ node: 'pve3', path: '0000:d2:00.1', id: '1eff:1221' }, { node: 'pve3', path: '0000:d2:00.2', id: '1eff:1221' }] },
 ];
 const inDays = (n: number) => new Date(Date.now() + n * 864e5).toISOString();
 const mockLeases: AdminLease[] = [
@@ -217,7 +223,7 @@ export const mockAdminApi: AdminApi = {
       mappings: [...MOCK_MAPPINGS, ...FPGA_MAPPINGS].filter((m) => m.devices.some((x) => x.node === d.node && x.path === d.pciid)).map((m) => m.id) }));
     const gpus = devices.filter((d) => d.kind === 'gpu');
     return delay({ devices, mappings, mappings_readable: true, unreadable_nodes: [], summary: {
-      gpus: gpus.length, fpgas: devices.length - gpus.length, vgpu_capable: gpus.filter((d) => d.vgpu_capable).length,
+      gpus: gpus.length, fpgas: devices.filter((d) => d.kind === 'fpga').length, npus: devices.filter((d) => d.kind === 'npu').length, vgpu_capable: gpus.filter((d) => d.vgpu_capable).length,
       in_use: devices.filter((d) => d.used_by.length).length + mappings.filter((m) => m.used_by.length).length } });
   },
   profiles: (_clusterId, node, pciid) => {

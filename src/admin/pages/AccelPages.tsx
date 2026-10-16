@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from '../../api/admin';
-import type { AccelDevice, AccelInventory, AccelUser } from '../../api/types';
+import type { AccelDevice, AccelInventory, AccelUser, AccelKind } from '../../api/types';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
@@ -18,7 +18,9 @@ function useInventory() {
 }
 
 // brand-ish colour per vendor for the card's stripe (identity, never status)
-const VENDOR_TONE: Record<string, string> = { '10de': 'nvidia', '1002': 'amd', '8086': 'intel', '10ee': 'xilinx', '1172': 'intel' };
+const VENDOR_TONE: Record<string, string> = { '10de': 'nvidia', '1002': 'amd', '8086': 'intel', '10ee': 'xilinx', '1172': 'intel',
+  '1ed2': 'npu', '1eff': 'npu', '1f56': 'npu', '1ff4': 'npu', '209f': 'npu' };
+const KIND_ICON = { gpu: 'gpu', fpga: 'fpga', npu: 'npu' } as const;
 
 function Users({ list }: { list: AccelUser[] }) {
   const { t } = useI18n();
@@ -38,7 +40,7 @@ function Users({ list }: { list: AccelUser[] }) {
 export function AccelInventoryPage() {
   const { t } = useI18n();
   const { inv } = useInventory();
-  const [kind, setKind] = useState<'' | 'gpu' | 'fpga'>('');
+  const [kind, setKind] = useState<'' | AccelKind>('');
   return (
     <ClusterFrame reload={inv.reload}>
       {() => (
@@ -51,13 +53,14 @@ export function AccelInventoryPage() {
                   <Stat icon="gpu" tone="green" label={t('ac.gpus')} value={r.summary.gpus} />
                   <Stat icon="layers" tone="violet" label={t('ac.vgpuCapable')} value={r.summary.vgpu_capable} />
                   <Stat icon="fpga" tone="pink" label={t('ac.fpgas')} value={r.summary.fpgas} />
+                  <Stat icon="npu" tone="teal" label={t('ac.npus')} value={r.summary.npus ?? 0} />
                   <Stat icon="spark" tone="blue" label={t('ac.inUse')} value={r.summary.in_use} />
                 </div>
                 {r.unreadable_nodes.length > 0 && <div className="alert small">{t('ac.unreadable').replace('{n}', r.unreadable_nodes.join(', '))}</div>}
                 <div className="segmented" role="group">
-                  {(['', 'gpu', 'fpga'] as const).map((k) => (
+                  {(['', 'gpu', 'fpga', 'npu'] as const).map((k) => (
                     <button key={k} type="button" className={kind === k ? 'on' : ''} aria-pressed={kind === k} onClick={() => setKind(k)}>
-                      {t(k === '' ? 'ac.all' : k === 'gpu' ? 'ac.kindGpu' : 'ac.kindFpga')}
+                      {t(k === '' ? 'ac.all' : k === 'gpu' ? 'ac.kindGpu' : k === 'fpga' ? 'ac.kindFpga' : 'ac.kindNpu')}
                     </button>
                   ))}
                 </div>
@@ -74,7 +77,7 @@ export function AccelInventoryPage() {
   );
 }
 
-function Stat({ icon, tone, label, value }: { icon: 'gpu' | 'layers' | 'fpga' | 'spark'; tone: string; label: string; value: number }) {
+function Stat({ icon, tone, label, value }: { icon: 'gpu' | 'layers' | 'fpga' | 'npu' | 'spark'; tone: string; label: string; value: number }) {
   return (
     <div className="stat static">
       <span className={`stat-icon tone-${tone}`}><Icon name={icon} size={18} /></span>
@@ -89,12 +92,13 @@ function DeviceCard({ d }: { d: AccelDevice }) {
   return (
     <article className={`hw-card vendor-${VENDOR_TONE[d.vendor_id] ?? 'other'}`}>
       <header>
-        <span className="hw-icon"><Icon name={d.kind === 'gpu' ? 'gpu' : 'fpga'} size={22} /></span>
+        <span className="hw-icon"><Icon name={KIND_ICON[d.kind] ?? 'gpu'} size={22} /></span>
         <div>
           <div className="hw-vendor">{d.vendor}</div>
           <h3 className="hw-model">{d.model}</h3>
         </div>
         {d.vgpu_capable && <span className="chip chip-accent">vGPU</span>}
+        {d.virtual_function && <span className="chip chip-accent" title={t('ac.vfHint')}>{t('ac.vf')}</span>}
       </header>
       <dl className="hw-facts">
         <dt>{t('desk.node')}</dt><dd>{d.node}</dd>

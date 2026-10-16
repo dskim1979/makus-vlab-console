@@ -9,8 +9,10 @@
 @font-face { font-family: "Paperlogy"; font-weight: 700; font-display: swap; src: url("/fonts/Paperlogy-7Bold.woff2") format("woff2"); }
 @font-face { font-family: "Paperlogy"; font-weight: 800; font-display: swap; src: url("/fonts/Paperlogy-8ExtraBold.woff2") format("woff2"); }
 
-/* Dark navy theme shared with MOAVI: navy surfaces, teal accent (#53B1B1), blue second
-   accent (#4A9AF0), Paperlogy type. One theme; status colours only for status. */
+/* Navy theme shared with MOAVI: navy surfaces, teal accent (#53B1B1), blue second accent
+   (#4A9AF0), Paperlogy type; status colours only for status. Dark is the default; the light
+   theme below keeps the navy top bar and steps the accent and status colours for white
+   (WCAG 4.5:1 for text). src/theme.ts sets html[data-theme]. */
 :root {
   color-scheme: dark;
   --bg: #111B30;
@@ -38,6 +40,8 @@
   --head-text: #F1F5F9;
   --head-muted: #94A3B8;
   --scene-tail: #111B30;
+  --brand-vi: #2FD4C4;
+  --vendor-nvidia: #8FD14F; --vendor-amd: #FF7B6B; --vendor-intel: #64B5FF; --vendor-xilinx: #F27AA8; --vendor-npu: #53B1B1;
   --radius: 8px;
   --radius-sm: 6px;
   --shadow-1: 0 1px 2px rgba(0, 0, 0, .3);
@@ -51,6 +55,65 @@
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #F4F6FA;
+  --surface: #FFFFFF;
+  --surface-2: #F7F9FC;
+  --surface-3: #EDF1F6;
+  --border: #DDE3EC;
+  --border-strong: #C3CDDB;
+  --text: #0F182C;
+  --text-2: #1F2A44;
+  --muted: #4A5873;
+  --subtle: #5F6B84;
+  --accent: #0B7373;
+  --accent-hover: #095E5E;
+  --accent-soft: #E1F2F2;
+  --accent-ring: rgba(11, 115, 115, .25);
+  --on-accent: #FFFFFF;
+  --accent-2: #2A78D6;
+  --ok: #12702F; --ok-soft: #E6F4EA;
+  --warn: #B45309; --warn-soft: #FDF1E2;
+  --danger: #B91C1C; --danger-soft: #FDECEC;
+  --scene-tail: #F4F6FA;
+  --brand-vi: #1668E3;
+  --vendor-nvidia: #4D8A00; --vendor-amd: #C42B1C; --vendor-intel: #0068B5; --vendor-xilinx: #B8285F; --vendor-npu: #0B7373;
+  --shadow-1: 0 1px 2px rgba(15, 24, 44, .06);
+  --shadow-2: 0 1px 2px rgba(15, 24, 44, .06), 0 6px 18px rgba(15, 24, 44, .08);
+  --shadow-3: 0 12px 40px rgba(15, 24, 44, .18);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+    --bg: #F4F6FA;
+    --surface: #FFFFFF;
+    --surface-2: #F7F9FC;
+    --surface-3: #EDF1F6;
+    --border: #DDE3EC;
+    --border-strong: #C3CDDB;
+    --text: #0F182C;
+    --text-2: #1F2A44;
+    --muted: #4A5873;
+    --subtle: #5F6B84;
+    --accent: #0B7373;
+    --accent-hover: #095E5E;
+    --accent-soft: #E1F2F2;
+    --accent-ring: rgba(11, 115, 115, .25);
+    --on-accent: #FFFFFF;
+    --accent-2: #2A78D6;
+    --ok: #12702F; --ok-soft: #E6F4EA;
+    --warn: #B45309; --warn-soft: #FDF1E2;
+    --danger: #B91C1C; --danger-soft: #FDECEC;
+    --scene-tail: #F4F6FA;
+    --brand-vi: #1668E3;
+    --vendor-nvidia: #4D8A00; --vendor-amd: #C42B1C; --vendor-intel: #0068B5; --vendor-xilinx: #B8285F; --vendor-npu: #0B7373;
+    --shadow-1: 0 1px 2px rgba(15, 24, 44, .06);
+    --shadow-2: 0 1px 2px rgba(15, 24, 44, .06), 0 6px 18px rgba(15, 24, 44, .08);
+    --shadow-3: 0 12px 40px rgba(15, 24, 44, .18);
+  }
 }
 
 * { box-sizing: border-box; }
@@ -190,10 +253,10 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 15
 .menu-wrap { position: relative; }
 .menu { position: absolute; right: 0; top: 100%; z-index: 40; min-width: 200px; padding: .3rem; background: var(--surface);
   border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-3); }
-.menu button { display: flex; align-items: center; gap: .55rem; width: 100%; height: 34px; padding: 0 .6rem; border: 0; border-radius: 5px;
+.menu button, .menu a[role=menuitem] { display: flex; align-items: center; gap: .55rem; width: 100%; height: 34px; padding: 0 .6rem; border: 0; border-radius: 5px;
   background: transparent; color: var(--text); font: inherit; font-size: .86rem; cursor: pointer; text-align: left; }
-.menu button svg { color: var(--muted); }
-.menu button:hover:not(:disabled) { background: var(--surface-3); }
+.menu button svg, .menu a[role=menuitem] svg { color: var(--muted); }
+.menu button:hover:not(:disabled), .menu a[role=menuitem]:hover { background: var(--surface-3); text-decoration: none; }
 .menu button:disabled { opacity: .45; cursor: not-allowed; }
 .menu button.danger, .menu button.danger svg { color: var(--danger); }
 
@@ -408,10 +471,11 @@ fieldset.choices legend { font-size: .85rem; font-weight: 550; margin-bottom: .3
 .hw-card header { display: flex; align-items: center; gap: .7rem; }
 .hw-card header .chip { margin-left: auto; }
 .hw-icon { width: 38px; height: 38px; flex: none; display: grid; place-items: center; border-radius: 8px; background: var(--surface-3); color: var(--text-2); }
-.vendor-nvidia .hw-icon { color: #8fd14f; }
-.vendor-amd .hw-icon { color: #ff7b6b; }
-.vendor-intel .hw-icon { color: #64b5ff; }
-.vendor-xilinx .hw-icon { color: #f27aa8; }
+.vendor-nvidia .hw-icon { color: var(--vendor-nvidia); }
+.vendor-amd .hw-icon { color: var(--vendor-amd); }
+.vendor-intel .hw-icon { color: var(--vendor-intel); }
+.vendor-xilinx .hw-icon { color: var(--vendor-xilinx); }
+.vendor-npu .hw-icon { color: var(--vendor-npu); }
 .hw-vendor { font-size: .74rem; font-weight: 600; color: var(--muted); }
 .hw-model { margin: 0; font-size: .98rem; }
 .hw-facts { display: grid; grid-template-columns: auto 1fr; gap: .2rem .8rem; margin: 0; font-size: .82rem; }
@@ -615,7 +679,8 @@ fieldset.choices legend { font-size: .85rem; font-weight: 550; margin-bottom: .3
 
 /* ---------- brand (MAKUS) ---------- */
 .brand-family { font-weight: 800; letter-spacing: .04em; }
-.brand-vi { color: #2FD4C4; }
+.brand-vi { color: var(--brand-vi); }
+.tb-brand .brand-vi { color: #2FD4C4; }
 .brand-product { font-weight: 500; letter-spacing: .01em; }
 .tb-brand .brand-product { color: #fff; }
 .brand-logo { height: 28px; max-width: 200px; object-fit: contain; display: block; }
@@ -764,3 +829,16 @@ fieldset.choices legend { font-size: .85rem; font-weight: 550; margin-bottom: .3
   .ts-tip, .ts-cross { display: none; }
   a { color: inherit; }
 }
+
+/* ---------- theme toggle, remote support ---------- */
+.tb-support { color: #fff !important; border: 1px solid rgba(255, 255, 255, .22); border-radius: 999px; padding: 0 .75rem; height: 30px; }
+.tb-support:hover { background: rgba(255, 255, 255, .08); }
+@media (max-width: 760px) { .tb-support span { display: none; } .tb-support { padding: 0 .5rem; } }
+.tb-menu .theme-row { display: flex; gap: .25rem; padding: .35rem .6rem .5rem; }
+.tb-menu .theme-row button { flex: 1; justify-content: center; font-size: .78rem; padding: .3rem .4rem; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.tb-menu .theme-row button.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.tb-menu .menu-label { padding: .45rem .75rem 0; font-size: .72rem; color: var(--subtle); }
+.login-support { display: inline-flex; align-items: center; gap: .35rem; margin-top: .6rem; font-size: .84rem; color: #8FDCDC !important; }
+/* the sign-in footer sits on the navy scene in both themes */
+.login-tools { display: flex; align-items: center; gap: .5rem; }
+.theme-btn { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .25); background: transparent; color: #fff; cursor: pointer; }

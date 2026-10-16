@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>MOAVI Desk</title>
+    <script>
+      // the light or dark theme before the first paint (src/theme.ts keeps it afterwards)
+      try {
+        var p = localStorage.getItem("moavi-theme");
+        if (p !== "light" && p !== "dark") p = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        document.documentElement.dataset.theme = p;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,8 +1,8 @@
 // Simple line icons drawn for vLAB (24×24, stroke = currentColor).
 export type IconName =
-  | 'vm' | 'pool' | 'users' | 'lab' | 'fpga' | 'gpu' | 'layers' | 'link' | 'spark' | 'cluster' | 'ops'
+  | 'vm' | 'pool' | 'users' | 'lab' | 'fpga' | 'gpu' | 'npu' | 'layers' | 'link' | 'spark' | 'cluster' | 'ops'
   | 'home' | 'grid' | 'list' | 'refresh' | 'gear' | 'download' | 'book' | 'info' | 'logout'
-  | 'cpu' | 'memory' | 'usb' | 'globe' | 'box' | 'play' | 'chevron' | 'search' | 'star' | 'more' | 'plus' | 'shield' | 'clock';
+  | 'cpu' | 'memory' | 'usb' | 'globe' | 'box' | 'play' | 'chevron' | 'search' | 'star' | 'more' | 'plus' | 'shield' | 'clock' | 'sun' | 'moon' | 'support';
 
 const PATHS: Record<IconName, JSX.Element> = {
   vm: (<><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></>),
@@ -10,6 +10,10 @@ const PATHS: Record<IconName, JSX.Element> = {
   users: (<><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5" /><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.6.8 2.6 2.5 3 5.2" /></>),
   lab: (<><path d="M3 6h18v10H3z" /><path d="M7 20h10" /><path d="M7 10h2M11 10h2M15 10h2" /></>),
   fpga: (<><rect x="6" y="6" width="12" height="12" rx="1.5" /><rect x="9.5" y="9.5" width="5" height="5" /><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4" /></>),
+  npu: (<><rect x="5" y="5" width="14" height="14" rx="2" /><circle cx="9.5" cy="9.5" r="1.4" /><circle cx="14.5" cy="9.5" r="1.4" /><circle cx="12" cy="14.5" r="1.4" /><path d="M10.6 10.4l.9 3M13.4 10.4l-.9 3M11 9.5h2M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" /></>),
+  sun: (<><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></>),
+  moon: (<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />),
+  support: (<><path d="M4 13v-1a8 8 0 0 1 16 0v1" /><rect x="3" y="13" width="4" height="6" rx="1.5" /><rect x="17" y="13" width="4" height="6" rx="1.5" /><path d="M19 19a3 3 0 0 1-3 3h-3" /></>),
   gpu: (<><rect x="2" y="6" width="20" height="11" rx="2" /><circle cx="9" cy="11.5" r="3" /><path d="M16 9.5h3M16 13.5h3M5 17v2M9 17v2M13 17v2" /></>),
   layers: (<><path d="M12 3 2 8l10 5 10-5-10-5z" /><path d="m2 13 10 5 10-5" /><path d="m2 17.5 10 5 10-5" /></>),
   link: (<><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1" /><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" /></>),

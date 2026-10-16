@@ -72,7 +72,7 @@ export const MODULES: AdminModule[] = [
   {
     id: 'accel', icon: 'gpu', tone: 'green', vlabOnly: true,
     label: { ko: '가속 자원', en: 'Accelerators' },
-    summary: { ko: 'GPU·vGPU, FPGA 카드, 리소스 매핑, 대여, 보드 LAB, 빌드 팜, 라이선스', en: 'GPU and vGPU, FPGA cards, resource mappings, loans, board lab, build farm, licences' },
+    summary: { ko: 'GPU·vGPU, FPGA·NPU 카드, 리소스 매핑, 대여, 보드 LAB, 빌드 팜, 라이선스', en: 'GPU and vGPU, FPGA cards, resource mappings, loans, board lab, build farm, licences' },
     pages: [
       { id: 'inventory', label: { ko: 'GPU·가속 카드 재고', en: 'GPU and card inventory' }, phase: 1 },
       { id: 'vgpu', label: { ko: 'vGPU 프로필', en: 'vGPU profiles' }, phase: 1 },

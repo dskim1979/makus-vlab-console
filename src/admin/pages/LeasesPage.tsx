@@ -78,7 +78,7 @@ export function LeasesPage() {
                         <tr key={l.id} className={l.state !== 'active' ? 'row-off' : ''}>
                           <td className="nowrap">
                             <span className={`lease-kind tone-${l.resource_type === 'gpu' ? 'green' : 'pink'}`}>
-                              <Icon name={l.resource_type === 'gpu' ? 'gpu' : 'fpga'} size={16} />
+                              <Icon name={l.resource_type === 'gpu' ? 'gpu' : l.resource_type === 'npu' ? 'npu' : 'fpga'} size={16} />
                             </span>
                             <span className="strong">{l.resource_name}</span><br />
                             <code className="code">{l.resource_id}</code>

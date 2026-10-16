@@ -100,16 +100,17 @@ export type PoolPolicyAnswer = { policy: PoolPolicy; defaults: PoolPolicy; reset
 export type GpuPolicy = { mode: 'none' | 'passthrough' | 'vgpu'; mapping?: string; mdev_type?: string; label?: string; x_vga?: boolean };
 export type AccelUser = { vmid: number; name: string; node: string; status: string; slot: string; mdev: string | null;
   desktop_id: string | null; pool: string | null };
-export type AccelDevice = { node: string; pciid: string; kind: 'gpu' | 'fpga'; vendor: string; vendor_id: string; device_id: string;
-  model: string; subsystem: string; iommu_group: number | null; vgpu_capable: boolean; used_by: AccelUser[]; mappings: string[] };
+export type AccelKind = 'gpu' | 'fpga' | 'npu';
+export type AccelDevice = { node: string; pciid: string; kind: AccelKind; vendor: string; vendor_id: string; device_id: string;
+  model: string; subsystem: string; iommu_group: number | null; vgpu_capable: boolean; virtual_function?: boolean; used_by: AccelUser[]; mappings: string[] };
 export type PciMapping = { id: string; description: string; mdev: boolean; devices: { node: string; path: string; id: string }[];
   used_by: AccelUser[]; pools: string[] };
 export type AccelInventory = { devices: AccelDevice[]; mappings: PciMapping[]; mappings_readable: boolean; unreadable_nodes: string[];
-  summary: { gpus: number; fpgas: number; vgpu_capable: number; in_use: number } };
+  summary: { gpus: number; fpgas: number; npus?: number; vgpu_capable: number; in_use: number } };
 export type VgpuProfile = { type: string; name: string; description: string; available: number; framebuffer_mb: number | null;
   max_instance: number | null; heads: number | null; max_resolution: string };
 export type AdminLease = {
-  id: string; resource_type: 'fpga' | 'gpu' | 'card' | 'usb'; resource_id: string; resource_name: string; username: string;
+  id: string; resource_type: 'fpga' | 'gpu' | 'npu' | 'card' | 'usb'; resource_id: string; resource_name: string; username: string;
   cluster_id: string; vmid: number; starts_at: string; ends_at: string | null; returned_at: string | null;
   state: 'active' | 'returned'; desktop_id: string | null; desktop: string | null; vm_running: boolean;
 };

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { useSupportUrl } from '../branding';
 import { useI18n } from '../i18n';
+import { useTheme, type ThemePref } from '../theme';
 import { AboutDialog } from './AboutDialog';
 import { BrandLockup } from './Brand';
 import { Icon } from './Icon';
@@ -21,6 +23,8 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const name = user?.display_name || user?.username || '';
+  const support = useSupportUrl();
+  const { pref, mode: theme, setPref } = useTheme();
 
   useEffect(() => {
     if (!open) return;
@@ -55,6 +59,13 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
         {mode === 'console' && (
           <Link to="/" className="tb-link"><Icon name="vm" size={16} />{t('nav.workspace')}</Link>
         )}
+        <a href={support} target="_blank" rel="noopener noreferrer" className="tb-link tb-support" title={t('sup.hint')}>
+          <Icon name="support" size={16} /><span>{t('sup.remote')}</span>
+        </a>
+        <button type="button" className="tb-icon" title={t(theme === 'dark' ? 'theme.toLight' : 'theme.toDark')}
+          aria-label={t(theme === 'dark' ? 'theme.toLight' : 'theme.toDark')} onClick={() => setPref(theme === 'dark' ? 'light' : 'dark')}>
+          <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} />
+        </button>
         <button type="button" className="tb-icon" title={t('app.lang')} aria-label={t('app.lang')}
           onClick={() => setLang(lang === 'ko' ? 'en' : 'ko')}>
           <span className="tb-lang">{lang === 'ko' ? 'EN' : '한'}</span>
@@ -74,6 +85,17 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
                 <span className="strong">{name}</span>
                 <span className="muted small">{user?.email || user?.username}</span>
               </div>
+              <div className="menu-label">{t('theme.title')}</div>
+              <div className="theme-row" role="group" aria-label={t('theme.title')}>
+                {(['system', 'light', 'dark'] as ThemePref[]).map((p) => (
+                  <button key={p} type="button" className={pref === p ? 'on' : ''} aria-pressed={pref === p} onClick={() => setPref(p)}>
+                    {t(`theme.${p}` as 'theme.system')}
+                  </button>
+                ))}
+              </div>
+              <a role="menuitem" href={support} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}>
+                <Icon name="support" size={16} />{t('sup.remote')}
+              </a>
               <button type="button" role="menuitem" onClick={() => { setOpen(false); setAbout(true); }}>
                 <Icon name="info" size={16} />{t('nav.about')}
               </button>

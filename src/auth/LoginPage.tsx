@@ -2,9 +2,10 @@ import { useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { api, isMock } from '../api/client';
 import { BRAND } from '../brand';
-import { useBranding } from '../branding';
+import { useBranding, useSupportUrl } from '../branding';
 import { BrandMark, BrandName } from '../components/Brand';
 import { CompanyNotice } from '../components/CompanyNotice';
+import { Icon } from '../components/Icon';
 import { LangSwitch } from '../components/LangSwitch';
 import { useI18n } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
@@ -20,6 +21,7 @@ const ERRORS: Record<string, MessageKey> = {
 export function LoginPage() {
   const { t, pick } = useI18n();
   const { b: brand } = useBranding();
+  const support = useSupportUrl();
   const { status, signedIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -120,6 +122,7 @@ export function LoginPage() {
       </main>
 
       <footer className="login-foot">
+        <a className="login-support" href={support} target="_blank" rel="noopener noreferrer"><Icon name="support" size={15} />{t('sup.remote')}</a>
         <CompanyNotice />
       </footer>
     </div>

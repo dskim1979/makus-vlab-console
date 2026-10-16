@@ -64,3 +64,9 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
 }
 
 export const useBranding = () => useContext(Ctx);
+
+// Where 원격 지원 요청 goes: the white label's support link, else MAKUS SYSTEMS support.
+export function useSupportUrl() {
+  const { b, custom } = useBranding();
+  return (custom && b.supportUrl) || BRAND.supportUrl;
+}

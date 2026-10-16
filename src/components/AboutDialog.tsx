@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { BRAND, ENGINE_NOTICE } from '../brand';
 import { useI18n } from '../i18n';
-import { useBranding } from '../branding';
+import { useBranding, useSupportUrl } from '../branding';
 import { BrandMark, BrandName } from './Brand';
 
 export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t, pick } = useI18n();
   const ref = useRef<HTMLDialogElement>(null);
   const { b } = useBranding();
+  const support = useSupportUrl();
 
   useEffect(() => {
     const d = ref.current;
@@ -28,7 +29,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
       <dl className="about-list">
         {!b.hideVersion && <><dt>{t('about.version')}</dt>
         <dd>{__APP_VERSION__}</dd></>}
-        {b.supportUrl && <><dt>{t('wl.support')}</dt><dd><a href={b.supportUrl} target="_blank" rel="noreferrer">{b.supportUrl}</a></dd></>}
+        <dt>{t('sup.remote')}</dt><dd><a href={support} target="_blank" rel="noopener noreferrer">{support}</a></dd>
         {b.docsUrl && <><dt>{t('wl.docs')}</dt><dd><a href={b.docsUrl} target="_blank" rel="noreferrer">{b.docsUrl}</a></dd></>}
         <dt>{t('about.engine')}</dt>
         <dd>
