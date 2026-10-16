@@ -1172,3 +1172,6 @@ a.kcell:hover { background: var(--surface-2); }
 .input-with-btn input { flex: 1; min-width: 0; }
 .chip-row { display: flex; flex-wrap: wrap; gap: .3rem; }
 .job-output { max-height: 50vh; overflow: auto; white-space: pre-wrap; font-size: .8rem; padding: .7rem; border-radius: 8px; background: var(--surface-2, #0b1220); color: var(--fg, inherit); margin: 0; }
+.ext-card { flex-wrap: wrap; }
+.ext-card .ext-body { flex: 1 1 160px; }
+.ext-actions { display: flex; gap: .4rem; margin-left: auto; }

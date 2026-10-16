@@ -43,8 +43,10 @@ export function ExternalDesktops() {
           <article key={e.id} className="ext-card">
             <span className="ext-icon"><Icon name="vm" size={20} /></span>
             <div className="ext-body"><h3>{e.name}</h3><span className="muted small">{e.notes || `${e.address}:${e.port}`}</span></div>
+            <div className="ext-actions">
             <button type="button" className="btn connect" onClick={() => rdp(e.id)}><Icon name="download" size={16} />{L('RDP 파일 받기', 'Get RDP file')}</button>
             <button type="button" className="btn-ghost" onClick={() => guac(e.id)} title={L('설치 없이 브라우저에서 엽니다', 'Opens in the browser, nothing to install')}><Icon name="globe" size={16} />{L('브라우저', 'Browser')}</button>
+            </div>
           </article>
         ))}
       </div>
