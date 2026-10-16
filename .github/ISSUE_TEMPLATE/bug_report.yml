@@ -1,0 +1,46 @@
+name: 버그 신고
+description: 화면이나 기능이 생각대로 동작하지 않을 때
+title: "[버그] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        비밀번호 · 토큰 · 내부 IP 같은 민감한 정보는 적지 마세요. 급한 장애는 원격 지원(https://support.makussystems.co.kr/)으로 연락해 주세요.
+  - type: input
+    id: where
+    attributes:
+      label: 어디에서
+      description: 화면 이름이나 메뉴 경로 (예. 포털 › 예약 › 카드 · 보드, 관리 콘솔 › 가속 자원 › 빌드 팜)
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: 무슨 일이 있었나요
+      description: 한 순서대로 적어 주세요. 오류 메시지는 그대로 붙여 넣어 주세요.
+      placeholder: |
+        1. ...
+        2. ...
+        3. 이런 메시지가 떴습니다: ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대한 동작
+  - type: input
+    id: version
+    attributes:
+      label: 버전
+      description: 오른쪽 위 사용자 메뉴 › 정보의 버전, 클라이언트라면 그 버전
+  - type: dropdown
+    id: browser
+    attributes:
+      label: 접속 방법
+      options: [웹 브라우저, MOAVI Desk 클라이언트(Windows), 실습실 키오스크, 기타]
+  - type: textarea
+    id: shots
+    attributes:
+      label: 화면 캡처 · 첨부
+      description: 캡처를 끌어다 놓을 수 있습니다. 서포트 번들은 개인정보 가리기를 켜고 받아 주세요.

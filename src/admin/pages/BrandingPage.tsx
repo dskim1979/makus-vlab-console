@@ -151,6 +151,8 @@ function BrandingForm({ initial }: { initial: Branding }) {
             <label><span>{t('wl.support')}</span><input value={b.supportUrl} placeholder={BRAND.supportUrl} onChange={(e) => set('supportUrl', e.target.value)} /></label>
             <label><span>{t('wl.docs')}</span><input value={b.docsUrl} placeholder="https://" onChange={(e) => set('docsUrl', e.target.value)} /></label>
           </div>
+          <label><span>{t('wl.feedback')}</span><input value={b.feedbackUrl ?? ''} placeholder={BRAND.feedbackUrl} onChange={(e) => set('feedbackUrl', e.target.value)} />
+            <small className="muted">{t('wl.feedbackHint')}</small></label>
           <label className="check"><input type="checkbox" checked={b.hideVersion} onChange={(e) => set('hideVersion', e.target.checked)} /><span>{t('wl.hideVersion')}</span></label>
         </SettingsSection>
       </SettingsShell>

@@ -1,0 +1,29 @@
+name: 개선 요청
+description: 있었으면 하는 기능, 바꾸었으면 하는 화면 · 문구
+title: "[개선] "
+labels: ["enhancement"]
+body:
+  - type: input
+    id: where
+    attributes:
+      label: 어디를
+      description: 화면 이름이나 메뉴 경로, 또는 새 기능이면 비워 두세요
+  - type: textarea
+    id: why
+    attributes:
+      label: 지금 불편한 점
+      description: 누가 어떤 일을 할 때 무엇이 불편한지
+    validations:
+      required: true
+  - type: textarea
+    id: want
+    attributes:
+      label: 바라는 모습
+      description: 어떻게 되면 좋을지, 비슷한 다른 제품의 예가 있으면 함께
+    validations:
+      required: true
+  - type: dropdown
+    id: site
+    attributes:
+      label: 사이트 종류
+      options: [일반 업무 VDI, 소규모 연구실, 대학교 실습실, 연구소 · 기업 R&D, FPGA · AI 연구실, 기타]

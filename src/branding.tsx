@@ -70,3 +70,9 @@ export function useSupportUrl() {
   const { b, custom } = useBranding();
   return (custom && b.supportUrl) || BRAND.supportUrl;
 }
+
+// Where 개선 요청 · 버그 신고 goes: the white label's feedback link, else the product's GitHub issues.
+export function useFeedbackUrl() {
+  const { b, custom } = useBranding();
+  return (custom && b.feedbackUrl) || BRAND.feedbackUrl;
+}

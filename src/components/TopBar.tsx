@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useFeatures } from '../features';
 import { useAuth } from '../auth/AuthContext';
-import { useSupportUrl } from '../branding';
+import { useFeedbackUrl, useSupportUrl } from '../branding';
 import { useI18n } from '../i18n';
 import { useTheme, type ThemePref } from '../theme';
 import { AboutDialog } from './AboutDialog';
@@ -29,6 +29,7 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
   const ref = useRef<HTMLDivElement>(null);
   const name = user?.display_name || user?.username || '';
   const support = useSupportUrl();
+  const feedback = useFeedbackUrl();
   const { pref, mode: theme, setPref } = useTheme();
 
   useEffect(() => {
@@ -67,6 +68,11 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
           <Link to="/" className="tb-link"><Icon name="vm" size={16} />{t('nav.workspace')}</Link>
         )}
         {user && <TaskIndicator console={mode === 'console'} admin={isAdmin} />}
+        {mode === 'workspace' && (
+          <a href={feedback} target="_blank" rel="noopener noreferrer" className="tb-link tb-support tb-feedback" title={t('sup.feedbackHint')}>
+            <Icon name="info" size={16} /><span>{t('sup.feedback')}</span>
+          </a>
+        )}
         <a href={support} target="_blank" rel="noopener noreferrer" className="tb-link tb-support" title={t('sup.hint')}>
           <Icon name="support" size={16} /><span>{t('sup.remote')}</span>
         </a>
@@ -103,6 +109,9 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
               </div>
               <a role="menuitem" href={support} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}>
                 <Icon name="support" size={16} />{t('sup.remote')}
+              </a>
+              <a role="menuitem" href={feedback} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}>
+                <Icon name="info" size={16} />{t('sup.feedback')}
               </a>
               <button type="button" role="menuitem" onClick={() => { setOpen(false); setAbout(true); }}>
                 <Icon name="info" size={16} />{t('nav.about')}

@@ -59,7 +59,7 @@ export type StorageResult = {
 
 export type Branding = {
   enabled: boolean; appName: string; browserTitle: string; logoUrl: string; loginLogoUrl: string; faviconUrl: string;
-  primaryColor: string; footerText: string; loginTagline: string; docsUrl: string; supportUrl: string; hideVersion: boolean;
+  primaryColor: string; footerText: string; loginTagline: string; docsUrl: string; supportUrl: string; feedbackUrl?: string; hideVersion: boolean;
 };
 export type BrandingSlot = 'logo' | 'loginLogo' | 'favicon';
 

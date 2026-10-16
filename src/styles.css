@@ -1571,3 +1571,6 @@ fieldset.plain:disabled { opacity: .55; }
 .forecast .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .forecast-table .spark-cell { width: 120px; }
 .forecast-table .spark-cell .spark { width: 110px; height: 28px; display: block; }
+
+/* 개선 요청 · 버그 신고 (작업 공간 위쪽) */
+@media (max-width: 1100px) { .tb-feedback span { display: none; } .tb-feedback { padding: 0 .5rem; } }

@@ -6,6 +6,8 @@ export const BRAND = {
   company: { ko: '(주)매커스시스템즈', en: 'MAKUS SYSTEMS Co., Ltd.' },
   // 원격 지원 요청: MAKUS SYSTEMS support portal (a white label's support link replaces it)
   supportUrl: 'https://support.makussystems.co.kr/',
+  // 개선 요청 · 버그 신고: the product's GitHub issues (bug report / feature request templates); a white label may name its own
+  feedbackUrl: 'https://github.com/dskim1979/makus-vlab-console/issues/new/choose',
   // MOAVI Desk Client (Windows MSI): the latest release, unless the engine's client settings name another download
   clientDownload: 'https://github.com/dskim1979/moavi-desk/releases/latest',
   tagline: {
