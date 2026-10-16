@@ -1243,3 +1243,29 @@ a.kcell:hover { background: var(--surface-2); }
 .page-sub-row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
 .page-sub-row .page-sub { display: inline-flex; align-items: center; gap: .2rem; }
 .notice-cell { max-width: 32rem; overflow-wrap: anywhere; }
+
+/* 가상머신 > 데스크톱(VM) 관리: the VM window */
+.vmm { width: min(820px, calc(100vw - 32px)); max-height: calc(100vh - 48px); display: flex; flex-direction: column; gap: .7rem; }
+.vmm-head { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .8rem; }
+.vmm-head h2 { margin: 0; font-size: 1.1rem; }
+.vmm-head-actions { margin-left: auto; display: flex; gap: .4rem; }
+.vmm-tabs { margin: 0; }
+.vmm-body { display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; min-height: 240px; }
+.vmm-sec { display: flex; flex-direction: column; gap: .55rem; }
+.vmm-sec h3 { margin: 0; font-size: .95rem; }
+.vmm-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .6rem .8rem; }
+.vmm-row > label { display: flex; flex-direction: column; gap: .3rem; font-size: .82rem; font-weight: 550; color: var(--text-2); }
+.vmm-row > label.check { flex-direction: row; align-items: center; gap: .45rem; font-weight: 450; color: var(--text); padding-bottom: .45rem; }
+.vmm-row > label input[type=number] { width: 7rem; }
+.vmm-grow { flex: 1 1 220px; }
+.vmm-nic { min-width: 10rem; padding-bottom: .2rem; }
+.vmm-chip { margin-left: .35rem; }
+.vmm-list { margin: .4rem 0 0; padding-left: 1.1rem; }
+.vmm-danger { padding: .8rem; border: 1px solid color-mix(in srgb, var(--danger) 30%, transparent); border-radius: var(--radius-sm); }
+.vmm-spin { display: inline-block; width: 12px; height: 12px; margin-right: .45rem; vertical-align: -1px; border: 2px solid currentColor;
+  border-right-color: transparent; border-radius: 50%; animation: vmm-spin .8s linear infinite; }
+@keyframes vmm-spin { to { transform: rotate(360deg); } }
+.vmm-danger .btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.vmm-danger .btn.danger:disabled { opacity: .5; }
+@media (max-width: 600px) { .vmm-head-actions { margin-left: 0; } .vmm-row > label { flex: 1 1 100%; } .vmm-row > label input[type=number] { width: 100%; } }
+.vmm-tabs { flex: none; overflow-y: hidden; }

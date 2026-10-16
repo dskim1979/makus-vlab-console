@@ -971,3 +971,6 @@ const auditLog = [
   id: 100 - i, timestamp: new Date(Date.now() - (h as number) * 36e5).toISOString(), user: user as string,
   action: action as string, details: details as string, ip_address: '10.20.1.31', cluster: 'LAB-PVE', severity: 'info',
 }));
+
+// 가상머신 > 데스크톱(VM) 관리 in mock mode (api/vmManage.ts) works on these same desktops and guests
+export const mockVmStore = { desks, guests, templates, withBase };

@@ -11,6 +11,7 @@ import { useI18n } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
 import { bytes, ClusterFrame, Meter, useCluster } from './ClusterPages';
 import { CloneDialog } from './PoolDetailPage';
+import { useAdminConsole, VmManageDialog, type ManagedDesktop } from './VmManage';
 
 type Notice = { kind: 'info' | 'error'; text: string };
 const ACTIONS: PowerAction[] = ['start', 'shutdown', 'reboot', 'stop'];
@@ -29,6 +30,8 @@ export function VmDesktopsPage() {
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [managing, setManaging] = useState<ManagedDesktop | null>(null);
+  const adminConsole = useAdminConsole(useCallback((text: string) => setNotice({ kind: 'error', text }), []));
 
   const pools = useMemo(() => {
     if (desktops.state !== 'ok') return [];
@@ -136,6 +139,9 @@ export function VmDesktopsPage() {
                             ) : d.state === 'stopped' ? (
                               <button type="button" className="btn-ghost" disabled={busy} onClick={() => power([d], 'start')}>{label('start')}</button>
                             ) : <span className="muted small">-</span>}
+                            <button type="button" className="btn-ghost" onClick={() => setManaging({ id: d.id, name: d.name })}>{t('vm.manage')}</button>
+                            {running && <button type="button" className="btn-ghost" title={t('vm.screenHint')}
+                              onClick={() => adminConsole.start({ id: d.id, name: d.name })}>{t('vm.screen')}</button>}
                           </td>
                         </tr>
                       );
@@ -147,6 +153,9 @@ export function VmDesktopsPage() {
           );
         }}
       </LoadState>
+      {managing && <VmManageDialog desk={managing} onClose={() => setManaging(null)} onChanged={desktops.reload}
+        onGone={(text) => { setNotice({ kind: 'info', text }); desktops.reload(); }} onConsole={adminConsole.start} />}
+      {adminConsole.view}
     </>
   );
 }

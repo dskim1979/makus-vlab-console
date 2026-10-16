@@ -12,6 +12,7 @@ import { PoolGpuPanel } from './PoolGpu';
 import { PoolPolicyPanel } from './PoolPolicy';
 import { PoolGrantsPanel } from './PoolGrants';
 import type { MessageKey } from '../../i18n/messages';
+import { useAdminConsole, VmManageDialog, type ManagedDesktop } from './VmManage';
 
 // 데스크톱 풀 > 풀 관리 > (풀): its desktops, add an existing VM, assign / unassign, take out.
 export function PoolDetailPage({ poolId }: { poolId: string }) {
@@ -23,6 +24,8 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
   const [cloning, setCloning] = useState(false);
   const [editing, setEditing] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'info' | 'error'; text: string } | null>(null);
+  const [managing, setManaging] = useState<ManagedDesktop | null>(null);
+  const adminConsole = useAdminConsole(useCallback((text: string) => setNotice({ kind: 'error', text }), []));
 
   // while clones are running, look again every 5 seconds until they turn ready
   const provisioning = desktops.state === 'ok' && desktops.data.some((d) => d.state === 'provisioning');
@@ -130,6 +133,7 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
                 <DesktopRow key={d.id} d={d} users={users.state === 'ok' ? users.data : []}
                   onAssign={(u) => act(() => adminApi.assign(d.id, u))}
                   onReset={() => resetOne(d)} onBase={() => retakeBase(d)}
+                  onManage={() => setManaging({ id: d.id, name: d.name })} onScreen={() => adminConsole.start({ id: d.id, name: d.name })}
                   onRemove={() => { if (confirm(t('desk.removeConfirm'))) act(() => adminApi.removeDesktop(d.id)); }} />
               ))}
             </tbody>
@@ -151,13 +155,16 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
         <AddVmDialog pool={pool} onClose={() => setAdding(false)}
           onAdded={() => { setAdding(false); desktops.reload(); pools.reload(); }} />
       )}
+      {managing && <VmManageDialog desk={managing} onClose={() => setManaging(null)} onChanged={desktops.reload}
+        onGone={(text) => { setNotice({ kind: 'info', text }); desktops.reload(); pools.reload(); }} onConsole={adminConsole.start} />}
+      {adminConsole.view}
     </>
   );
 }
 
-function DesktopRow({ d, users, onAssign, onReset, onBase, onRemove }: {
+function DesktopRow({ d, users, onAssign, onReset, onBase, onRemove, onManage, onScreen }: {
   d: AdminDesktop; users: AssignableUser[]; onAssign: (u: string | null) => void;
-  onReset: () => void; onBase: () => void; onRemove: () => void;
+  onReset: () => void; onBase: () => void; onRemove: () => void; onManage: () => void; onScreen: () => void;
 }) {
   const { t } = useI18n();
   const [pick, setPick] = useState('');
@@ -193,6 +200,10 @@ function DesktopRow({ d, users, onAssign, onReset, onBase, onRemove }: {
       <td className="actions">
         {d.has_base && <button type="button" className="btn-ghost" onClick={onReset}>{t('reset.one')}</button>}
         <button type="button" className="btn-ghost" disabled={d.state === 'provisioning'} onClick={onBase}>{t('reset.base')}</button>
+        <button type="button" className="btn-ghost" disabled={d.state === 'provisioning'} onClick={onManage}>{t('vm.manage')}</button>
+        {(d.state === 'ready' || d.state === 'in_use') && (
+          <button type="button" className="btn-ghost" title={t('vm.screenHint')} onClick={onScreen}>{t('vm.screen')}</button>
+        )}
         <button type="button" className="btn-ghost danger" onClick={onRemove}>{t('desk.remove')}</button>
       </td>
     </tr>
