@@ -3,6 +3,7 @@ import type { AdminApi } from './admin';
 import { ApiError } from './client';
 import { mockBranding, mockNotices, noticeState } from './mock';
 import { mockNodeState } from './ops';
+import { mockDeskWork, mockLeaseExtras } from './mockWork';
 import type { Lab, LabAfter, LabSchedule, Terminal, TerminalEnrollment, ActiveAlert, AlertChannel, AlertMute, AlertRule, AccelDevice, BackupJob, VmBackup, AccelUser, AdminDesktop, AdminLease, PoolPolicy, ClusterNode, ClusterStorage, Guest, PciMapping, Pool, SessionRow, VgpuProfile } from './types';
 
 const CLUSTER = { id: 'lab-cluster', name: 'LAB-PVE', connected: true, host: '10.20.0.11', connection_error: null as string | null, pools: 0 };
@@ -163,6 +164,7 @@ const mockBackups: VmBackup[] = [0, 1, 2].flatMap((k) => [300, 301, 400].map((v)
 const POLICY_DEFAULTS: PoolPolicy = {
   protocols: ['vnc', 'spice'], spice_fullscreen: false, clipboard: 'both', usb_redirect: true, usb_autoshare: false,
   start_on_connect: true, idle_shutdown_min: 0, reset_on_logout: false, allow_power: true, max_session_hours: 0,
+  defer_when_busy: true, busy_gpu_pct: 10, busy_cpu_pct: 50, defer_max_hours: 12,
 };
 const cloneSources = new Map<number, Set<string>>();   // template -> pools cloned from it
 
@@ -227,7 +229,8 @@ function live(d: AdminDesktop): AdminDesktop {
   const g = guests.find((x) => x.vmid === d.vmid);
   const gpu = pool?.settings?.gpu && pool.settings.gpu.mode !== 'none'
     ? { mode: pool.settings.gpu.mode as 'vgpu' | 'passthrough', label: pool.settings.gpu.label || pool.settings.gpu.mdev_type || pool.settings.gpu.mapping || '' } : undefined;
-  return { ...d, state: g?.status === 'running' ? 'ready' : 'stopped', has_base: withBase.has(d.id), usage: usage(d.vmid, g?.status === 'running'), gpu };
+  return { ...d, state: g?.status === 'running' ? 'ready' : 'stopped', has_base: withBase.has(d.id), usage: usage(d.vmid, g?.status === 'running'), gpu,
+    work: mockDeskWork(d.id, d.name) };
 }
 
 // 운영 > 경보: rules, firing incidents, mutes, notification channels
@@ -325,7 +328,8 @@ export const mockAdminApi: AdminApi = {
   },
   leases: (all) => delay(mockLeases.filter((l) => all || l.state === 'active').map((l) => {
     const d = desks.find((x) => x.vmid === l.vmid);
-    return { ...l, desktop_id: d?.id ?? null, desktop: d?.name ?? null, vm_running: guests.find((g) => g.vmid === l.vmid)?.status === 'running' };
+    return { ...l, desktop_id: d?.id ?? null, desktop: d?.name ?? null, vm_running: guests.find((g) => g.vmid === l.vmid)?.status === 'running',
+      ...(l.state === 'active' ? mockLeaseExtras(l.id, d?.name ?? null) : {}) };
   })),
   lend: (l) => {
     const d = desks.find((x) => x.id === l.desktop_id);

@@ -61,6 +61,7 @@ function Summary({ p, storage }: { p: PoolPolicy; storage: PoolStorage | null })
   if (p.reset_on_logout) chips.push(t('pol.resetOnLogout'));
   if (!p.allow_power) chips.push(`${t('pol.s.power')}: ${t('pol.offShort')}`);
   if (p.max_session_hours) chips.push(`${t('pol.maxSession')} ${p.max_session_hours}${t('pol.hours')}`);
+  if (p.defer_when_busy) chips.push(L(`작업 중이면 미루기 (최대 ${p.defer_max_hours}시간)`, `Wait while working (up to ${p.defer_max_hours} h)`));
   if (storage?.enabled) chips.push(`${L('공유 저장소', 'Shared storage')}: ${storage.kind.toUpperCase()} ${storage.server}`);
   return <div className="policy-chips">{chips.map((c) => <span key={c} className="chip">{c}</span>)}</div>;
 }
@@ -171,6 +172,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
           <label className="check"><input type="checkbox" checked={p.reset_on_logout} disabled={!resetAllowed}
             onChange={(e) => set('reset_on_logout', e.target.checked)} /><span>{t('pol.resetOnLogout')}</span></label>
           {!resetAllowed && <small className="muted hint-indent">{t('pol.resetOnlyFor')}</small>}
+          <BusyFields p={p} set={set} />
         </div>
       )}
 
@@ -201,6 +203,10 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
             <dt>{t('pol.s.power')}</dt><dd>{[p.start_on_connect && t('pol.startOnConnect'),
               p.idle_shutdown_min ? `${t('pol.idle')} ${p.idle_shutdown_min}${t('pol.min')}` : '',
               p.reset_on_logout && t('pol.resetOnLogout')].filter(Boolean).join(' · ') || t('pol.none')}</dd>
+            <dt>{L('장시간 작업 보호', 'Long jobs')}</dt><dd>{p.defer_when_busy
+              ? L(`작업 중이면 미루기 · GPU/NPU ${p.busy_gpu_pct}% 이상${p.busy_cpu_pct ? ` 또는 CPU ${p.busy_cpu_pct}% 이상` : ''} · 최대 ${p.defer_max_hours}시간`,
+                `Wait while working · GPU/NPU ${p.busy_gpu_pct}%+${p.busy_cpu_pct ? ` or CPU ${p.busy_cpu_pct}%+` : ''} · up to ${p.defer_max_hours} h`)
+              : L('끔 — 정해진 때 바로 끄거나 초기화', 'Off - shut down or reset on time')}</dd>
             <dt>{t('pol.s.account')}</dt><dd>{p.allow_power ? t('pol.allowPower') : `${t('pol.s.power')}: ${t('pol.offShort')}`}
               {p.max_session_hours ? ` · ${t('pol.maxSession')} ${p.max_session_hours}${t('pol.hours')}` : ''}</dd>
             <dt>{L('공유 저장소', 'Shared storage')}</dt><dd>{storageSummary({ ...st, has_password: storage.has_password }, L)}
@@ -209,5 +215,30 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
         </div>
       )}
     </Dialog>
+  );
+}
+
+// 장시간 작업 보호: before the idle shutdown, the session limit, a LAB / booking clean-up or a scheduled stop, the
+// engine asks whether the desktop is working (pegaprox/api/vlab_work.py) and puts the step off while it is
+function BusyFields({ p, set }: { p: PoolPolicy; set: <K extends keyof PoolPolicy>(k: K, v: PoolPolicy[K]) => void }) {
+  const { L } = useL();
+  const num = (k: 'busy_gpu_pct' | 'busy_cpu_pct' | 'defer_max_hours', lo: number, hi: number) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    set(k, Math.max(lo, Math.min(hi, Math.round(Number(e.target.value) || lo))));
+  return (
+    <fieldset className="plain busy-fields">
+      <legend>{L('장시간 작업 보호', 'Long jobs')}</legend>
+      <label className="check"><input type="checkbox" checked={p.defer_when_busy} onChange={(e) => set('defer_when_busy', e.target.checked)} />
+        <span className="strong">{L('작업 중이면 미루기', 'Wait while the desktop is working')}</span></label>
+      <small className="muted hint-indent">{L('미사용 자동 종료 · 최대 접속 시간 · LAB 수업/예약 정리 · 예약 작업이 끄거나 초기화하기 전에, GPU/NPU 사용률 · CPU 부하(게스트 에이전트) · 실행 중인 빌드 작업 · 사용자가 켠 "작업 중"을 확인합니다. 작업 중이면 미루고 사용자와 관리자에게 알립니다.',
+        'Before the idle shutdown, the session limit, LAB class / booking clean-up or a scheduled action stops or resets a desktop, the engine checks GPU/NPU use and CPU load (guest agent), running build jobs and the user’s "Working" switch. While it works, the step waits and the user and admins are told.')}</small>
+      <div className="form-row form-row-even">
+        <label><span>{L('GPU/NPU 사용률 기준', 'GPU/NPU use from')}</span>
+          <span className="with-unit"><input type="number" min={1} max={100} value={p.busy_gpu_pct} disabled={!p.defer_when_busy} onChange={num('busy_gpu_pct', 1, 100)} /><span className="muted small">%</span></span></label>
+        <label><span>{L('CPU 부하 기준 (0 = 안 봄)', 'CPU load from (0 = ignore)')}</span>
+          <span className="with-unit"><input type="number" min={0} max={100} value={p.busy_cpu_pct} disabled={!p.defer_when_busy} onChange={num('busy_cpu_pct', 0, 100)} /><span className="muted small">%</span></span></label>
+        <label><span>{L('최대 연장', 'Longest wait')}</span>
+          <span className="with-unit"><input type="number" min={1} max={168} value={p.defer_max_hours} disabled={!p.defer_when_busy} onChange={num('defer_max_hours', 1, 168)} /><span className="muted small">{L('시간', 'h')}</span></span></label>
+      </div>
+    </fieldset>
   );
 }

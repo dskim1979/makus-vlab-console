@@ -1103,7 +1103,8 @@ export function CardUsagePage() {
   const report = useLoad(() => nextApi.cardReport(days), [days]);
   function csv(rows: CardRow[]) {
     const q = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
-    const text = '\ufeff' + ['card,loans,hours,use_pct,users,lent_now', ...rows.map((r) => [q(r.card), r.loans, r.hours, r.use_pct, q(r.users.join(' ')), r.active].join(','))].join('\n') + '\n';
+    const text = '\ufeff' + ['card,loans,hours,use_pct,util_avg,idle_hours,measured_hours,users,lent_now', ...rows.map((r) => [q(r.card), r.loans, r.hours, r.use_pct,
+      r.util_avg ?? '', r.idle_hours ?? 0, r.measured_hours ?? 0, q(r.users.join(' ')), r.active].join(','))].join('\n') + '\n';
     const url = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
     const a = document.createElement('a'); a.href = url; a.download = `card-usage-${days}d.csv`; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
@@ -1112,8 +1113,8 @@ export function CardUsagePage() {
     <LoadState value={report} retry={report.reload}>
       {(r) => (
         <>
-          <Intro>{L('가속 카드(FPGA · NPU · GPU)마다 누가 얼마나 빌려 썼는지 봅니다. 사용률은 기간 전체 시간 대비 대여된 시간입니다. 예산 · 증설 근거로 CSV를 받아 쓰세요.',
-            'Who borrowed each accelerator card and for how long. Use % is loan hours over the whole period. Download the CSV for budgets and expansion plans.')}</Intro>
+          <Intro>{L(`가속 카드(FPGA · NPU · GPU)마다 누가 얼마나 빌려 썼는지 봅니다. 대여율은 기간 전체 시간 대비 대여된 시간, 실사용률은 대여 중 게스트 에이전트로 5분마다 읽은 GPU/NPU 사용률 평균, 유휴 시간은 사용률 ${r.idle_threshold_pct ?? 5}% 미만이거나 데스크톱이 꺼져 있던 시간입니다. 예산 · 증설 근거로 CSV를 받아 쓰세요.`,
+            `Who borrowed each accelerator card and for how long. Loan % is loan hours over the whole period; real use is the average GPU/NPU use read every 5 minutes through the guest agent while lent; idle hours are under ${r.idle_threshold_pct ?? 5}% or with the desktop off. Download the CSV for budgets and expansion plans.`)}</Intro>
           <div className="toolbar">
             <div className="seg" role="group">
               {[7, 30, 90].map((d) => <button key={d} type="button" className={`seg-btn${days === d ? ' on' : ''}`} onClick={() => setDays(d)}>{L(`${d}일`, `${d} days`)}</button>)}
@@ -1125,16 +1126,22 @@ export function CardUsagePage() {
             { label: L('대여 건수', 'Loans'), value: String(r.cards.reduce((a, c) => a + c.loans, 0)) },
             { label: L('총 대여 시간', 'Loan hours'), value: `${r.total_hours} h` },
             { label: L('지금 대여 중', 'Lent now'), value: String(r.cards.reduce((a, c) => a + c.active, 0)), tone: 'ok' },
+            { label: L('유휴 시간', 'Idle hours'), value: `${Math.round(r.cards.reduce((a, c) => a + (c.idle_hours ?? 0), 0) * 10) / 10} h`,
+              tone: r.cards.reduce((a, c) => a + (c.idle_hours ?? 0), 0) > r.total_hours / 2 ? 'warn' : undefined },
           ]} />
           {r.cards.length === 0 ? <div className="empty"><p>{L('이 기간에 대여 기록이 없습니다.', 'No loans in this period.')}</p></div> : (
             <div className="table-scroll"><table className="table compact-head">
-              <thead><tr><th>{L('카드', 'Card')}</th><th className="num">{L('대여', 'Loans')}</th><th className="num">{L('시간', 'Hours')}</th><th>{L('사용률', 'Use')}</th><th>{L('사용자', 'Users')}</th><th>{L('지금', 'Now')}</th></tr></thead>
+              <thead><tr><th>{L('카드', 'Card')}</th><th className="num">{L('대여', 'Loans')}</th><th className="num">{L('시간', 'Hours')}</th><th>{L('대여율', 'Loan %')}</th><th>{L('실사용률', 'Real use')}</th><th className="num">{L('유휴 시간', 'Idle h')}</th><th>{L('사용자', 'Users')}</th><th>{L('지금', 'Now')}</th></tr></thead>
               <tbody>{r.cards.map((c) => (
                 <tr key={c.card}>
                   <td className="strong">{c.card}<div className="muted small"><code className="code">{c.resource_id}</code></div></td>
                   <td className="num">{c.loans}</td>
                   <td className="num">{c.hours}</td>
                   <td className="farm-cpu"><span className="bar-track"><span className="bar-fill" style={{ width: `${Math.min(100, c.use_pct)}%` }} /></span><span className="muted small">{c.use_pct}%</span></td>
+                  <td className="farm-cpu">{c.util_avg === null || c.util_avg === undefined
+                    ? <span className="muted small" title={L('nvidia-smi · rocm-smi · furiosa-smi · rbln-stat 로 읽을 수 없는 카드(FPGA 등)이거나 측정 전', 'Not readable by nvidia-smi, rocm-smi, furiosa-smi or rbln-stat (an FPGA, say), or not sampled yet')}>{L('측정 불가', 'not measured')}</span>
+                    : <><span className="bar-track"><span className="bar-fill" style={{ width: `${Math.min(100, c.util_avg)}%` }} /></span><span className="muted small">{c.util_avg}%</span></>}</td>
+                  <td className="num">{c.idle_hours ?? 0}</td>
                   <td className="small">{c.users.join(', ')}</td>
                   <td>{c.active ? <span className="chip chip-accent">{L('대여 중', 'lent')}</span> : <span className="muted small">-</span>}</td>
                 </tr>))}</tbody>

@@ -7,6 +7,8 @@ import { StateBadge } from '../../components/StateBadge';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
+import { WorkPanel } from './WorkPanel';
+import { UseChip, useLx } from '../../components/WorkParts';
 
 const STATES: DesktopState[] = ['ready', 'in_use', 'stopped', 'provisioning', 'error'];
 
@@ -14,6 +16,7 @@ const STATES: DesktopState[] = ['ready', 'in_use', 'stopped', 'provisioning', 'e
 export function DesktopStatusPage() {
   const { t } = useI18n();
   const desktops = useLoad(adminApi.desktops);
+  const { L } = useLx();
   const [pool, setPool] = useState('');
   const [state, setState] = useState('');
   const [q, setQ] = useState('');
@@ -40,6 +43,8 @@ export function DesktopStatusPage() {
         <button type="button" className="btn" onClick={desktops.reload}>{t('common.refresh')}</button>
       </div>
 
+      <WorkPanel onChanged={desktops.reload} />
+
       <LoadState value={desktops} retry={desktops.reload}>
         {(list) => {
           const needle = q.trim().toLowerCase();
@@ -58,7 +63,7 @@ export function DesktopStatusPage() {
                   <thead>
                     <tr>
                       <th>{t('desk.name')}</th><th>{t('desk.pool')}</th><th className="num">VMID</th>
-                      <th>{t('desk.node')}</th><th>{t('desk.state')}</th><th>{t('desk.user')}</th>
+                      <th>{t('desk.node')}</th><th>{t('desk.state')}</th><th>{t('desk.user')}</th><th>{L('GPU/NPU · 작업', 'GPU/NPU · work')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -70,6 +75,9 @@ export function DesktopStatusPage() {
                         <td>{d.node}</td>
                         <td><StateBadge state={d.state} /></td>
                         <td>{d.assigned_user ?? <span className="muted">{t('desk.unassigned')}</span>}</td>
+                        <td className="nowrap">{d.work?.use && <UseChip use={d.work.use} />}
+                          {d.work?.hold && <span className="chip chip-on" title={d.work.hold.note}>{L('작업 중', 'working')}</span>}
+                          {(d.work?.deferrals.length ?? 0) > 0 && <span className="chip chip-warn">{L('정리 미룸', 'clean-up waits')}</span>}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon';
 import { useI18n } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
 import { storageCodeText } from '../api/storage';
+import { WorkStrip } from '../components/WorkParts';
 
 export type OsFamily = 'windows' | 'linux' | 'other';
 
@@ -60,8 +61,8 @@ function Screen({ d, family }: { d: Desktop; family: OsFamily }) {
   );
 }
 
-export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hint }: {
-  d: Desktop; busy: boolean; fav: boolean; onFav: () => void;
+export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hint, onChanged }: {
+  d: Desktop; busy: boolean; fav: boolean; onFav: () => void; onChanged?: () => void;
   onConnect: (p: 'vnc' | 'spice' | 'rdp' | 'guac') => void; onPower: (a: PowerAction) => void; error?: string; hint?: string;
 }) {
   const { t, lang, pick } = useI18n();
@@ -165,6 +166,8 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
         <div className="muted small dtile-note">{pick({ ko: '이 데스크톱은 처음 상태로 돌아갑니다 — 남길 파일은 내 폴더(NAS)에 저장하세요.',
           en: 'This desktop goes back to its base - keep files in your NAS folder.' })}</div>
       )}
+
+      {d.work && (running || d.work.hold || d.work.deferrals.length > 0) && <WorkStrip deskId={d.id} work={d.work} onChanged={onChanged} />}
 
       {error && <div className="alert error small" role="alert">{error}</div>}
       {hint && <div className="alert info small">{hint}</div>}

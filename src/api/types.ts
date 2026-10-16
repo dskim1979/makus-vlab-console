@@ -44,6 +44,8 @@ export type Desktop = {
   policy?: { clipboard: Clipboard; allow_power: boolean; start_on_connect: boolean };
   // 공유 저장소: the user's folders on the pool's NAS, and how the last check went
   storage?: StoragePaths & { ok: boolean | null; code: string; warnings: string[] };
+  // 작업 중 표시, 미뤄진 정리, 카드 사용률 (pegaprox/api/vlab_work.py)
+  work?: DesktopWork;
 };
 
 // --- shared storage (공유 저장소, makus-vlab pegaprox/vlab/nas.py) ----------------------
@@ -76,6 +78,8 @@ export type Lease = {
   name: string;
   ends_at?: string;
   desktop?: string | null;
+  use?: AccelUse | null;
+  reclaim?: ReclaimInfo | null;
 };
 
 // --- admin (/api/vlab/admin/*) ---------------------------------------------------
@@ -142,6 +146,8 @@ export type PoolPolicy = {
   usb_redirect: boolean; usb_autoshare: boolean;
   start_on_connect: boolean; idle_shutdown_min: number; reset_on_logout: boolean;
   allow_power: boolean; max_session_hours: number;
+  // a working desktop (busy GPU / CPU, a build job, the user's "작업 중") is not shut down or reset; the step waits
+  defer_when_busy: boolean; busy_gpu_pct: number; busy_cpu_pct: number; defer_max_hours: number;
 };
 export type PoolPolicyAnswer = { policy: PoolPolicy; defaults: PoolPolicy; reset_allowed: boolean };
 
@@ -162,6 +168,7 @@ export type AdminLease = {
   id: string; resource_type: 'fpga' | 'gpu' | 'npu' | 'card' | 'usb'; resource_id: string; resource_name: string; username: string;
   cluster_id: string; vmid: number; starts_at: string; ends_at: string | null; returned_at: string | null;
   state: 'active' | 'returned'; desktop_id: string | null; desktop: string | null; vm_running: boolean;
+  use?: AccelUse | null; reclaim?: ReclaimInfo | null;
 };
 export type GpuApplyResult = { applied: string[]; failed: { id: string; name: string; error: string }[]; needs_restart: string[] };
 
@@ -395,3 +402,24 @@ export interface RightSizing {
   counts: { grow: number; reclaim: number; idle: number; ok: number; no_data: number };
   recommendations: RightSizingRow[];
 }
+
+// --- 장시간 작업 보호 · GPU/NPU 사용률 · 유휴 카드 회수 (makus-vlab pegaprox/api/vlab_work.py) -------------
+// what the guest agent read from nvidia-smi / rocm-smi / furiosa-smi / rbln-stat; 'unavailable' = no tool or
+// nothing readable, 'no_agent' = the guest agent did not answer, 'off' = a card on a stopped desktop
+export type AccelCard = { vendor: string; idx: number; name: string; util: number | null; mem_used_mb: number | null;
+  mem_total_mb: number | null; status: 'ok' | 'unavailable' | 'no_agent' | 'off' };
+export type AccelUse = { util: number | null; mem_used_mb: number | null; mem_total_mb: number | null;
+  status: AccelCard['status']; at: string; vendor: string; cards: AccelCard[] };
+export type WorkHold = { id: string; desktop_id: string; desktop?: string; username: string; note: string; until: string; created_at: string };
+export type BusyReason = { kind: 'hold' | 'job' | 'gpu' | 'cpu'; value?: number; threshold?: number; until?: string; by?: string; note?: string; job?: string };
+export type DeferAction = 'shutdown' | 'stop' | 'reboot' | 'reset' | 'expire';
+export type DeferSource = 'idle' | 'session_limit' | 'lab' | 'booking' | 'schedule';
+export type Deferral = { id: string; desktop_id: string; desktop?: string | null; pool_id?: string | null; action: DeferAction; source: DeferSource;
+  source_id: string; username: string; reason: BusyReason; first_at: string; checked_at: string; deadline: string;
+  state: 'waiting' | 'done' | 'forced' | 'dropped' | 'cancelled' | 'failed'; ended_at: string | null; result: string };
+export type DesktopWork = { hold: WorkHold | null; deferrals: Deferral[]; use: AccelUse | null };
+export type ReclaimInfo = { state: 'suggested' | 'dismissed' | 'returned'; suggested_at: string; avg_util: number | null };
+export type WorkSettings = { sample_minutes: number; retention_days: number; hold_max_hours: number;
+  reclaim: { enabled: boolean; idle_hours: number; threshold_pct: number; auto_return: boolean; auto_return_hours: number } };
+export type UseSummary = { measured_hours: number; idle_hours: number; off_hours: number; unmeasured_hours: number;
+  util_avg: number | null; util_max: number | null };

@@ -193,7 +193,7 @@ export function PortalHome() {
               <div className="dtiles">
                 {list.map((d) => (
                   <DesktopCard key={d.id} d={d} busy={busy === d.id} fav={favs.includes(d.id)} onFav={() => toggleFav(d.id)}
-                    onConnect={(p) => connect(d, p)} onPower={(a) => power(d, a)}
+                    onConnect={(p) => connect(d, p)} onPower={(a) => power(d, a)} onChanged={desktops.reload}
                     error={error?.id === d.id ? error.text : undefined} hint={hint?.id === d.id ? hint.text : undefined} />
                 ))}
               </div>

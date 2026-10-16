@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon';
 import { LoadState } from '../components/LoadState';
 import { useLoad } from '../components/useLoad';
 import { useI18n } from '../i18n';
+import { UseChip } from '../components/WorkParts';
 
 // 내 자원: accelerator cards, boards and desktops on loan to the user.
 export function ResourcesPage() {
@@ -34,6 +35,11 @@ export function ResourcesPage() {
                   <span className="quick-icon"><Icon name={l.kind === 'gpu' ? 'gpu' : l.kind === 'card' || l.kind === 'fpga' ? 'fpga' : l.kind === 'usb' ? 'usb' : 'vm'} size={20} /></span>
                   <span className="strong">{l.name}</span>
                   {l.desktop && <span className="chip">{l.desktop}</span>}
+                  {l.use && <UseChip use={l.use} />}
+                  {l.reclaim?.state === 'suggested' && (
+                    <span className="chip chip-warn" title={L('오랫동안 사용률이 낮았습니다. 필요 없으면 반납해 주세요. 계속 쓰려면 데스크톱에서 "작업 중"을 켜 두세요.',
+                      'Barely used for a long time. Give it back if you do not need it, or turn on "Working" on its desktop.')}>{L('회수 예정 안내', 'Reclaim suggested')}</span>
+                  )}
                   {l.ends_at && (
                     <span className="muted small">
                       {t('portal.until')} {new Date(l.ends_at).toLocaleString(lang === 'ko' ? 'ko-KR' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' })}

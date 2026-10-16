@@ -1,6 +1,7 @@
 // Fake engine for `npm run dev:mock`: lets the screens run without vlab-engine.
 import { ApiError, type Api } from './client';
 import type { AuthStatus, Branding, Desktop, Lease, Notice, User, KioskInfo } from './types';
+import { mockDeskWork, mockLeaseExtras } from './mockWork';
 
 // Kept in sessionStorage so a page reload stays signed in, like the real session cookie.
 const KEY = 'vlab.mock.user';
@@ -108,11 +109,11 @@ export const mockApi: Api = {
     await delay(undefined);
   },
   async logout() { current = null; save(null); },
-  async myDesktops() { return delay(desktops); },
+  async myDesktops() { return delay(desktops.map((d) => ({ ...d, work: mockDeskWork(d.id, d.name) }))); },
   async clientConfig() {
     return delay({ latest_version: '0.9.0', min_version: '', download_url: '', protocol: 'auto', support_url: 'https://support.makussystems.co.kr/' });
   },
-  async myLeases() { return delay(leases); },
+  async myLeases() { return delay(leases.map((l) => ({ ...l, ...mockLeaseExtras(l.id === 'l1' ? 'lease_portal' : l.id, l.kind === 'card' ? 'vivado-build-01' : null) }))); },
   async notices() {
     const admin = current?.role === 'admin';
     const order = { critical: 0, warning: 1, info: 2 };

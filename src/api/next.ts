@@ -71,7 +71,9 @@ export type BuildJob = {
   created_at: string; started_at: string | null; finished_at: string | null;
 };
 export type JobInput = { pool_id: string; name: string; command: string; workdir: string; username?: string };
-export type CardRow = { card: string; resource_id: string; loans: number; hours: number; users: string[]; active: number; use_pct: number };
+export type CardRow = { card: string; resource_id: string; loans: number; hours: number; users: string[]; active: number; use_pct: number;
+  // what the card really did while lent (GPU/NPU samples): average use, hours under the idle threshold or off, hours measured
+  util_avg?: number | null; idle_hours?: number; measured_hours?: number; unmeasured_hours?: number };
 export type ClientSettings = { latest_version: string; min_version: string; download_url: string; protocol: 'auto' | 'spice' | 'vnc' };
 export type MyExternal = { id: string; name: string; address: string; port: number; notes: string };
 
@@ -154,7 +156,7 @@ const realNextApi = {
   buildJobs: async (poolId?: string) => call<{ jobs: BuildJob[]; counts: Record<JobStatus, number> }>('GET', `${A}/build-jobs${poolId ? `?pool_id=${enc(poolId)}` : ''}`),
   submitJob: async (b: JobInput) => (await call<{ job: BuildJob }>('POST', `${A}/build-jobs`, b)).job,
   cancelJob: async (id: string) => { await call('POST', `${A}/build-jobs/${enc(id)}/cancel`); },
-  cardReport: async (days: number) => call<{ days: number; cards: CardRow[]; total_hours: number }>('GET', `${A}/reports/cards?days=${days}`),
+  cardReport: async (days: number) => call<{ days: number; cards: CardRow[]; total_hours: number; idle_threshold_pct?: number }>('GET', `${A}/reports/cards?days=${days}`),
 
   myPools: async () => {
     const { status, data } = await request<{ pools: MyPool[] }>('GET', '/api/vlab/me/pools');
@@ -310,11 +312,17 @@ const jobs: BuildJob[] = [
     created_at: iso(600), started_at: iso(599), finished_at: iso(540) },
 ];
 const cards: CardRow[] = [
-  { card: 'Alveo U250 #1', resource_id: 'alveo-u250-1', loans: 9, hours: 412.5, users: ['alice', 'dave', 'kim.minji'], active: 1, use_pct: 57.3 },
-  { card: 'Alveo U55C #1', resource_id: 'alveo-u55c-1', loans: 6, hours: 298.0, users: ['carol', 'park.sora'], active: 1, use_pct: 41.4 },
-  { card: 'RNGD #1 (FuriosaAI)', resource_id: 'rngd-1', loans: 4, hours: 156.2, users: ['bob', 'lee.junho'], active: 0, use_pct: 21.7 },
-  { card: 'NVIDIA L40S #2', resource_id: 'l40s-2', loans: 11, hours: 520.8, users: ['alice', 'bob', 'carol', 'dave'], active: 1, use_pct: 72.3 },
-  { card: 'ATOM+ #1 (Rebellions)', resource_id: 'atom-1', loans: 2, hours: 38.0, users: ['lee.junho'], active: 0, use_pct: 5.3 },
+  // FPGA cards report no use figure (no vendor tool is read for them): only the hours their desktop was off count as idle
+  { card: 'Alveo U250 #1', resource_id: 'alveo-u250-1', loans: 9, hours: 412.5, users: ['alice', 'dave', 'kim.minji'], active: 1, use_pct: 57.3,
+    util_avg: null, idle_hours: 96.5, measured_hours: 0, unmeasured_hours: 316.0 },
+  { card: 'Alveo U55C #1', resource_id: 'alveo-u55c-1', loans: 6, hours: 298.0, users: ['carol', 'park.sora'], active: 1, use_pct: 41.4,
+    util_avg: null, idle_hours: 41.0, measured_hours: 0, unmeasured_hours: 257.0 },
+  { card: 'RNGD #1 (FuriosaAI)', resource_id: 'rngd-1', loans: 4, hours: 156.2, users: ['bob', 'lee.junho'], active: 0, use_pct: 21.7,
+    util_avg: 38.4, idle_hours: 61.3, measured_hours: 150.1, unmeasured_hours: 0 },
+  { card: 'NVIDIA L40S #2', resource_id: 'l40s-2', loans: 11, hours: 520.8, users: ['alice', 'bob', 'carol', 'dave'], active: 1, use_pct: 72.3,
+    util_avg: 64.2, idle_hours: 88.0, measured_hours: 508.3, unmeasured_hours: 4.2 },
+  { card: 'ATOM+ #1 (Rebellions)', resource_id: 'atom-1', loans: 2, hours: 38.0, users: ['lee.junho'], active: 0, use_pct: 5.3,
+    util_avg: 3.1, idle_hours: 35.5, measured_hours: 38.0, unmeasured_hours: 0 },
 ];
 golden[0].rollout = [{ pool_id: 'p1', pool: '공용 LAB A', total: 12, outdated: 5 }, { pool_id: 'p_c', pool: '교육장 A 수업용', total: 30, outdated: 0 }];
 golden[1].rollout = [{ pool_id: 'p_farm', pool: 'FPGA 빌드 팜', total: 6, outdated: 2 }];
@@ -493,7 +501,11 @@ const mockNextApi: NextApi = {
     const j = jobs.find((x) => x.id === id)!; if (j.status !== 'queued') return fail(409, 'Only a queued job can be cancelled');
     Object.assign(j, { status: 'cancelled', finished_at: iso(0) }); return delay(undefined);
   },
-  cardReport: (days) => delay({ days, cards: cards.map((c) => ({ ...c, hours: Math.round(c.hours * days / 30 * 10) / 10, use_pct: c.use_pct })), total_hours: Math.round(cards.reduce((a, c) => a + c.hours, 0) * days / 30) }),
+  cardReport: (days) => {
+    const k = (h?: number) => Math.round((h ?? 0) * days / 30 * 10) / 10;
+    return delay({ days, idle_threshold_pct: 5, total_hours: Math.round(cards.reduce((a, c) => a + c.hours, 0) * days / 30),
+      cards: cards.map((c) => ({ ...c, hours: k(c.hours), idle_hours: k(c.idle_hours), measured_hours: k(c.measured_hours), unmeasured_hours: k(c.unmeasured_hours) })) });
+  },
 
   myPools: () => delay(myPools.map((p) => ({ ...p }))),
   claim: (poolId) => {
