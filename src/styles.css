@@ -1299,3 +1299,13 @@ a.kcell:hover { background: var(--surface-2); }
 /* a dialog opened from a table row lives inside the cell: not its alignment or wrapping */
 dialog.dialog { white-space: normal; text-align: start; }
 .node-actions-cell .alert { white-space: normal; min-width: 14rem; max-width: 22rem; margin-top: .3rem; text-align: start; }
+
+/* 플랫폼 설정 > 지원 */
+.support-period { display: flex; flex-wrap: wrap; gap: 1rem; margin: .6rem 0 .2rem; }
+.support-period label { display: flex; flex-direction: column; gap: .3rem; font-size: .85rem; }
+.support-period input { min-width: 220px; }
+.support-parts { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .6rem; }
+.support-sub { margin: 1rem 0 .3rem; font-size: .9rem; }
+.support-counts { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .6rem; margin-bottom: .8rem; }
+.support-counts > div { display: flex; flex-direction: column; gap: .15rem; padding: .6rem .75rem; border-radius: 10px; background: var(--surface-2); }
+.support-cmd { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; padding: .45rem .6rem; border-radius: 8px; background: var(--surface-2); }

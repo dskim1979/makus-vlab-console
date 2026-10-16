@@ -1078,6 +1078,7 @@ export const messages = {
   // 공지 (플랫폼 설정 > 공지, 포털 · 관리 콘솔 상단 띠)
   'hub.notices': { ko: '공지', en: 'Notices' },
   'hub.pair': { ko: '서버 이중화', en: 'Server pair' },
+  'hub.support': { ko: '지원', en: 'Support' },
   'notice.intro': { ko: '공지는 포털과 관리 콘솔 맨 위에 띠로 보입니다. 사용자가 닫으면 그 브라우저에서는 다시 보이지 않고, 내용을 고치면 다시 보입니다.', en: 'Notices show as a bar at the top of the portal and the admin console. A user can close one in their browser; a changed text shows again.' },
   'notice.new': { ko: '공지 만들기', en: 'New notice' },
   'notice.edit': { ko: '공지 고치기', en: 'Edit notice' },
