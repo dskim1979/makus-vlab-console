@@ -7,32 +7,20 @@ import { useLoad } from '../components/useLoad';
 import { useI18n } from '../i18n';
 import { InfraBoard } from './InfraBoard';
 import { MODULES } from './modules';
-import { Breakdown, StatTiles } from './SummaryTiles';
+import { Breakdown } from './SummaryTiles';
 
-// Admin dashboard: headline numbers, the infrastructure monitoring panels (InfraBoard),
-// system health, desktops by state, quick actions and the modules.
+// Admin dashboard: the monitoring board on one screen (InfraBoard), then below it the
+// system health, quick actions, desktops by state and the modules.
 export function AdminHome() {
   const { t } = useI18n();
   const summary = useLoad(adminApi.summary);
   return (
-    <main className="page">
-      <header className="page-head">
-        <div>
-          <h1>{t('nav.dashboard')}</h1>
-          <p className="page-desc">{t('dash.sub')}</p>
-        </div>
-        <div className="page-actions">
-          <button type="button" className="btn" onClick={summary.reload}><Icon name="refresh" size={16} />{t('common.refresh')}</button>
-          <Link to="/admin/pools/list" className="btn primary"><Icon name="plus" size={16} />{t('dash.qPool')}</Link>
-        </div>
-      </header>
-
+    <main className="page page-wide dash">
       <LoadState value={summary} retry={summary.reload}>
         {(s) => (
           <>
-            <StatTiles s={s} />
-            <InfraBoard />
-            <div className="dash-grid">
+            <InfraBoard s={s} onRefresh={summary.reload} />
+            <div className="dash-grid dash-below">
               <Health s={s} />
               <section className="card">
                 <h2 className="card-title">{t('dash.quick')}</h2>

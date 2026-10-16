@@ -850,6 +850,9 @@ export const messages = {
   'theme.dark': { ko: '다크', en: 'Dark' },
   'theme.toLight': { ko: '라이트 테마로', en: 'Switch to light' },
   'theme.toDark': { ko: '다크 테마로', en: 'Switch to dark' },
+  'dash.pools': { ko: '풀 {n}개', en: '{n} pools' },
+  'dash.alertsOpen': { ko: '확인이 필요합니다', en: 'need a look' },
+  'dash.alertsNone': { ko: '발생 중인 경보 없음', en: 'nothing firing' },
   'about.close': { ko: '닫기', en: 'Close' },
 } as const;
 

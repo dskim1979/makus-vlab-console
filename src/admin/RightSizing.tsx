@@ -24,12 +24,30 @@ export function RightSizingSummary({ r }: { r: RightSizing }) {
   );
 }
 
-export function RightSizingTable({ r, limit, links = true }: { r: RightSizing; limit?: number; links?: boolean }) {
+export function RightSizingTable({ r, limit, links = true, compact = false }: { r: RightSizing; limit?: number; links?: boolean; compact?: boolean }) {
   const { t } = useI18n();
   const rows = [...r.recommendations].sort((a, b) => rank(a) - rank(b));
   const shown = limit ? rows.slice(0, limit) : rows;
   if (!rows.length) {
     return <p className="muted small">{r.snapshots < r.min_samples ? t('rs.notEnough') : t('rs.none')}</p>;
+  }
+  if (compact) {
+    // the dashboard: one line per VM - who, the proposal, and the change it means
+    return (
+      <div className="rs-lines">
+        {shown.map((x) => (
+          <div key={x.vmid} className="rs-line" title={`CPU ${t('rs.cpuUse').replace('{avg}', String(x.cpu_avg)).replace('{p95}', String(x.cpu_p95))} · ${t('inf.mem')} ${t('rs.memUse').replace('{avg}', String(x.mem_avg)).replace('{max}', String(x.mem_max))}`}>
+            <span className="rs-who"><span className="strong">{x.desktop ?? x.name ?? x.vmid}</span>
+              <span className="muted small">{x.pool ? `${x.pool}${x.assigned_to ? ` · ${x.assigned_to}` : ''}` : t('rs.notDesktop')}</span></span>
+            <span className="rs-chips">{x.actions.filter((a): a is Action => ORDER.includes(a as Action)).map((a) => <span key={a} className={`rs-chip rs-${a}`}>{t(`rs.${a}` as MessageKey)}</span>)}</span>
+            <span className="rs-change small">{changeText(x, t)}</span>
+          </div>
+        ))}
+        {limit && rows.length > limit && links && (
+          <Link to="/admin/ops/report" className="small">{t('rs.more').replace('{n}', String(rows.length - limit))}</Link>
+        )}
+      </div>
+    );
   }
   return (
     <div className="table-scroll">
@@ -55,6 +73,16 @@ export function RightSizingTable({ r, limit, links = true }: { r: RightSizing; l
       )}
     </div>
   );
+}
+
+function changeText(x: RightSizingRow, t: (k: MessageKey) => string) {
+  const cpu = x.flags.find((g) => g.kind.endsWith('_cpu') && g.current != null);
+  const mem = x.flags.find((g) => g.kind.endsWith('_mem') && g.current_gb != null);
+  const parts = [
+    cpu && <b key="c" className={cpu.kind.startsWith('under') ? 'rs-up' : 'rs-down'}>{t('rs.cores').replace('{a}', String(cpu.current)).replace('{b}', String(cpu.recommended))}</b>,
+    mem && <b key="m" className={mem.kind.startsWith('under') ? 'rs-up' : 'rs-down'}>{t('rs.gb').replace('{a}', String(mem.current_gb)).replace('{b}', String(mem.recommended_gb))}</b>,
+  ].filter(Boolean);
+  return parts.length ? parts : <span className="muted">{t('rs.cpuUse').replace('{avg}', String(x.cpu_avg)).replace('{p95}', String(x.cpu_p95))}</span>;
 }
 
 function rank(x: RightSizingRow) {
