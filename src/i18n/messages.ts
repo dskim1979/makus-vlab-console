@@ -74,6 +74,8 @@ export const messages = {
   'nav.home': { ko: '홈', en: 'Home' },
   'nav.logout': { ko: '로그아웃', en: 'Sign out' },
   'nav.about': { ko: '정보 (버전·라이선스)', en: 'About (version, licence)' },
+  'nav.account': { ko: '내 계정 (비밀번호·2단계 인증)', en: 'My account (password, two-step sign-in)' },
+  'login.mustChange': { ko: '관리자가 비밀번호를 바꾸도록 했습니다. 새 비밀번호를 정하면 계속합니다.', en: 'An administrator asks you to pick a new password before going on.' },
 
   'portal.title': { ko: '내 데스크톱', en: 'My desktops' },
   'portal.resources': { ko: '내 자원', en: 'My resources' },
@@ -200,7 +202,7 @@ export const messages = {
   'users.showDisabled': { ko: '사용 안 하는 계정도 보기', en: 'Show disabled accounts' },
   'users.access': { ko: '권한 보기', en: 'View access' },
   'users.empty': { ko: '사용자가 없습니다.', en: 'No users.' },
-  'users.note': { ko: 'AD/LDAP 계정은 "도메인(AD/LDAP)" 화면에서 설정하면 처음 로그인할 때 여기에 나타납니다. 로컬 계정 추가·수정은 다음 단계에서 지원합니다.', en: 'AD/LDAP accounts appear here on first sign-in once the Directory screen is set up. Adding and editing local accounts comes later.' },
+  'users.note': { ko: '로컬 계정은 여기서 만들고 고칩니다. AD/LDAP 계정은 플랫폼 설정 > 도메인(AD/LDAP)을 설정하면 처음 로그인할 때 나타나고, 비밀번호는 디렉터리에서 관리합니다.', en: 'Make and change local accounts here. AD/LDAP accounts appear on first sign-in once Platform settings > Directory is set up; the directory keeps their passwords.' },
   'role.admin': { ko: '관리자', en: 'Administrator' },
   'role.user': { ko: '사용자', en: 'User' },
   'role.viewer': { ko: '조회 전용', en: 'Viewer' },

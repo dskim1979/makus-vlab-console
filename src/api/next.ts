@@ -188,6 +188,7 @@ const deps: Department[] = [
   { id: 'dep_rnd', name: '연구개발본부', parent_id: null, sort: 1, members: 0, created_at: iso(8000) },
 ];
 const memberOf: Record<string, string> = { alice: 'dep_lab', bob: 'dep_cs', carol: 'dep_rnd', dave: 'dep_ee' };
+export { memberOf as mockMemberOf };   // the user list's 부서 (api/users.ts)
 let signupOpen = true;
 const signups: Signup[] = [
   { id: 'sig_1', username: 'kim.minji', display_name: '김민지', email: 'minji@univ.ac.kr', department_id: 'dep_cs', note: '데이터베이스 실습 수강생',

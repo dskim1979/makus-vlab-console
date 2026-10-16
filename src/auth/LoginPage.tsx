@@ -8,6 +8,7 @@ import { BrandMark, BrandName } from '../components/Brand';
 import { CompanyNotice } from '../components/CompanyNotice';
 import { Icon } from '../components/Icon';
 import { LangSwitch } from '../components/LangSwitch';
+import { ChangePassword } from '../components/MyAccountDialog';
 import { useI18n } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
 import { useAuth } from './AuthContext';
@@ -36,7 +37,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
   const [totp, setTotp] = useState('');
-  const [step, setStep] = useState<'password' | 'totp'>('password');
+  const [step, setStep] = useState<'password' | 'totp' | 'change'>('password');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,11 +46,17 @@ export function LoginPage() {
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    await signIn(password);
+  }
+
+  async function signIn(pw: string) {
     setBusy(true);
     setError(null);
-    const r = await api.login(username.trim(), password, { remember, totp: step === 'totp' ? totp : undefined });
+    const r = await api.login(username.trim(), pw, { remember, totp: step === 'totp' ? totp : undefined });
     setBusy(false);
-    if (r.kind === 'ok') {
+    if (r.kind === 'ok' && r.mustChange) {
+      setStep('change');   // the session is there, but an admin asked for a new password first
+    } else if (r.kind === 'ok') {
       signedIn(r.user);
       navigate(next ?? (r.user.role === 'admin' ? '/admin' : '/'), { replace: true });
     } else if (r.kind === 'second_factor') {
@@ -78,6 +85,15 @@ export function LoginPage() {
 
         {isMock && <div className="alert info">{t('login.mock')}</div>}
 
+        {step === 'change' ? (
+          <div className="form">
+            <h2>{t('login.title')}</h2>
+            <div className="alert info small">{t('login.mustChange')}</div>
+            {/* the engine ends every session on a change, so sign in again with the new one */}
+            <ChangePassword current={password} onChanged={(np) => { setPassword(np); setTotp(''); setStep('password'); void signIn(np); }} />
+            {error && <div className="alert error" role="alert">{error}</div>}
+          </div>
+        ) : (
         <form onSubmit={submit} className="form">
           <h2>{t('login.title')}</h2>
           {step === 'password' ? (
@@ -125,6 +141,7 @@ export function LoginPage() {
             <p className="muted small login-signup">{pick({ ko: '계정이 없나요?', en: 'No account?' })} <Link to="/signup">{pick({ ko: '가입 신청', en: 'Ask for one' })}</Link></p>
           )}
         </form>
+        )}
       </main>
 
       <footer className="login-foot">

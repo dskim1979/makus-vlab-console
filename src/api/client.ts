@@ -57,7 +57,7 @@ const realApi = {
       return { kind: 'second_factor', methods: (d.methods as string[]) ?? ['totp'] };
     }
     if (r.status === 200 && d.success && d.user) {
-      return { kind: 'ok', user: d.user as User };
+      return { kind: 'ok', user: d.user as User, mustChange: !!d.requires_password_change };
     }
     if (d.locked) return { kind: 'error', reason: 'locked' };
     if (r.status === 401) return { kind: 'error', reason: 'invalid' };

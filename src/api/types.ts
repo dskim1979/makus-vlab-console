@@ -23,7 +23,7 @@ export type AuthStatus =
     };
 
 export type LoginResult =
-  | { kind: 'ok'; user: User }
+  | { kind: 'ok'; user: User; mustChange?: boolean }   // requires_password_change: a new password before going on
   | { kind: 'second_factor'; methods: string[] }
   | { kind: 'error'; reason: 'invalid' | 'locked' | 'network' | 'other'; message?: string };
 

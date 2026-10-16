@@ -21,6 +21,7 @@ import { SettingsHub } from './pages/SettingsHub';
 import { SummaryPage } from './pages/SummaryPage';
 import { ReportPage } from './pages/ReportPage';
 import { UsagePage } from './pages/UsagePage';
+import { RolesPage } from './pages/RolesPage';
 import { UsersPage } from './pages/UsersPage';
 import { BoardsPage, BuildFarmPage, CardUsagePage, DepartmentsPage, ExternalDesktopsPage, GatewaysPage, GoldenImagesPage, LicenseServersPage, SignupsPage, UsbLibraryPage } from './pages/NextPages';
 
@@ -54,6 +55,7 @@ function pageBody(moduleId: string, pageId: string, subId?: string) {
   if (key === 'labs/schedules') return <LabSchedulesPage />;
   if (key === 'labs/pools') return <ScheduledPoolsPage />;
   if (key === 'users/list') return <UsersPage />;
+  if (key === 'users/roles') return <RolesPage />;
   if (key === 'users/access') return <AccessPage username={subId} />;
   if (key === 'vms/golden') return <GoldenImagesPage />;
   if (key === 'pools/gateways') return <GatewaysPage />;

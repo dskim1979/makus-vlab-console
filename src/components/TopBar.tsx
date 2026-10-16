@@ -7,6 +7,7 @@ import { useTheme, type ThemePref } from '../theme';
 import { AboutDialog } from './AboutDialog';
 import { BrandLockup } from './Brand';
 import { Icon } from './Icon';
+import { MyAccountDialog } from './MyAccountDialog';
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -20,6 +21,7 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
   const { t, lang, setLang } = useI18n();
   const { user, logout, isAdmin } = useAuth();
   const [about, setAbout] = useState(false);
+  const [account, setAccount] = useState(false);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const name = user?.display_name || user?.username || '';
@@ -82,6 +84,9 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
                 <span className="strong">{name}</span>
                 <span className="muted small">{user?.email || user?.username}</span>
               </div>
+              <button type="button" role="menuitem" onClick={() => { setOpen(false); setAccount(true); }}>
+                <Icon name="shield" size={16} />{t('nav.account')}
+              </button>
               <div className="menu-label">{t('theme.title')}</div>
               <div className="theme-row" role="group" aria-label={t('theme.title')}>
                 {(['system', 'light', 'dark'] as ThemePref[]).map((p) => (
@@ -104,6 +109,7 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
         </div>
       </div>
       <AboutDialog open={about} onClose={() => setAbout(false)} />
+      <MyAccountDialog open={account} onClose={() => setAccount(false)} />
     </header>
   );
 }

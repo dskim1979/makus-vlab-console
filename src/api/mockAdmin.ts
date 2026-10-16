@@ -47,6 +47,7 @@ let directory = {
   ldap_auto_create_users: false, ldap_group_mappings: [] as { group_dn: string; role: string }[],
 };
 const disabledUsers = [{ username: 'olduser', display_name: 'olduser', role: 'user', auth_source: 'local', email: '' }];
+export { users as mockUsers, disabledUsers as mockDisabledUsers };   // made and changed by api/users.ts
 
 let seq = 1;
 const pools: Pool[] = [];

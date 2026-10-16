@@ -21,6 +21,9 @@ if (params.get('as')) {
   save(current);
 }
 let setupAdmin = '';
+// accounts that must pick a new password at the next sign-in (사용자 목록, api/users.ts); 'newbie' to try it
+export const mockMustChange = new Set<string>(['newbie']);
+export const mockWhoAmI = () => current?.username ?? '';
 
 const desktops: Desktop[] = [
   { id: 'd1', name: 'vivado-build-01', pool: 'FPGA 빌드 팜', state: 'ready', os: 'Rocky Linux 9', spec: { cpu: 16, memory_gb: 64 }, protocols: ['spice', 'vnc'], resources: [{ kind: 'card', name: 'Alveo U250 #2' }], pool_type: 'buildfarm', last_connected: new Date(Date.now() - 3 * 864e5).toISOString() },
@@ -67,7 +70,7 @@ export const mockApi: Api = {
     if (username === 'otp' && !opts.totp) return delay({ kind: 'second_factor' as const, methods: ['totp'] });
     current = { username, role: username === 'admin' || username === setupAdmin ? 'admin' : 'user', display_name: username, auth_source: 'local' };
     save(current);
-    return delay({ kind: 'ok' as const, user: current });
+    return delay({ kind: 'ok' as const, user: current, mustChange: mockMustChange.has(username) });
   },
   async setup(u) {
     if (initialized) throw new ApiError(409, 'Already initialised');

@@ -51,9 +51,10 @@ export const MODULES: AdminModule[] = [
   {
     id: 'users', icon: 'users', tone: 'teal',
     label: { ko: '사용자', en: 'Users' },
-    summary: { ko: '사용자, 가입 심사, 부서, 유효 권한', en: 'Users, sign-up review, departments, effective access' },
+    summary: { ko: '사용자, 역할, 가입 심사, 부서, 유효 권한', en: 'Users, roles, sign-up review, departments, effective access' },
     pages: [
       { id: 'list', label: { ko: '사용자 목록', en: 'Users' }, phase: 1 },
+      { id: 'roles', label: { ko: '역할 관리', en: 'Roles' }, phase: 1 },
       { id: 'signups', label: { ko: '가입 심사', en: 'Sign-up review' }, phase: 1 },
       { id: 'departments', label: { ko: '부서 관리', en: 'Departments' }, phase: 1 },
       { id: 'access', label: { ko: '유효 권한 조회', en: 'Effective access' }, phase: 1 },
