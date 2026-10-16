@@ -49,12 +49,11 @@ export const MODULES: AdminModule[] = [
   {
     id: 'users', icon: 'users', tone: 'teal',
     label: { ko: '사용자', en: 'Users' },
-    summary: { ko: '사용자, 가입 심사, 부서, AD/LDAP, 유효 권한', en: 'Users, sign-up review, departments, AD/LDAP, effective access' },
+    summary: { ko: '사용자, 가입 심사, 부서, 유효 권한', en: 'Users, sign-up review, departments, effective access' },
     pages: [
       { id: 'list', label: { ko: '사용자 목록', en: 'Users' }, phase: 1 },
       { id: 'signups', label: { ko: '가입 심사', en: 'Sign-up review' }, phase: 2 },
       { id: 'departments', label: { ko: '부서 관리', en: 'Departments' }, phase: 2 },
-      { id: 'directory', label: { ko: '도메인(AD/LDAP)', en: 'Directory (AD/LDAP)' }, phase: 1 },
       { id: 'access', label: { ko: '유효 권한 조회', en: 'Effective access' }, phase: 1 },
     ],
   },
@@ -97,7 +96,7 @@ export const MODULES: AdminModule[] = [
   {
     id: 'ops', icon: 'ops', tone: 'slate',
     label: { ko: '운영', en: 'Operations' },
-    summary: { ko: '시스템 요약, 접속 기록, 사용률 보고서, 경보, 백업(PBS), 작업 기록, 설정, 화이트라벨', en: 'Summary, sessions, usage, alerts, backup (PBS), audit, settings, white label' },
+    summary: { ko: '시스템 요약, 접속 기록, 사용률 보고서, 경보, 백업(PBS), 작업 기록, 플랫폼 설정(도메인·화이트라벨)', en: 'Summary, sessions, usage, alerts, backup (PBS), audit, platform settings (directory, white label)' },
     pages: [
       { id: 'summary', label: { ko: '시스템 요약', en: 'System summary' }, phase: 1 },
       { id: 'sessions', label: { ko: '접속 기록', en: 'Session log' }, phase: 1 },
@@ -107,7 +106,6 @@ export const MODULES: AdminModule[] = [
       { id: 'backup', label: { ko: '백업 (PBS)', en: 'Backup (PBS)' }, phase: 1 },
       { id: 'audit', label: { ko: '작업 기록(감사)', en: 'Audit log' }, phase: 1 },
       { id: 'settings', label: { ko: '플랫폼 설정', en: 'Platform settings' }, phase: 1 },
-      { id: 'branding', label: { ko: '화이트라벨', en: 'White label' }, phase: 1 },
     ],
   },
 ];

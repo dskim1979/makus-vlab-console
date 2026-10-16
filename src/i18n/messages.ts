@@ -884,6 +884,10 @@ export const messages = {
   'ln.overdueN': { ko: '기한 지남', en: 'Overdue' },
   'ln.borrowers': { ko: '빌린 사용자', en: 'Borrowers' },
   'ln.kinds': { ko: '종류', en: 'Kinds' },
+  'hub.general': { ko: '일반', en: 'General' },
+  'hub.directory': { ko: '도메인(AD/LDAP)', en: 'Directory (AD/LDAP)' },
+  'hub.branding': { ko: '화이트라벨', en: 'White label' },
+  'hub.tabs': { ko: '설정 종류', en: 'Settings' },
   'about.close': { ko: '닫기', en: 'Close' },
 } as const;
 

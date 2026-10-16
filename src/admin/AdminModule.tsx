@@ -8,16 +8,14 @@ import { AccessPage } from './pages/AccessPage';
 import { AlertsPage } from './pages/AlertsPage';
 import { AuditPage } from './pages/AuditPage';
 import { BackupPage } from './pages/BackupPage';
-import { BrandingPage } from './pages/BrandingPage';
 import { ClusterNodesPage, ClusterOverviewPage, ClusterStoragePage } from './pages/ClusterPages';
 import { ClustersPage } from './pages/ClustersPage';
 import { DesktopStatusPage } from './pages/DesktopStatusPage';
 import { TemplatesPage, VmDesktopsPage } from './pages/VmPages';
-import { DirectoryPage } from './pages/DirectoryPage';
 import { PoolDetailPage } from './pages/PoolDetailPage';
 import { PoolsPage } from './pages/PoolsPage';
 import { SessionsPage } from './pages/SessionsPage';
-import { SettingsPage } from './pages/SettingsPage';
+import { SettingsHub } from './pages/SettingsHub';
 import { SummaryPage } from './pages/SummaryPage';
 import { ReportPage } from './pages/ReportPage';
 import { UsagePage } from './pages/UsagePage';
@@ -33,10 +31,9 @@ function pageBody(moduleId: string, pageId: string, subId?: string) {
   if (key === 'ops/audit') return <AuditPage />;
   if (key === 'ops/alerts') return <AlertsPage />;
   if (key === 'ops/backup') return <BackupPage />;
-  if (key === 'ops/branding') return <BrandingPage />;
   if (key === 'ops/reports') return <UsagePage />;
   if (key === 'ops/report') return <ReportPage />;
-  if (key === 'ops/settings') return <SettingsPage />;
+  if (key === 'ops/settings') return <SettingsHub tab={subId} />;
   if (key === 'cluster/connections') return <ClustersPage />;
   if (key === 'accel/inventory') return <AccelInventoryPage />;
   if (key === 'accel/vgpu') return <VgpuProfilesPage />;
@@ -48,7 +45,6 @@ function pageBody(moduleId: string, pageId: string, subId?: string) {
   if (key === 'cluster/nodes') return <ClusterNodesPage />;
   if (key === 'cluster/storage') return <ClusterStoragePage />;
   if (key === 'users/list') return <UsersPage />;
-  if (key === 'users/directory') return <DirectoryPage />;
   if (key === 'users/access') return <AccessPage username={subId} />;
   return null;
 }
@@ -59,6 +55,9 @@ export function AdminModule() {
   const { t, pick, lang } = useI18n();
   const mod = findModule(moduleId);
 
+  // 도메인 and 화이트라벨 moved into 플랫폼 설정
+  if (moduleId === 'users' && pageId === 'directory') return <Navigate to="/admin/ops/settings/directory" replace />;
+  if (moduleId === 'ops' && pageId === 'branding') return <Navigate to="/admin/ops/settings/branding" replace />;
   if (!mod) return <Navigate to="/admin" replace />;
   const page = mod.pages.find((p) => p.id === pageId);
   if (!page) return <Navigate to={`/admin/${mod.id}/${mod.pages[0].id}`} replace />;

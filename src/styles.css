@@ -1029,3 +1029,8 @@ a.kcell:hover { background: var(--surface-2); }
   .sset .wl-slots { grid-template-columns: minmax(0, 1fr); }
 }
 @media (min-width: 761px) and (max-width: 1300px) { .sstatus { grid-template-columns: repeat(3, minmax(0, 1fr)); } .sstatus-cell:nth-child(3n + 1) { border-left: 0; } .sstatus-cell:nth-child(n + 4) { border-top: 1px solid var(--border); } }
+/* 플랫폼 설정: 일반 · 도메인 · 화이트라벨 */
+.page-tabs { display: flex; gap: .25rem; margin: -.25rem 0 1.1rem; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.page-tabs a { padding: .6rem 1rem; margin-bottom: -1px; border-bottom: 2px solid transparent; color: var(--muted); font-weight: 600; font-size: .92rem; white-space: nowrap; text-decoration: none !important; }
+.page-tabs a:hover { color: var(--text); }
+.page-tabs a.on { color: var(--accent); border-bottom-color: var(--accent); }
