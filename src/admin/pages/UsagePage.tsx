@@ -6,6 +6,7 @@ import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
+import { ReservationReport } from './ReservationReport';
 
 const PERIODS = [7, 30, 90];
 const fill = (s: string, n: number | string) => s.replace('{n}', String(n));
@@ -62,6 +63,7 @@ export function UsagePage() {
           </>
         )}
       </LoadState>
+      <ReservationReport days={days} />
     </>
   );
 }

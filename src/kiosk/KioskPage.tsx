@@ -103,9 +103,10 @@ function Session({ info, problem }: { info: KioskInfo | null; problem: string | 
       {c ? (
         <>
           <span className={`kiosk-state ${c.preparing ? 'prep' : 'on'}`}>{t(c.preparing ? 'kiosk.preparing' : 'kiosk.inSession')}</span>
+          {c.reservation_id && <span className="kiosk-state rsv">{t('kiosk.booked')}{c.requester ? ` · ${c.requester}` : ''}</span>}
           <h1 className="kiosk-title">{c.title || t('lab.untitled')}</h1>
           <p className="kiosk-when">{hhmm(c.start)} – {hhmm(c.end)}{c.pool ? ` · ${c.pool}` : ''}</p>
-          <p className="kiosk-hint">{t('kiosk.signInHint')}</p>
+          <p className="kiosk-hint">{t(c.reservation_id ? 'kiosk.bookedHint' : 'kiosk.signInHint')}</p>
         </>
       ) : (
         <>
@@ -148,7 +149,8 @@ function KioskSignIn({ kioskKey, disabled, onOpen }: { kioskKey: string; disable
       onOpen({ title: `${s.desktop.name} · ${s.lab.name}`, wsPath: c.ws_path, password: c.password, sessionId: c.session_id, clipboard: c.clipboard ?? 'both' });
     } catch (err) {
       const code = (err as ApiError).message;
-      const known: Record<string, MessageKey> = { FULL: 'kiosk.full', NO_SESSION: 'kiosk.noSession', BAD_KEY: 'kiosk.badKey', STARTING: 'kiosk.starting' };
+      const known: Record<string, MessageKey> = { FULL: 'kiosk.full', NO_SESSION: 'kiosk.noSession', BAD_KEY: 'kiosk.badKey', STARTING: 'kiosk.starting',
+        NOT_PARTICIPANT: 'kiosk.notParticipant' };
       setError(known[code] ? t(known[code]) : code || t('kiosk.offline'));
       await api.logout();
     } finally { setBusy(false); }

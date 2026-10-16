@@ -52,6 +52,7 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
         <nav className="tb-tabs" aria-label={t('nav.menu')}>
           <NavLink to="/" end>{t('nav.home')}</NavLink>
           <NavLink to="/resources">{t('nav.resources')}</NavLink>
+          <NavLink to="/reserve">{t('nav.reserve')}</NavLink>
         </nav>
       )}
 

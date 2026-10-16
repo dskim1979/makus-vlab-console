@@ -7,6 +7,7 @@ import { useLoad } from '../components/useLoad';
 import { useI18n } from '../i18n';
 import { InfraBoard } from './InfraBoard';
 import { MODULES } from './modules';
+import { ReservationsCard } from './pages/ReservationsPage';
 import { Breakdown } from './SummaryTiles';
 
 // Admin dashboard: the monitoring board on one screen (InfraBoard), then below it the
@@ -33,6 +34,7 @@ export function AdminHome() {
                   <Quick to="/admin/ops/reports" icon="ops" label={t('dash.qReport')} />
                 </ul>
               </section>
+              <ReservationsCard />
             </div>
             <Breakdown s={s} />
             </div>

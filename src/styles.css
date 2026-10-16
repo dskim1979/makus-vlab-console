@@ -1342,3 +1342,48 @@ fieldset.plain:disabled { opacity: .55; }
   border: 1px solid var(--accent); border-radius: var(--radius-sm); background: var(--accent-soft); }
 .table th.check-col, .table td.check-col { width: 2rem; text-align: center; padding-right: 0; }
 .install-line code { font-size: .82rem; }
+/* LAB 예약 (portal 예약, LAB > 예약) */
+.rsv-week .tt-block:disabled { cursor: default; }
+.rsv-week .tt-block.rsv-schedule { background: color-mix(in srgb, var(--subtle) 14%, var(--surface)); }
+.rsv-week .tt-block.rsv-pending { border-style: dashed; border-left-style: solid; }
+.rsv-legend { flex-wrap: wrap; gap: .3rem .5rem; }
+.rsv-key { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-left: .4rem; }
+.rsv-month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: .9rem 0 1.1rem; }
+.rsv-mhead { text-align: center; font-size: .8rem; font-weight: 700; color: var(--muted); padding: .2rem 0; }
+.rsv-mcell { display: flex; flex-direction: column; align-items: stretch; gap: 2px; min-height: 92px; padding: .3rem .35rem; text-align: left; font: inherit; font-size: .72rem;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); cursor: pointer; min-width: 0; }
+.rsv-mcell:hover { box-shadow: var(--shadow-1); }
+.rsv-mcell.out { opacity: .45; }
+.rsv-mcell.today { border-color: var(--accent); }
+.rsv-mday { font-weight: 700; font-size: .8rem; }
+.rsv-mitem { border-left: 3px solid; padding-left: .3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rsv-mfoot { margin-top: auto; display: flex; gap: .3rem; align-items: center; flex-wrap: wrap; }
+.rsv-form { display: flex; flex-direction: column; gap: .75rem; }
+.rsv-form label > span:first-child { display: block; }
+.rsv-kind-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .5rem; }
+.rsv-repeat { display: flex; flex-wrap: wrap; gap: .6rem 1rem; align-items: center; }
+.rsv-people-add { display: flex; gap: .4rem; }
+.rsv-people-add select { flex: none; width: auto; }
+.rsv-people-add input, .rsv-people-add select:last-child { flex: 1; min-width: 0; }
+.chip-x { border: 0; background: transparent; color: var(--muted); cursor: pointer; font: inherit; padding: 0 0 0 .2rem; line-height: 1; }
+.rsv-occ-list { list-style: none; margin: .4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .3rem; max-height: 16rem; overflow: auto; }
+.rsv-occ-list li { display: flex; flex-wrap: wrap; gap: .3rem .5rem; align-items: center; padding: .35rem .5rem; border-radius: var(--radius-sm); background: var(--surface-2); }
+.rsv-occ-list li.bad { background: var(--danger-soft); }
+.rsv-conflict { display: inline-flex; gap: .35rem; align-items: center; }
+.rsv-actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.rsv-now { margin-bottom: 1rem; }
+.rsv-now-list { list-style: none; margin: .6rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .4rem; }
+.rsv-now-list li { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .7rem; padding: .5rem .7rem; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.rsv-set { margin-bottom: 1rem; display: flex; flex-direction: column; gap: .7rem; }
+.rsv-set .panel-head { flex-wrap: wrap; }
+.rsv-report { margin-top: 1.5rem; }
+.rsv-report-rows summary { cursor: pointer; font-weight: 600; margin: .6rem 0; }
+.kiosk-state.rsv { background: rgba(96, 165, 250, .18); color: #93C5FD; margin-top: .4rem; }
+@media (max-width: 640px) {
+  .rsv-month { gap: 2px; }
+  .rsv-mcell { min-height: 64px; padding: .2rem; }
+  .rsv-mitem { display: none; }
+  .rsv-people-add { flex-wrap: wrap; }
+}
+.rsv-set label:not(.check):not(.check-inline) { display: flex; flex-direction: column; gap: .35rem; font-size: .85rem; font-weight: 550; color: var(--text-2); }
+.rsv-set .check-inline { font-weight: 550; }

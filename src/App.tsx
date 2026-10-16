@@ -9,6 +9,7 @@ import { KioskPage } from './kiosk/KioskPage';
 import { Shell } from './components/Shell';
 import { useI18n } from './i18n';
 import { PortalHome } from './portal/PortalHome';
+import { ReservePage } from './portal/ReservePage';
 import { ResourcesPage } from './portal/ResourcesPage';
 
 function RequireAuth({ admin = false, children }: { admin?: boolean; children: ReactNode }) {
@@ -30,6 +31,7 @@ export function App() {
       <Route path="/login" element={!loading && user ? <Navigate to={isAdmin ? '/admin' : '/'} replace /> : <LoginPage />} />
       <Route path="/" element={<RequireAuth><PortalHome /></RequireAuth>} />
       <Route path="/resources" element={<RequireAuth><ResourcesPage /></RequireAuth>} />
+      <Route path="/reserve" element={<RequireAuth><ReservePage /></RequireAuth>} />
       <Route path="/admin" element={<RequireAuth admin><AdminHome /></RequireAuth>} />
       <Route path="/admin/:moduleId" element={<RequireAuth admin><AdminModule /></RequireAuth>} />
       <Route path="/admin/:moduleId/:pageId" element={<RequireAuth admin><AdminModule /></RequireAuth>} />

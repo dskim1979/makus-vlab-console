@@ -94,7 +94,9 @@ export type TerminalEnrollment = { state: 'waiting' | 'delivered' | 'manual' | '
   created_at: string; last_poll_at: string | null; delivered_at: string | null };
 export type LabAfter = 'reset' | 'off' | 'none';
 // GET /api/vlab/kiosk (terminal key): the room and what runs now and next
-export type KioskSlot = LabSlot & { pool: string | null };
+// a booking of the room (LAB > 예약) shows in place of the class: reservation_id is set then
+export type KioskSlot = Omit<LabSlot, 'schedule_id'> & { schedule_id?: string; pool: string | null;
+  reservation_id?: string; kind?: 'lab' | 'seats' | 'desktops'; requester?: string; quantity?: number };
 export type KioskInfo = { terminal: { id: string; name: string }; lab: { id: string; name: string; location: string };
   current: KioskSlot | null; next: KioskSlot | null; now: string };
 export type LabSchedule = { id: string; lab_id: string; pool_id: string; title: string; weekdays: number[]; start_time: string;
