@@ -174,7 +174,7 @@ export function ClusterNodesPage() {
                 <table className="table compact-head">
                   <thead>
                     <tr><th>{t('cl.node')}</th><th>{t('cl.status')}</th><th>{t('cl.cpu')}</th><th>{t('cl.memory')}</th>
-                      <th>{t('cl.guests')}</th><th>{t('cl.desktops')}</th><th>{t('cl.uptime')}</th><th>{t('cl.version')}</th></tr>
+                      <th className="num">{t('cl.guests')}</th><th className="num">{t('cl.desktops')}</th><th>{t('cl.uptime')}</th><th>{t('cl.version')}</th></tr>
                   </thead>
                   <tbody>
                     {ns.map((n) => (

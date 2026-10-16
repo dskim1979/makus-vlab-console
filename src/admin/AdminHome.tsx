@@ -20,6 +20,7 @@ export function AdminHome() {
         {(s) => (
           <>
             <InfraBoard s={s} onRefresh={summary.reload} />
+            <div className="dash-lower">
             <div className="dash-grid dash-below">
               <Health s={s} />
               <section className="card">
@@ -34,6 +35,7 @@ export function AdminHome() {
               </section>
             </div>
             <Breakdown s={s} />
+            </div>
           </>
         )}
       </LoadState>

@@ -43,7 +43,7 @@ export function BackupPage() {
 function Storages({ storages, pbs }: { storages: ReturnType<typeof useLoad<BackupStorage[]>>; pbs: ReturnType<typeof useLoad<import('../../api/types').PbsServer[]>> }) {
   const { t } = useI18n();
   return (
-    <div className="dash-grid">
+    <div className="dash-grid bk-top">
       <section className="card">
         <h2 className="card-title">{t('bk.storages')}</h2>
         <LoadState value={storages} retry={storages.reload}>

@@ -4,6 +4,7 @@ import { adminApi } from '../../api/admin';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
+import { duration as fmtDuration } from '../../format';
 import { useI18n } from '../../i18n';
 
 // 운영 > 접속 기록: who connected to which desktop, how, from where, how long.
@@ -19,7 +20,7 @@ export function SessionsPage() {
   const duration = (a: string, b: string | null) => {
     if (!b) return null;
     const m = Math.max(0, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 60000));
-    return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${m % 60}m`;
+    return fmtDuration(m, lang);
   };
 
   function submit(e: FormEvent) {

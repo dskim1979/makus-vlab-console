@@ -6,6 +6,7 @@ import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { StateBadge } from '../../components/StateBadge';
 import { useLoad } from '../../components/useLoad';
+import { duration as fmtDuration } from '../../format';
 import { useI18n } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
 import { bytes, ClusterFrame, Meter, useCluster } from './ClusterPages';
@@ -14,16 +15,14 @@ import { CloneDialog } from './PoolDetailPage';
 type Notice = { kind: 'info' | 'error'; text: string };
 const ACTIONS: PowerAction[] = ['start', 'shutdown', 'reboot', 'stop'];
 
-function uptime(s: number) {
-  if (!s) return '-';
-  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60);
-  return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m`;
+function uptime(s: number, lang: 'ko' | 'en') {
+  return s ? fmtDuration(s / 60, lang) : '-';
 }
 
 // 가상머신 > 데스크톱(VM) 관리: every desktop VM with what it uses, switched on/off here,
 // one by one or several at once.
 export function VmDesktopsPage() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const desktops = useLoad(adminApi.desktops);
   const [pool, setPool] = useState('');
   const [q, setQ] = useState('');
@@ -106,7 +105,7 @@ export function VmDesktopsPage() {
                         onChange={() => setPicked(all ? new Set() : new Set(rows.map((d) => d.id)))} /></th>
                       <th>{t('desk.name')}</th><th>{t('desk.pool')}</th><th>{t('desk.node')}</th><th>{t('desk.state')}</th>
                       <th>{t('vm.cpu')}</th><th>{t('vm.memory')}</th><th>{t('vm.uptime')}</th><th>{t('desk.user')}</th>
-                      <th>{t('vm.actions')}</th>
+                      <th className="actions">{t('vm.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -125,7 +124,7 @@ export function VmDesktopsPage() {
                             <span className="muted small">{u.cpus} vCPU</span></> : <span className="muted small">{u ? `${u.cpus} vCPU` : '-'}</span>}</td>
                           <td>{u && running ? <><Meter value={memPct} label={`${Math.round(memPct)}%`} />
                             <span className="muted small">{bytes(u.mem)} / {bytes(u.maxmem)}</span></> : <span className="muted small">{u ? bytes(u.maxmem) : '-'}</span>}</td>
-                          <td className="nowrap muted small">{u ? uptime(u.uptime) : '-'}</td>
+                          <td className="nowrap muted small">{u ? uptime(u.uptime, lang) : '-'}</td>
                           <td>{d.assigned_user ?? <span className="muted">{t('desk.unassigned')}</span>}</td>
                           <td className="nowrap">
                             {running ? (
