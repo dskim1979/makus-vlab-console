@@ -8,6 +8,7 @@ import { LoadState } from '../../components/LoadState';
 import { SettingsStatus } from '../../components/SettingsShell';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
+import { useHaRegister } from './OpsPages';
 
 // The next-phase pages: 골든 이미지, 게이트웨이, USB 장치 라이브러리, 외부 데스크톱, 가입 심사,
 // 부서 관리, 보드 LAB, 빌드 팜, 라이선스 서버, and 플랫폼 설정 > 클라이언트
@@ -1049,6 +1050,7 @@ export function LicenseServersPage() {
   const [editing, setEditing] = useState<LicenseServer | 'new' | null>(null);
   const [checking, setChecking] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
+  const ha = useHaRegister((text, ok) => { setNotice({ kind: ok ? 'info' : 'error', text }); if (ok) servers.reload(); });
   async function check(s: LicenseServer) {
     setChecking(s.id);
     try { const r = await nextApi.checkLicense(s.id); servers.reload(); setNotice({ kind: r.ok ? 'info' : 'error', text: r.ok ? L(`${s.name}: 모든 포트가 응답합니다.`, `${s.name}: every port answers.`) : L(`${s.name}: 응답하지 않는 포트가 있습니다.`, `${s.name}: a port does not answer.`) }); }
@@ -1087,7 +1089,10 @@ export function LicenseServersPage() {
                     const d = s.last_detail.find((x) => x.port === p);
                     return <span key={p} className={`chip ${d ? (d.ok ? 'chip-on' : 'chip-warn') : ''}`} style={{ marginRight: 4 }}>{p}{d ? (d.ok ? ` · ${d.ms} ms` : ` · ${L('응답 없음', 'down')}`) : ''}</span>;
                   })}</td>
-                  <td>{s.vmid ? <>{s.vmid} <span className="muted small">{s.vm_status}{s.vm_ha ? ' · HA' : ''}</span></> : '-'}</td>
+                  <td className="nowrap">{s.vmid ? <>{s.vmid} <span className="muted small">{s.vm_status}{s.vm_ha ? ' · HA' : ''}</span>
+                    {s.cluster_id && !s.vm_ha && <button type="button" className="btn-ghost small-btn" disabled={ha.busy === s.id}
+                      title={L('노드가 멈추면 다른 노드에서 이 VM을 다시 켭니다', 'Restarts this VM on another node when its node stops')}
+                      onClick={() => ha.register(s.id, s.cluster_id, s.vmid!, s.name)}>{L('HA 등록', 'Add to HA')}</button>}</> : '-'}</td>
                   <td>{s.fixed_mac ? <code className="code">{s.fixed_mac}</code> : '-'}</td>
                   <td className="muted small">{when(s.last_check)}</td>
                   <td className="actions">

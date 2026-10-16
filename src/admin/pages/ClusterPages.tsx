@@ -7,9 +7,11 @@ import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import { messages, type MessageKey } from '../../i18n/messages';
+import { NodeRowActions } from './OpsPages';
 
-// 클러스터 > 개요 · 노드 · 스토리지: read-only views of one cluster at a time. The cluster
-// picked is kept in the address (?c=) so the three pages and a reload stay on it.
+// 클러스터 > 개요 · 노드 · 스토리지: views of one cluster at a time (노드 also takes a node into
+// maintenance, restarts it and shows its log - OpsPages.tsx). The cluster picked is kept in the
+// address (?c=) so the pages and a reload stay on it.
 
 const fill = (s: string, n: number | string) => s.replace('{n}', String(n));
 const pct = (used: number, total: number) => (total > 0 ? Math.min(100, (used / total) * 100) : 0);
@@ -166,7 +168,7 @@ export function ClusterNodesPage() {
   const { nodes } = useClusterLoads(current?.id);
   return (
     <ClusterFrame reload={nodes.reload}>
-      {() => (
+      {(c) => (
         <LoadState value={nodes} retry={nodes.reload}>
           {(ns) => (
             <>
@@ -174,7 +176,7 @@ export function ClusterNodesPage() {
                 <table className="table compact-head">
                   <thead>
                     <tr><th>{t('cl.node')}</th><th>{t('cl.status')}</th><th>{t('cl.cpu')}</th><th>{t('cl.memory')}</th>
-                      <th className="num">{t('cl.guests')}</th><th className="num">{t('cl.desktops')}</th><th>{t('cl.uptime')}</th><th>{t('cl.version')}</th></tr>
+                      <th className="num">{t('cl.guests')}</th><th className="num">{t('cl.desktops')}</th><th>{t('cl.uptime')}</th><th>{t('cl.version')}</th><th className="actions" /></tr>
                   </thead>
                   <tbody>
                     {ns.map((n) => (
@@ -192,12 +194,13 @@ export function ClusterNodesPage() {
                         <td className="num">{n.desktops}</td>
                         <td className="nowrap">{n.online ? uptime(n.uptime, t) : '-'}</td>
                         <td className="muted small">{n.version.replace('pve-manager/', 'PVE ')}</td>
+                        <td className="actions node-actions-cell"><NodeRowActions cluster={c} node={n} onChanged={nodes.reload} /></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <p className="muted small">{t('cl.readOnly')}</p>
+              <p className="muted small">{t('cl.nodesHint')}</p>
             </>
           )}
         </LoadState>

@@ -2,6 +2,7 @@
 // golden images, board lab, build farm, licence servers (makus-vlab pegaprox/api/vlab_next.py),
 // and the Windows client settings (pegaprox/api/vlab.py /api/vlab/admin/client).
 import { ApiError, isMock, request } from './client';
+import { mockHaVmids } from './ops';
 
 export type Department = { id: string; name: string; parent_id: string | null; sort: number; members: number; created_at: string };
 export type Member = { username: string; department_id: string };
@@ -247,11 +248,13 @@ const farm: FarmPool[] = [
     ] },
 ];
 const licenses: LicenseServer[] = [
-  { id: 'lic_1', name: 'FPGA 설계 툴 라이선스 (FlexLM)', host: 'lic01.univ.ac.kr', ports: [2100, 27000], cluster_id: 'c1', vmid: 210, fixed_mac: '52:54:00:1a:2b:3c',
+  { id: 'lic_1', name: 'FPGA 설계 툴 라이선스 (FlexLM)', host: 'lic01.univ.ac.kr', ports: [2100, 27000], cluster_id: 'lab-cluster', vmid: 210, fixed_mac: '52:54:00:1a:2b:3c',
     notes: 'Proxmox HA 등록 · MAC 고정', last_check: iso(5), last_ok: 1,
     last_detail: [{ port: 2100, ok: true, ms: 3, error: '' }, { port: 27000, ok: true, ms: 2, error: '' }], vm_status: 'running', vm_ha: true },
   { id: 'lic_2', name: 'NVIDIA vGPU 라이선스 (DLS)', host: 'dls.univ.ac.kr', ports: [443], cluster_id: '', vmid: null, fixed_mac: '',
     notes: '', last_check: iso(30), last_ok: 0, last_detail: [{ port: 443, ok: false, ms: 2001, error: 'timed out' }] },
+  { id: 'lic_3', name: 'EDA 툴 라이선스 (Cadence)', host: 'lic02.univ.ac.kr', ports: [5280], cluster_id: 'lab-cluster', vmid: 220, fixed_mac: '52:54:00:4d:5e:6f',
+    notes: 'MAC 고정', last_check: iso(5), last_ok: 1, last_detail: [{ port: 5280, ok: true, ms: 4, error: '' }], vm_status: 'running', vm_ha: false },
 ];
 let client: ClientSettings = { latest_version: '0.9.0', min_version: '0.9.0', download_url: '', protocol: 'auto' };
 const grants: Record<string, Grant[]> = {
@@ -406,7 +409,8 @@ const mockNextApi: NextApi = {
 
   buildfarm: () => delay(farm.map((p) => ({ ...p, desktops: p.desktops.map((d) => ({ ...d })) }))),
 
-  licenseServers: () => delay(licenses.map((l) => ({ ...l }))),
+  // vm_ha follows the mock HA set of api/ops.ts (클러스터 > 고가용성, 라이선스 서버 > HA 등록)
+  licenseServers: () => delay(licenses.map((l) => ({ ...l, ...(l.cluster_id === 'lab-cluster' && l.vmid ? { vm_ha: mockHaVmids.has(l.vmid) } : {}) }))),
   saveLicense: (id, b) => {
     const ports = b.ports.split(/[\s,]+/).filter(Boolean).map(Number);
     if (!ports.length || ports.some((p) => !(p >= 1 && p <= 65535))) return fail(400, 'ports: 1 to 10 port numbers');

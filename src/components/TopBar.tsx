@@ -8,6 +8,7 @@ import { AboutDialog } from './AboutDialog';
 import { BrandLockup } from './Brand';
 import { Icon } from './Icon';
 import { MyAccountDialog } from './MyAccountDialog';
+import { TaskIndicator } from './TaskIndicator';
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -61,6 +62,7 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
         {mode === 'console' && (
           <Link to="/" className="tb-link"><Icon name="vm" size={16} />{t('nav.workspace')}</Link>
         )}
+        {user && <TaskIndicator console={mode === 'console'} admin={isAdmin} />}
         <a href={support} target="_blank" rel="noopener noreferrer" className="tb-link tb-support" title={t('sup.hint')}>
           <Icon name="support" size={16} /><span>{t('sup.remote')}</span>
         </a>

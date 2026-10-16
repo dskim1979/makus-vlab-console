@@ -89,20 +89,22 @@ export const MODULES: AdminModule[] = [
   {
     id: 'cluster', icon: 'cluster', tone: 'navy',
     label: { ko: '클러스터', en: 'Cluster' },
-    summary: { ko: '클러스터 연결, 개요, 노드, 스토리지', en: 'Cluster connection, overview, nodes, storage' },
+    summary: { ko: '클러스터 연결, 개요, 노드(유지보수), 스토리지, 고가용성(HA)', en: 'Cluster connection, overview, nodes (maintenance), storage, high availability' },
     pages: [
       { id: 'overview', label: { ko: '개요', en: 'Overview' }, phase: 1 },
       { id: 'nodes', label: { ko: '노드', en: 'Nodes' }, phase: 1 },
       { id: 'storage', label: { ko: '스토리지', en: 'Storage' }, phase: 1 },
+      { id: 'ha', label: { ko: '고가용성(HA)', en: 'High availability' }, phase: 1 },
       { id: 'connections', label: { ko: '클러스터 연결', en: 'Cluster connections' }, phase: 1 },
     ],
   },
   {
     id: 'ops', icon: 'ops', tone: 'slate',
     label: { ko: '운영', en: 'Operations' },
-    summary: { ko: '시스템 요약, 접속 기록, 사용률 보고서, 경보, 백업(PBS), 작업 기록, 플랫폼 설정(도메인·화이트라벨)', en: 'Summary, sessions, usage, alerts, backup (PBS), audit, platform settings (directory, white label)' },
+    summary: { ko: '시스템 요약, 작업 진행, 접속 기록, 사용률 보고서, 경보, 백업(PBS), 작업 기록, 플랫폼 설정(도메인·화이트라벨·서버 이중화)', en: 'Summary, tasks, sessions, usage, alerts, backup (PBS), audit, platform settings (directory, white label, server pair)' },
     pages: [
       { id: 'summary', label: { ko: '시스템 요약', en: 'System summary' }, phase: 1 },
+      { id: 'tasks', label: { ko: '작업 진행', en: 'Tasks' }, phase: 1 },
       { id: 'sessions', label: { ko: '접속 기록', en: 'Session log' }, phase: 1 },
       { id: 'reports', label: { ko: '사용률 보고서', en: 'Usage reports' }, phase: 1 },
       { id: 'report', label: { ko: '운영 보고서 (PDF)', en: 'Operations report (PDF)' }, phase: 1 },

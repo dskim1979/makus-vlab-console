@@ -1269,3 +1269,33 @@ a.kcell:hover { background: var(--surface-2); }
 .vmm-danger .btn.danger:disabled { opacity: .5; }
 @media (max-width: 600px) { .vmm-head-actions { margin-left: 0; } .vmm-row > label { flex: 1 1 100%; } .vmm-row > label input[type=number] { width: 100%; } }
 .vmm-tabs { flex: none; overflow-y: hidden; }
+
+/* 운영 기본: 작업 진행, 상단 바 작업 수, 노드 동작, 고가용성, 서버 이중화 */
+.tb-tasks .tb-icon { position: relative; }
+.tb-badge { position: absolute; top: 2px; right: 1px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px;
+  background: var(--accent); color: #fff; font-size: .68rem; font-weight: 700; line-height: 16px; text-align: center; }
+.tb-task-menu { min-width: 280px; }
+.tb-task { display: grid; grid-template-columns: auto 1fr; gap: .15rem .5rem; padding: .4rem .6rem; }
+.tb-task .bar-track, .tb-task > :nth-child(3) { grid-column: 1 / -1; }
+.tb-task .bar-track { display: block; width: 100%; }
+.tb-task-all { display: flex; align-items: center; justify-content: space-between; gap: .4rem; height: 34px; padding: 0 .6rem; margin-top: .25rem;
+  border-top: 1px solid var(--border); font-size: .88rem; }
+.menu-note { margin: .3rem .6rem .4rem; max-width: 240px; }
+.task-why { max-width: 22rem; overflow-wrap: anywhere; }
+.task-log { max-height: 55vh; font-family: var(--mono, ui-monospace, SFMono-Regular, Consolas, monospace); font-size: .78rem; line-height: 1.45; }
+.task-log .log-bad { color: var(--danger); font-weight: 600; }
+.task-log .log-warn { color: var(--warn); }
+.node-actions { display: inline-flex; align-items: center; gap: .15rem; }
+.node-actions-cell { white-space: nowrap; }
+.maint-list { max-height: 14rem; overflow-y: auto; }
+.t-bad { color: var(--danger); }
+.ha-nodes { display: flex; flex-direction: column; gap: .35rem; margin: 0; padding: .6rem .75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.ha-nodes legend { padding: 0 .3rem; font-size: .82rem; font-weight: 550; color: var(--text-2); }
+.ha-node-row { display: flex; align-items: center; gap: .6rem; }
+.ha-node-row input[type=number] { width: 7rem; }
+.pair-code { width: 100%; font-family: var(--mono, ui-monospace, SFMono-Regular, Consolas, monospace); font-size: .78rem; word-break: break-all; }
+.witness-panel { margin-top: 1.2rem; }
+.witness-panel .section-title { margin-top: 0; }
+/* a dialog opened from a table row lives inside the cell: not its alignment or wrapping */
+dialog.dialog { white-space: normal; text-align: start; }
+.node-actions-cell .alert { white-space: normal; min-width: 14rem; max-width: 22rem; margin-top: .3rem; text-align: start; }

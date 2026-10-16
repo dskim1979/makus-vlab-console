@@ -331,6 +331,7 @@ export const messages = {
   'cl.usage': { ko: "사용량", en: "Usage" },
   'cl.available': { ko: '사용 가능', en: 'Available' },
   'cl.unavailable': { ko: '사용 불가', en: 'Unavailable' },
+  'cl.nodesHint': { ko: "노드를 유지보수에 넣으면 켜진 VM을 다른 노드로 옮깁니다. 다 옮긴 뒤 재시작 · 종료할 수 있습니다. 디스크 · 네트워크 설정은 Proxmox에서 합니다.", en: "Maintenance moves a node's running VMs to the other nodes; once they are off you can restart or shut it down. Disks and networking are set in Proxmox." },
   'cl.readOnly': { ko: "이 화면은 보기 전용입니다. 노드와 스토리지 관리는 Proxmox에서 합니다.", en: "Read only. Nodes and storage are managed in Proxmox." },
   'content.images': { ko: "디스크 이미지", en: "Disk images" },
   'content.rootdir': { ko: "컨테이너", en: "Containers" },
@@ -1076,6 +1077,7 @@ export const messages = {
 
   // 공지 (플랫폼 설정 > 공지, 포털 · 관리 콘솔 상단 띠)
   'hub.notices': { ko: '공지', en: 'Notices' },
+  'hub.pair': { ko: '서버 이중화', en: 'Server pair' },
   'notice.intro': { ko: '공지는 포털과 관리 콘솔 맨 위에 띠로 보입니다. 사용자가 닫으면 그 브라우저에서는 다시 보이지 않고, 내용을 고치면 다시 보입니다.', en: 'Notices show as a bar at the top of the portal and the admin console. A user can close one in their browser; a changed text shows again.' },
   'notice.new': { ko: '공지 만들기', en: 'New notice' },
   'notice.edit': { ko: '공지 고치기', en: 'Edit notice' },

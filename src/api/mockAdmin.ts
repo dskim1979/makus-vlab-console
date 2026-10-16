@@ -2,6 +2,7 @@
 import type { AdminApi } from './admin';
 import { ApiError } from './client';
 import { mockBranding, mockNotices, noticeState } from './mock';
+import { mockNodeState } from './ops';
 import type { Lab, LabAfter, LabSchedule, Terminal, ActiveAlert, AlertChannel, AlertMute, AlertRule, AccelDevice, BackupJob, VmBackup, AccelUser, AdminDesktop, AdminLease, PoolPolicy, ClusterNode, ClusterStorage, Guest, PciMapping, Pool, SessionRow, VgpuProfile } from './types';
 
 const CLUSTER = { id: 'lab-cluster', name: 'LAB-PVE', connected: true, host: '10.20.0.11', connection_error: null as string | null, pools: 0 };
@@ -644,10 +645,14 @@ export const mockAdminApi: AdminApi = {
     return delay(Object.entries(spec).map(([node, [cpus, mem, cpu, model]], i): ClusterNode => {
       const mine = guests.filter((g) => g.node === node);
       const used = Math.round(mem * (0.3 + 0.2 * i)) * GB;
+      const ns = mockNodeState(node);   // 유지보수, a restart (api/ops.ts)
+      if (!ns.online) return { node, status: 'offline', online: false, cpu_percent: 0, cpus, cpu_model: model, mem_used: 0, mem_total: mem * GB,
+        mem_percent: 0, disk_used: 0, disk_total: 96 * GB, uptime: 0, loadavg: [], version: 'pve-manager/8.2.4', maintenance: ns.maintenance,
+        guests: mine.length, running: 0, desktops: desks.filter((d) => d.node === node).length };
       return { node, status: 'online', online: true, cpu_percent: cpu, cpus, cpu_model: model,
         mem_used: used, mem_total: mem * GB, mem_percent: Math.round(used / (mem * GB) * 1000) / 10,
         disk_used: 18 * GB, disk_total: 96 * GB, uptime: 86400 * (12 + i * 5), loadavg: [(cpu / 10).toFixed(2), '2.10', '1.95'],
-        version: 'pve-manager/8.2.4', maintenance: false, guests: mine.length,
+        version: 'pve-manager/8.2.4', maintenance: ns.maintenance, guests: mine.length,
         running: mine.filter((g) => g.status === 'running').length, desktops: desks.filter((d) => d.node === node).length };
     }));
   },

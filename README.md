@@ -107,14 +107,16 @@ nginx 는 `proxy_set_header Host $http_host;` 로 둡니다.
 |---|---|
 | `src/brand.ts` | 제품명·회사·엔진 고지 정보 |
 | `src/i18n/` | 한/영 문구 (키마다 `ko`·`en`) |
-| `src/api/` | 엔진 API(`client.ts`, `admin.ts`, `next.ts`, ISO·VM 만들기 `build.ts`, 계정 · 역할 `users.ts`), 모의 엔진(`mock.ts`, `mockAdmin.ts`, `next.ts`·`build.ts`·`users.ts` 안의 모의), 타입 |
+| `src/api/` | 엔진 API(`client.ts`, `admin.ts`, `next.ts`, ISO·VM 만들기 `build.ts`, 계정 · 역할 `users.ts`, 작업 · 노드 · HA · 서버 이중화 `ops.ts`), 모의 엔진(`mock.ts`, `mockAdmin.ts`, `next.ts`·`build.ts`·`users.ts`·`ops.ts` 안의 모의), 타입 |
 | `src/auth/` | 세션, 로그인(비밀번호 → 필요 시 TOTP, OIDC, LDAP 안내), 첫 설정 |
-| `src/admin/` | 모듈·페이지 정의(`modules.ts`), 대시보드, 모듈 화면(골든 이미지 · 게이트웨이 · 보드 · 빌드 팜 · 라이선스 등은 `pages/NextPages.tsx`, 풀 권한은 `pages/PoolGrants.tsx`, ISO · 이미지 관리와 VM 만들기는 `pages/BuildPages.tsx`) |
+| `src/admin/` | 모듈·페이지 정의(`modules.ts`), 대시보드, 모듈 화면(골든 이미지 · 게이트웨이 · 보드 · 빌드 팜 · 라이선스 등은 `pages/NextPages.tsx`, 풀 권한은 `pages/PoolGrants.tsx`, ISO · 이미지 관리와 VM 만들기는 `pages/BuildPages.tsx`, 작업 진행 · 노드 유지보수 · 고가용성(HA) · 서버 이중화는 `pages/OpsPages.tsx`) |
 | `src/portal/` | 작업 공간(데스크톱 타일·목록), 받을 수 있는 데스크톱(`MyPools.tsx`), 외부 데스크톱, 내 자원 · 빌드 작업, 브라우저 콘솔 |
 | `src/components/` | 상단 막대, 왼쪽 메뉴, 화면 틀, 고지, 대화 상자, 아이콘 |
 | `deploy/` | Dockerfile·nginx·docker compose 설치 묶음 (vlab-proxy · vlab-engine · guacd · guacamole) |
 
 엔진과는 HTTP API 로만 통신합니다 — 인증은 엔진의 `/api/auth/*`, 그 밖은 vLAB API `/api/vlab/*` 만 씁니다.
+예외는 플랫폼 설정 > 서버 이중화의 엔진 `/api/ha/*` 하나입니다: 대기 서버는 `/api/ha/` 밖의 쓰기를 활성 서버로 넘기므로,
+승격처럼 그 서버에서 일어나야 하는 일은 감싸지 않고 엔진 경로를 그대로 부릅니다.
 
 ## 고지·라이선스
 
