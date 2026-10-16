@@ -105,7 +105,7 @@ export function VmDesktopsPage() {
                         onChange={() => setPicked(all ? new Set() : new Set(rows.map((d) => d.id)))} /></th>
                       <th>{t('desk.name')}</th><th>{t('desk.pool')}</th><th>{t('desk.node')}</th><th>{t('desk.state')}</th>
                       <th>{t('vm.cpu')}</th><th>{t('vm.memory')}</th><th>{t('vm.uptime')}</th><th>{t('desk.user')}</th>
-                      <th className="actions">{t('vm.actions')}</th>
+                      <th>{t('vm.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>

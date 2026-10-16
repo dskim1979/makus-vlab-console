@@ -331,7 +331,7 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 15
 .kpi-label { display: inline-flex; align-items: center; gap: .4rem; font-size: .8rem; font-weight: 550; color: var(--muted); }
 .kpi-value { font-size: 1.75rem; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.25; }
 .kpi-sub { font-size: .78rem; color: var(--subtle); }
-.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 280px)); gap: .75rem; margin: 0 0 1rem; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: .75rem; margin: 0 0 1rem; }
 .stat { display: flex; flex-direction: column; gap: .1rem; padding: .9rem 1.05rem; background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); box-shadow: var(--shadow-1); color: var(--text); text-decoration: none !important; }
 a.stat:hover { border-color: var(--border-strong); }
@@ -902,13 +902,20 @@ a.kcell:hover { background: var(--surface-2); }
 
 /* ---------- layout pass: 1920 x 1080 and phones ---------- */
 /* form pages: sections side by side on wide screens, the save bar always in reach */
-.settings { max-width: none; }
+/* form pages: the sections packed into columns by height (no holes under short cards),
+   everything that is not a section across the whole width, and a real save bar */
+.settings { max-width: none; display: block; }
 @media (min-width: 1280px) {
-  .settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); align-items: start; }
-  .settings > :not(.panel) { grid-column: 1 / -1; }
+  .settings { columns: 3 440px; column-gap: 1rem; }
+  .settings > .panel { break-inside: avoid; margin: 0 0 1rem; }
+  .settings > :not(.panel) { column-span: all; margin-bottom: 1rem; }
+  .wl-layout .settings { columns: 2 380px; }
 }
-.settings > .form-actions { position: sticky; bottom: 0; z-index: 3; margin: 0; padding: .75rem 0; background: linear-gradient(to top, var(--bg) 70%, transparent); }
-.wl-layout { grid-template-columns: minmax(0, 1fr) 360px; }
+@media (max-width: 1279px) { .settings { display: flex; } }
+.settings > .form-actions { position: sticky; bottom: 0; z-index: 3; margin: 0 0 0; padding: .7rem 1rem; display: flex; justify-content: flex-end; gap: .5rem;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-2); }
+@media (min-width: 1101px) { .wl-layout { grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr); } }
+.wl-preview.panel { padding: 1rem; }
 .bk-top { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 @media (max-width: 900px) { .bk-top { grid-template-columns: 1fr; } }
 /* below the dashboard: health, quick actions and the counts in one row */
@@ -922,9 +929,31 @@ a.kcell:hover { background: var(--surface-2); }
   .toolbar { flex-wrap: wrap; }
   .toolbar > input, .toolbar > select { flex: 1 1 140px; min-width: 0; }
 }
-.dash-lower { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; margin-top: 1.25rem; align-items: start; }
+.dash-lower { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; margin-top: 1.25rem; align-items: stretch; }
 .dash-lower > .dash-grid, .dash-lower > .breakdown { display: contents; }
 .dash-lower .card, .dash-lower .panel { margin: 0; }
 @media (max-width: 1400px) { .dash-lower { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .dash-lower { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ---------- balance pass ---------- */
+/* a short row of stat cards (3 or fewer) does not stretch across the page */
+@media (min-width: 761px) { .stats:not(:has(> :nth-child(4))) { grid-template-columns: repeat(auto-fill, minmax(200px, 280px)); } }
+/* the action column hugs its buttons; the room goes to the data columns */
+.table td.actions, .table th.actions { width: 1%; white-space: nowrap; }
+/* tables of few columns: the room goes to the first (name) column, not between all of them */
+.table:not(:has(thead th:nth-child(7))) th:first-child { width: 34%; }
+/* the dashboard's lower cards: one height */
+.dash-lower .card, .dash-lower .panel { height: 100%; }
+/* 시스템 요약: two count cards and the versions card in one row */
+.sum-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.1fr); gap: 1rem; align-items: stretch; }
+.sum-row > .breakdown { display: contents; }
+.sum-row > .panel, .sum-row > .breakdown > .panel { margin: 0; }
+@media (max-width: 1100px) { .sum-row { grid-template-columns: 1fr; } }
+/* the usage chart: lower, and the usual gap below it */
+.colchart { height: 180px; }
+.panel + .breakdown { margin-top: 1rem; }
+/* the report page sits in the middle on screen */
+.report { margin: 0 auto; }
+/* long helper lines stay readable */
+.alert, .callout p, .page-head .page-desc { max-width: 1100px; }

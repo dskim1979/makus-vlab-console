@@ -121,7 +121,7 @@ function BrandingForm({ initial }: { initial: Branding }) {
         <div className="form-actions"><button type="submit" className="btn primary" disabled={busy}>{t('common.save')}</button></div>
       </form>
 
-      <aside className="wl-preview" aria-label={t('wl.preview')}>
+      <aside className="wl-preview panel" aria-label={t('wl.preview')}>
         <div className="section-title">{t('wl.preview')}</div>
         <div className="wl-pv-login">
           <div className="wl-pv-card">

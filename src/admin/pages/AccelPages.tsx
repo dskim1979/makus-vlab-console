@@ -148,7 +148,7 @@ export function VgpuProfilesPage() {
                 {(ps) => (
                   <div className="table-scroll">
                     <table className="table compact-head">
-                      <thead><tr><th>{t('ac.profile')}</th><th>{t('ac.framebuffer')}</th><th>{t('ac.heads')}</th>
+                      <thead><tr><th>{t('ac.profile')}</th><th>{t('ac.framebuffer')}</th><th className="num">{t('ac.heads')}</th>
                         <th>{t('ac.resolution')}</th><th className="num">{t('ac.maxInst')}</th><th>{t('ac.available')}</th></tr></thead>
                       <tbody>
                         {ps.map((p) => (

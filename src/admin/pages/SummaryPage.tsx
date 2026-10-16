@@ -19,6 +19,7 @@ export function SummaryPage() {
         {(s) => (
           <>
             <StatTiles s={s} />
+            <div className="sum-row">
             <Breakdown s={s} />
             <section className="panel versions">
               <h2 className="section-title">{t('sum.versions')}</h2>
@@ -35,6 +36,7 @@ export function SummaryPage() {
                 </dd>
               </dl>
             </section>
+            </div>
           </>
         )}
       </LoadState>
