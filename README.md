@@ -19,42 +19,63 @@
 ## 화면
 
 ### 사용자 작업 공간 (`/`)
-배정된 데스크톱을 한 화면에서 보고 바로 접속합니다. 즐겨찾기, 켜져 있는 것만 보기, 검색, 브라우저 접속(noVNC)과 SPICE 접속을 지원하고,
-GPU·vGPU·FPGA·NPU 카드가 붙은 데스크톱은 카드에 표시됩니다. 상단의 **원격 지원 요청**으로 매커스시스템즈 지원 페이지를 엽니다.
+배정된 데스크톱을 한 화면에서 보고 바로 접속합니다. 즐겨찾기, 켜져 있는 것만 보기, 검색을 지원합니다.
+접속은 브라우저(noVNC), SPICE 파일, RDP 파일, 브라우저 RDP(Guacamole) 중 풀 정책이 허용한 방식으로 합니다.
+GPU·vGPU·FPGA·NPU 카드가 붙은 데스크톱은 카드에 표시되고, 상단의 **원격 지원 요청**으로 매커스시스템즈 지원 페이지를 엽니다.
 
-![작업 공간](docs/images/portal.png)
+| | |
+|---|---|
+| **작업 공간** — 데스크톱 카드, 접속 방법 안내, MOAVI Desk Client 받기 | **접속 메뉴** — ··· 에서 SPICE 파일 받기, RDP 파일 받기, 브라우저 RDP로 열기, 전원 |
+| ![작업 공간](docs/images/portal.png) | ![접속 메뉴](docs/images/portal-rdp.png) |
+| **받을 수 있는 데스크톱 · 외부 데스크톱** — 권한이 있는 풀에서 직접 받기(전용) · 바로 연결(공유), 실제 PC에 RDP · 브라우저로 접속 | **로그인** — 회사 표기, 가입 신청, 원격 지원 요청 링크 |
+| ![받을 수 있는 데스크톱](docs/images/portal-pools.png) | ![로그인](docs/images/login.png) |
 
 ### 관리 콘솔 (`/admin`)
 
 | | |
 |---|---|
-| **대시보드** — 한 화면에 상태 점수, CPU·메모리·VM·접속 추이(24시간·7일·30일), 노드별 CPU, 활성 경보, 자원 제안(증설·회수), 노드·스토리지 | **데스크톱(VM) 관리** — 사용량, 전원(한 대씩·여러 대 한 번에) |
+| **대시보드** — 상태 점수, CPU·메모리·VM·접속 추이(24시간·7일·30일), 노드별 CPU, 활성 경보, 자원 제안(증설·회수) | **데스크톱(VM) 관리** — 사용량, 전원(한 대씩·여러 대 한 번에) |
 | ![대시보드](docs/images/admin-dashboard.png) | ![데스크톱 VM](docs/images/desktop-vms.png) |
-| **GPU·가속 카드 재고** — NVIDIA·AMD·Intel GPU, vGPU 가능 여부, FPGA 카드, 국산 NPU(FuriosaAI·Rebellions·DEEPX 등), 리소스 매핑 | **카드 대여 현황** — GPU·FPGA·NPU 카드를 기간을 정해 빌려주기, 연장·반납·자동 반납 |
-| ![가속 자원](docs/images/accel-inventory.png) | ![카드 대여](docs/images/card-loans.png) |
-| **경보** — 발생 중인 경보 확인·음소거, 경보 규칙, 알림 채널(메일·웹훅 등) | **운영 보고서 (PDF)** — 기간별 요약, 추이, 자원 제안, 풀별 사용, 스토리지, 경보를 A4 한 장으로 |
-| ![경보](docs/images/alerts.png) | ![운영 보고서](docs/images/report.png) |
-| **사용률 보고서** — 7·30·90일, 일별 접속 시간, 풀별 사용률, 많이 쓴 사용자, CSV | **템플릿 관리** — 디스크·링크 클론 가능 여부·사용 풀, 여기서 풀에 클론 |
-| ![사용률 보고서](docs/images/usage-report.png) | ![템플릿](docs/images/templates.png) |
-| **백업 (PBS)** — 백업 저장소·PBS 서버, 풀 단위 예약 백업, 데스크톱별 지금 백업·복원·삭제 | **플랫폼 설정** — 일반(로그인·비밀번호·감사·메일), 도메인(AD/LDAP), 화이트라벨을 탭으로 |
-| ![백업](docs/images/backup.png) | ![플랫폼 설정](docs/images/settings.png) |
-| **화이트라벨** (플랫폼 설정 탭) — 제품 이름·문구·로고·파비콘·대표 색·링크, 브라우저 탭·상단 바·로그인 미리 보기 | **로그인** — 회사 표기, 원격 지원 요청 링크 |
-| ![화이트라벨](docs/images/branding.png) | ![로그인](docs/images/login.png) |
-| **LAB 사용 일정** — LAB × 일정형 풀 × 요일·시간의 주간 시간표, 시작 전 준비(빗금)와 끝난 뒤 초기화 | **LAB 키오스크** (`/kiosk`) — LAB 단말의 전체 화면: 지금 수업·다음 수업, 로그인하면 수업 데스크톱으로 바로 |
+| **골든 이미지** — 일반 VM을 골든 이미지로, 버전(스냅샷) 만들기, 풀에 배포, 풀별 예전 버전 대수 | **골든 롤아웃** — 예전 버전 데스크톱을 새 버전 복제본으로 일괄 교체(사용자 · 권한 이전, 접속 중은 건너뜀) |
+| ![골든 이미지](docs/images/golden-images.png) | ![골든 롤아웃](docs/images/golden-rollout.png) |
+| **풀 상세** — 정책 · 이용 권한 · GPU 정책 패널, 데스크톱 할당 · 초기화 | **이용 권한** — 사용자 · 부서(하위 포함) · AD/LDAP 그룹, 공유 풀의 데스크톱당 최대 접속 |
+| ![풀 상세](docs/images/pool-detail.png) | ![이용 권한](docs/images/pool-grants.png) |
+| **풀 정책** — 접속 방식(noVNC · SPICE · RDP · 브라우저 RDP), 클립보드 · USB, 전원 · 시간 · 초기화 | **게이트웨이** — RDP 게이트웨이 · MS RD 게이트웨이 · Guacamole(내장 자동 등록), 포트 응답 확인 |
+| ![풀 정책](docs/images/pool-policy.png) | ![게이트웨이](docs/images/gateways.png) |
+| **외부 데스크톱** — 가상화하지 않는 실제 PC를 사용자에게 배정(RDP · 게이트웨이) | **USB 장치 라이브러리** — VID · PID 등록, FPGA JTAG 케이블 기본 제공 |
+| ![외부 데스크톱](docs/images/external-desktops.png) | ![USB 장치](docs/images/usb-library.png) |
+| **가입 심사** — 로그인 화면의 가입 신청을 켜고 끄기, 대기 · 승인 · 거절 | **부서 관리** — 학과 · 연구실 · 팀 트리, 하위 부서 포함 구성원 |
+| ![가입 심사](docs/images/signups.png) | ![부서 관리](docs/images/departments.png) |
+| **LAB 사용 일정** — LAB × 일정형 풀 × 요일·시간의 주간 시간표, 시작 전 준비(빗금)와 끝난 뒤 초기화 | **LAB 키오스크** (`/kiosk`) — 지금 수업·다음 수업, 로그인하면 수업 데스크톱으로 바로 |
 | ![LAB 사용 일정](docs/images/lab-schedules.png) | ![LAB 키오스크](docs/images/kiosk.png) |
+| **GPU·가속 카드 재고** — NVIDIA·AMD·Intel GPU, vGPU, FPGA 카드, 국산 NPU(FuriosaAI·Rebellions·DEEPX 등) | **카드 대여 현황** — 기간 대여 · 연장 · 반납 · 자동 반납 |
+| ![가속 자원](docs/images/accel-inventory.png) | ![카드 대여](docs/images/card-loans.png) |
+| **보드 LAB(JTAG)** — 보드의 JTAG 케이블을 데스크톱에 연결, 대여 기간 · 자동 반납 | **빌드 팜 · 작업 큐** — 빌드 VM 부하, 작업 넣기 · 대기 · 실행 · 결과 출력 |
+| ![보드 LAB](docs/images/boards.png) | ![빌드 작업 큐](docs/images/build-jobs.png) |
+| **라이선스 서버** — FlexLM · vGPU 라이선스 서버 포트 감시(5분), 끊기면 메일 · 웹훅 알림, 고정 MAC · HA | **카드 사용 보고서** — 카드별 대여 건수 · 시간 · 사용률 · 사용자, 7·30·90일, CSV |
+| ![라이선스 서버](docs/images/licenses.png) | ![카드 사용 보고서](docs/images/card-usage.png) |
+| **템플릿 관리** — 디스크·링크 클론 가능 여부·사용 풀, 여기서 풀에 클론 | **사용률 보고서** — 7·30·90일, 일별 접속 시간, 풀별 사용률, 많이 쓴 사용자, CSV |
+| ![템플릿](docs/images/templates.png) | ![사용률 보고서](docs/images/usage-report.png) |
+| **운영 보고서 (PDF)** — 기간별 요약, 추이, 자원 제안, 풀별 사용, 스토리지, 경보를 A4 한 장으로 | **경보** — 발생 중인 경보 확인·음소거, 경보 규칙, 알림 채널(메일·웹훅 등) |
+| ![운영 보고서](docs/images/report.png) | ![경보](docs/images/alerts.png) |
+| **백업 (PBS)** — 백업 저장소·PBS 서버, 풀 단위 예약 백업, 지금 백업·복원·삭제 | **플랫폼 설정** — 일반(로그인·비밀번호·감사·메일), 도메인(AD/LDAP), 화이트라벨, 클라이언트 |
+| ![백업](docs/images/backup.png) | ![플랫폼 설정](docs/images/settings.png) |
+| **화이트라벨** — 제품 이름·문구·로고·파비콘·대표 색·링크, 미리 보기 | **클라이언트 배포** — Windows 클라이언트 최신 · 최소 버전, 다운로드 주소(MSI), 기본 접속 방식 |
+| ![화이트라벨](docs/images/branding.png) | ![클라이언트](docs/images/client-settings.png) |
 
 ## 기능 한눈에
 
 | 모듈 | 화면 |
 |---|---|
 | 대시보드 | 인프라 모니터링(상태 점수·추이·경보), 자원 제안(증설·회수·유휴) |
-| 가상머신 | 데스크톱(VM) 관리, 템플릿 관리 · *(예정)* 골든 이미지 |
-| 데스크톱 풀 | 풀 관리(전용·초기화·공유·일정형·빌드 팜), 템플릿 일괄 복제, 할당, 초기화, 풀 정책, 풀 GPU 정책, 데스크톱 상태 |
-| 사용자 | 사용자 목록, 유효 권한 조회 |
-| LAB | LAB 관리(공용 공간·좌석·지금/다음 일정), 단말 관리(MOAVI Desk Client 등록 요청·승인), 사용 일정(주간 시간표, 시작 전 준비, 끝난 뒤 초기화·끄기), 일정형 풀, **LAB 키오스크**(`/kiosk`: 단말 키로 설정한 PC에서 로그인하면 지금 수업의 데스크톱이 전체 화면으로) |
-| 가속 자원 | GPU·가속 카드 재고(GPU·FPGA·NPU), vGPU 프로필, 리소스 매핑, 카드 대여 현황 · *(예정)* 보드 LAB(JTAG), 빌드 팜, 라이선스 서버 |
+| 가상머신 | 데스크톱(VM) 관리, 템플릿 관리, 골든 이미지(버전 · 배포 · 일괄 롤아웃) |
+| 데스크톱 풀 | 풀 관리(전용·초기화·공유·일정형·빌드 팜), 템플릿 일괄 복제, 할당, 초기화, 풀 정책(noVNC · SPICE · RDP · 브라우저 RDP), 이용 권한(사용자 · 부서 · AD 그룹), 공유 풀 접속 라우팅, 풀 GPU 정책, 데스크톱 상태, 게이트웨이, USB 장치 라이브러리, 외부 데스크톱 |
+| 사용자 | 사용자 목록, 가입 심사, 부서 관리, 유효 권한 조회 |
+| LAB | LAB 관리(공용 공간·좌석·지금/다음 일정), 단말 관리(MOAVI Desk Client 등록 요청·승인, 키오스크 키), 사용 일정(주간 시간표, 시작 전 준비, 끝난 뒤 초기화·끄기), 일정형 풀, **LAB 키오스크**(`/kiosk`) |
+| 가속 자원 | GPU·가속 카드 재고(GPU·FPGA·NPU), vGPU 프로필, 리소스 매핑, 카드 대여 현황, 보드 LAB(JTAG · 대여 기간 · 자동 반납), 빌드 팜(작업 큐), 라이선스 서버(자동 감시 · 알림), 카드 사용 보고서 |
 | 클러스터 | 개요, 노드, 스토리지, 클러스터 연결 |
-| 운영 | 시스템 요약, 접속 기록, 사용률 보고서, 운영 보고서(PDF), 경보, 백업(PBS), 작업 기록(감사), 플랫폼 설정(일반·도메인·화이트라벨) |
+| 운영 | 시스템 요약, 접속 기록, 사용률 보고서, 운영 보고서(PDF), 경보, 백업(PBS), 작업 기록(감사), 플랫폼 설정(일반·도메인·화이트라벨·클라이언트) |
+| 작업 공간 | 내 데스크톱(4가지 접속 방식 · 전원), 받을 수 있는 데스크톱(직접 받기 · 공유 풀 연결), 외부 데스크톱, 내 자원(빌린 카드 · 보드, 빌드 작업 큐) |
 
 화면은 한국어·영어, 다크·라이트 테마(사용자 메뉴에서 시스템·라이트·다크)를 지원하고, 1920×1080부터 휴대폰 폭까지 창 크기에 맞춰 배치가 바뀝니다.
 버전과 라이선스는 오른쪽 위 사용자 메뉴의 **정보**에서 봅니다.
@@ -76,7 +97,9 @@ nginx 는 `proxy_set_header Host $http_host;` 로 둡니다.
 
 ## 서버에 설치
 
-[deploy/README.md](deploy/README.md) — docker compose 로 콘솔(nginx, HTTPS)과 엔진(API 전용)을 한 서버에 설치합니다.
+[deploy/README.md](deploy/README.md) — docker compose 로 콘솔(nginx, HTTPS)과 엔진(API 전용), 브라우저 RDP 용 Apache Guacamole(guacd · guacamole)을
+한 서버에 함께 설치합니다. 사용자에게 열 포트는 443 하나이고(브라우저 RDP 도 같은 443 의 `/guacamole/`), Guacamole 공유 키는 첫 시작 때 자동으로 만들어
+엔진이 게이트웨이로 스스로 등록합니다. 브라우저 RDP 를 쓰지 않으면 `.env` 에 `VLAB_GUACAMOLE=0`.
 
 ## 구조
 
@@ -84,12 +107,12 @@ nginx 는 `proxy_set_header Host $http_host;` 로 둡니다.
 |---|---|
 | `src/brand.ts` | 제품명·회사·엔진 고지 정보 |
 | `src/i18n/` | 한/영 문구 (키마다 `ko`·`en`) |
-| `src/api/` | 엔진 API(`client.ts`, `admin.ts`), 모의 엔진(`mock.ts`, `mockAdmin.ts`), 타입 |
+| `src/api/` | 엔진 API(`client.ts`, `admin.ts`, `next.ts`), 모의 엔진(`mock.ts`, `mockAdmin.ts`, `next.ts` 안의 모의), 타입 |
 | `src/auth/` | 세션, 로그인(비밀번호 → 필요 시 TOTP, OIDC, LDAP 안내), 첫 설정 |
-| `src/admin/` | 모듈·페이지 정의(`modules.ts`), 대시보드, 모듈 화면 |
-| `src/portal/` | 작업 공간(데스크톱 타일·목록), 내 자원, 브라우저 콘솔 |
+| `src/admin/` | 모듈·페이지 정의(`modules.ts`), 대시보드, 모듈 화면(골든 이미지 · 게이트웨이 · 보드 · 빌드 팜 · 라이선스 등은 `pages/NextPages.tsx`, 풀 권한은 `pages/PoolGrants.tsx`) |
+| `src/portal/` | 작업 공간(데스크톱 타일·목록), 받을 수 있는 데스크톱(`MyPools.tsx`), 외부 데스크톱, 내 자원 · 빌드 작업, 브라우저 콘솔 |
 | `src/components/` | 상단 막대, 왼쪽 메뉴, 화면 틀, 고지, 대화 상자, 아이콘 |
-| `deploy/` | Dockerfile·nginx·docker compose 설치 묶음 |
+| `deploy/` | Dockerfile·nginx·docker compose 설치 묶음 (vlab-proxy · vlab-engine · guacd · guacamole) |
 
 엔진과는 HTTP API 로만 통신합니다 — 인증은 엔진의 `/api/auth/*`, 그 밖은 vLAB API `/api/vlab/*` 만 씁니다.
 
