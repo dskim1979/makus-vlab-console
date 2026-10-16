@@ -4,6 +4,7 @@ import { useI18n } from '../i18n';
 import { findModule } from './modules';
 import { AccelInventoryPage, MappingsPage, VgpuProfilesPage } from './pages/AccelPages';
 import { LeasesPage } from './pages/LeasesPage';
+import { LabSchedulesPage, LabsPage, ScheduledPoolsPage, TerminalsPage } from './pages/LabPages';
 import { AccessPage } from './pages/AccessPage';
 import { AlertsPage } from './pages/AlertsPage';
 import { AuditPage } from './pages/AuditPage';
@@ -44,6 +45,10 @@ function pageBody(moduleId: string, pageId: string, subId?: string) {
   if (key === 'cluster/overview') return <ClusterOverviewPage />;
   if (key === 'cluster/nodes') return <ClusterNodesPage />;
   if (key === 'cluster/storage') return <ClusterStoragePage />;
+  if (key === 'labs/list') return <LabsPage />;
+  if (key === 'labs/terminals') return <TerminalsPage />;
+  if (key === 'labs/schedules') return <LabSchedulesPage />;
+  if (key === 'labs/pools') return <ScheduledPoolsPage />;
   if (key === 'users/list') return <UsersPage />;
   if (key === 'users/access') return <AccessPage username={subId} />;
   return null;

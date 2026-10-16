@@ -71,6 +71,23 @@ export type Lease = {
 
 export type PoolType = 'dedicated' | 'reset' | 'shared' | 'classroom' | 'buildfarm';
 
+// LABs: rooms of terminals and the weekly schedules of their pools (/api/vlab/admin/labs ...)
+export type LabSlot = { schedule_id: string; pool_id: string; title: string; start: string; end: string; preparing?: boolean };
+export type Lab = { id: string; name: string; location: string; description: string; seats: number; tenant_id: string;
+  created_at: string; terminals: number; pending: number; schedules: number; current: LabSlot | null; next: LabSlot | null };
+export type LabInput = { name: string; location?: string; description?: string; seats?: number };
+export type Terminal = { id: string; lab_id: string | null; name: string; mac: string; ip: string; state: 'pending' | 'approved';
+  registered_by: string; last_seen: string | null; created_at: string };
+export type LabAfter = 'reset' | 'off' | 'none';
+export type LabSchedule = { id: string; lab_id: string; pool_id: string; title: string; weekdays: number[]; start_time: string;
+  end_time: string; prepare_min: number; after: LabAfter; enabled: boolean; last_prepared: string; last_finished: string;
+  lab: string | null; pool: string | null; pool_type: PoolType | null };
+export type LabScheduleInput = { lab_id: string; pool_id: string; title?: string; weekdays: number[]; start_time: string;
+  end_time: string; prepare_min: number; after: LabAfter; enabled?: boolean };
+export type LabRun = { phase: 'prepare' | 'finish'; done: { id: string; name: string }[];
+  skipped: { id: string; name: string; reason: string }[]; failed: { id: string; name: string; error: string }[] };
+
+
 export type Pool = {
   id: string;
   name: string;

@@ -2,7 +2,7 @@
 import type { AdminApi } from './admin';
 import { ApiError } from './client';
 import { mockBranding } from './mock';
-import type { ActiveAlert, AlertChannel, AlertMute, AlertRule, AccelDevice, BackupJob, VmBackup, AccelUser, AdminDesktop, AdminLease, PoolPolicy, ClusterNode, ClusterStorage, Guest, PciMapping, Pool, SessionRow, VgpuProfile } from './types';
+import type { Lab, LabAfter, LabSchedule, Terminal, ActiveAlert, AlertChannel, AlertMute, AlertRule, AccelDevice, BackupJob, VmBackup, AccelUser, AdminDesktop, AdminLease, PoolPolicy, ClusterNode, ClusterStorage, Guest, PciMapping, Pool, SessionRow, VgpuProfile } from './types';
 
 const CLUSTER = { id: 'lab-cluster', name: 'LAB-PVE', connected: true, host: '10.20.0.11', connection_error: null as string | null, pools: 0 };
 const clusters = [CLUSTER];
@@ -71,6 +71,59 @@ function addDesk(pool: Pool, vmid: number, user: string | null = null) {
   desks.forEach((d) => withBase.add(d.id));   // the sample lab already has its bases
   const b = addPool('FPGA 빌드 팜', 'buildfarm');
   addDesk(b, 400, 'bob'); addDesk(b, 401, 'carol');
+}
+
+{
+  const c = addPool('교육장 A 수업용', 'classroom');
+  addDesk(c, 303); addDesk(c, 304); addDesk(c, 305);
+}
+
+// LABs: two rooms, their PCs, and a week of sessions (local time, 0 = Monday)
+const mockLabs: Omit<Lab, 'terminals' | 'pending' | 'schedules' | 'current' | 'next'>[] = [
+  { id: 'lab_a', name: '교육장 A', location: '본관 3층 301호', description: '신입 연구원 교육·사내 교육', seats: 24, tenant_id: '', created_at: '2026-09-01T09:00:00Z' },
+  { id: 'lab_b', name: '공용 연구실 B', location: '연구동 2층', description: '교대 근무·야간 분석', seats: 12, tenant_id: '', created_at: '2026-09-01T09:00:00Z' },
+];
+const mockTerminals: Terminal[] = [
+  ...Array.from({ length: 6 }, (_, i): Terminal => ({ id: `term_a${i + 1}`, lab_id: 'lab_a', name: `A-PC-${String(i + 1).padStart(2, '0')}`,
+    mac: `52:54:00:a1:00:${String(i + 1).padStart(2, '0')}`, ip: `10.30.1.${21 + i}`, state: 'approved', registered_by: 'admin',
+    last_seen: new Date(Date.now() - (i + 1) * 9 * 60e3).toISOString(), created_at: '2026-09-02T09:00:00Z' })),
+  { id: 'term_b1', lab_id: 'lab_b', name: 'B-PC-01', mac: '52:54:00:b2:00:01', ip: '10.30.2.11', state: 'approved', registered_by: 'admin',
+    last_seen: new Date(Date.now() - 3 * 3600e3).toISOString(), created_at: '2026-09-02T09:00:00Z' },
+  { id: 'term_new1', lab_id: null, name: 'A-PC-07', mac: '52:54:00:a1:00:07', ip: '10.30.1.27', state: 'pending', registered_by: 'alice',
+    last_seen: new Date(Date.now() - 4 * 60e3).toISOString(), created_at: new Date(Date.now() - 4 * 60e3).toISOString() },
+  { id: 'term_new2', lab_id: null, name: '', mac: '52:54:00:a1:00:08', ip: '10.30.1.28', state: 'pending', registered_by: 'bob',
+    last_seen: new Date(Date.now() - 11 * 60e3).toISOString(), created_at: new Date(Date.now() - 11 * 60e3).toISOString() },
+];
+type MockSchedule = Omit<LabSchedule, 'lab' | 'pool' | 'pool_type'>;
+const mockSchedules: MockSchedule[] = [];
+function addSchedule(lab_id: string, pool: Pool, title: string, weekdays: number[], start_time: string, end_time: string, after: LabAfter = 'reset', prepare_min = 15) {
+  mockSchedules.push({ id: `sch_${seq++}`, lab_id, pool_id: pool.id, title, weekdays, start_time, end_time, prepare_min, after, enabled: true,
+    last_prepared: '', last_finished: '' });
+}
+{
+  const cls = pools.find((p) => p.type === 'classroom')!;
+  const reset = pools.find((p) => p.type === 'reset')!;
+  addSchedule('lab_a', cls, '파이썬 데이터 분석', [0, 2], '09:00', '12:00');
+  addSchedule('lab_a', cls, 'FPGA 설계 기초', [1, 3], '13:00', '17:00');
+  addSchedule('lab_a', reset, '신입 연구원 교육', [4], '10:00', '16:00');
+  addSchedule('lab_b', reset, '야간 분석 근무', [0, 1, 2, 3, 4], '19:00', '23:00', 'off', 10);
+}
+const hm = (s: string) => Number(s.slice(0, 2)) * 60 + Number(s.slice(3));
+const dayOf = (d: Date) => (d.getDay() + 6) % 7;   // 0 = Monday
+const iso = (d: Date, mins: number) => { const x = new Date(d); x.setHours(Math.floor(mins / 60), mins % 60, 0, 0);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}T${String(x.getHours()).padStart(2, '0')}:${String(x.getMinutes()).padStart(2, '0')}`; };
+function labState(labId: string): Pick<Lab, 'current' | 'next'> {
+  const now = new Date(), mins = now.getHours() * 60 + now.getMinutes();
+  const mine = mockSchedules.filter((s) => s.lab_id === labId && s.enabled);
+  let current: Lab['current'] = null, next: Lab['next'] = null;
+  for (const s of mine) if (s.weekdays.includes(dayOf(now)) && mins >= hm(s.start_time) - s.prepare_min && mins < hm(s.end_time))
+    current = { schedule_id: s.id, pool_id: s.pool_id, title: s.title, start: iso(now, hm(s.start_time)), end: iso(now, hm(s.end_time)), preparing: mins < hm(s.start_time) };
+  for (let i = 0; i < 8 && !next; i++) {
+    const d = new Date(now); d.setDate(d.getDate() + i);
+    for (const s of [...mine].sort((a, b) => hm(a.start_time) - hm(b.start_time)))
+      if (s.weekdays.includes(dayOf(d)) && (i > 0 || hm(s.start_time) > mins)) { next = { schedule_id: s.id, pool_id: s.pool_id, title: s.title, start: iso(d, hm(s.start_time)), end: iso(d, hm(s.end_time)) }; break; }
+  }
+  return { current, next };
 }
 
 const mockJobs: BackupJob[] = [
@@ -304,6 +357,84 @@ export const mockAdminApi: AdminApi = {
     return delay(undefined);
   },
   deleteBackupJob: (_cid, jobId) => { mockJobs.splice(mockJobs.findIndex((j) => j.id === jobId), 1); return delay(undefined); },
+  labs: () => delay(mockLabs.map((l) => ({ ...l,
+    terminals: mockTerminals.filter((t) => t.lab_id === l.id && t.state === 'approved').length,
+    pending: mockTerminals.filter((t) => t.lab_id === l.id && t.state === 'pending').length,
+    schedules: mockSchedules.filter((s) => s.lab_id === l.id).length, ...labState(l.id) }))),
+  saveLab: (id, body) => {
+    if (!body.name?.trim()) return fail(400, 'A name of 1-80 characters is required');
+    let l = id ? mockLabs.find((x) => x.id === id) : undefined;
+    if (id && !l) return fail(404, 'LAB not found');
+    if (!l) { l = { id: `lab_${seq++}`, name: '', location: '', description: '', seats: 0, tenant_id: '', created_at: new Date().toISOString() }; mockLabs.push(l); }
+    Object.assign(l, { name: body.name.trim(), location: body.location ?? '', description: body.description ?? '', seats: body.seats ?? 0 });
+    return delay({ ...l, terminals: 0, pending: 0, schedules: 0, ...labState(l.id) });
+  },
+  deleteLab: (id) => {
+    const i = mockLabs.findIndex((x) => x.id === id);
+    if (i < 0) return fail(404, 'LAB not found');
+    mockLabs.splice(i, 1);
+    for (let k = mockSchedules.length - 1; k >= 0; k--) if (mockSchedules[k].lab_id === id) mockSchedules.splice(k, 1);
+    mockTerminals.forEach((t) => { if (t.lab_id === id) t.lab_id = null; });
+    return delay(undefined);
+  },
+  terminals: () => delay(mockTerminals.map((t) => ({ ...t }))),
+  addTerminal: (body) => {
+    const hex = body.mac.replace(/[^0-9a-fA-F]/g, '').toLowerCase();
+    if (hex.length !== 12) return fail(400, 'A MAC address like 00:11:22:33:44:55 is required');
+    const mac = hex.match(/../g)!.join(':');
+    if (mockTerminals.some((t) => t.mac === mac)) return fail(409, 'This MAC address is registered already');
+    const t: Terminal = { id: `term_${seq++}`, lab_id: body.lab_id ?? null, name: body.name ?? '', mac, ip: '', state: 'approved',
+      registered_by: 'admin', last_seen: null, created_at: new Date().toISOString() };
+    mockTerminals.push(t);
+    return delay({ ...t });
+  },
+  updateTerminal: (id, body) => {
+    const t = mockTerminals.find((x) => x.id === id);
+    if (!t) return fail(404, 'Terminal not found');
+    Object.assign(t, Object.fromEntries(Object.entries(body).filter(([, v]) => v !== undefined)));
+    return delay({ ...t });
+  },
+  deleteTerminal: (id) => {
+    const i = mockTerminals.findIndex((x) => x.id === id);
+    if (i < 0) return fail(404, 'Terminal not found');
+    mockTerminals.splice(i, 1);
+    return delay(undefined);
+  },
+  labSchedules: () => delay(mockSchedules.map((s) => {
+    const p = pools.find((x) => x.id === s.pool_id);
+    return { ...s, lab: mockLabs.find((l) => l.id === s.lab_id)?.name ?? null, pool: p?.name ?? null, pool_type: p?.type ?? null };
+  })),
+  saveLabSchedule: (id, body) => {
+    if (!body.weekdays.length) return fail(400, 'Pick at least one weekday');
+    if (!/^\d\d:\d\d$/.test(body.start_time) || !/^\d\d:\d\d$/.test(body.end_time)) return fail(400, 'Times are HH:MM');
+    if (hm(body.end_time) <= hm(body.start_time)) return fail(400, 'The end must be after the start (same day)');
+    const pool = pools.find((p) => p.id === body.pool_id);
+    if (!pool) return fail(404, 'Pool not found');
+    if (!['classroom', 'reset', 'shared'].includes(pool.type)) return fail(400, 'A LAB schedule takes a scheduled (classroom), reset or shared pool');
+    const clash = mockSchedules.find((s) => s.id !== id && s.lab_id === body.lab_id && s.enabled && body.enabled !== false
+      && s.weekdays.some((d) => body.weekdays.includes(d)) && hm(s.start_time) < hm(body.end_time) && hm(body.start_time) < hm(s.end_time));
+    if (clash) return Promise.reject(new ApiError(409, 'This LAB has another schedule at that time', { code: 'OVERLAP' }));
+    let s = id ? mockSchedules.find((x) => x.id === id) : undefined;
+    if (id && !s) return fail(404, 'Schedule not found');
+    if (!s) { s = { id: `sch_${seq++}`, lab_id: '', pool_id: '', title: '', weekdays: [], start_time: '', end_time: '', prepare_min: 10,
+      after: 'reset', enabled: true, last_prepared: '', last_finished: '' }; mockSchedules.push(s); }
+    Object.assign(s, { ...body, title: body.title ?? '', enabled: body.enabled !== false, weekdays: [...body.weekdays].sort() });
+    return delay({ ...s, lab: mockLabs.find((l) => l.id === s!.lab_id)?.name ?? null, pool: pool.name, pool_type: pool.type });
+  },
+  deleteLabSchedule: (id) => {
+    const i = mockSchedules.findIndex((x) => x.id === id);
+    if (i < 0) return fail(404, 'Schedule not found');
+    mockSchedules.splice(i, 1);
+    return delay(undefined);
+  },
+  runLabSchedule: (id, phase) => {
+    const s = mockSchedules.find((x) => x.id === id);
+    if (!s) return fail(404, 'Schedule not found');
+    const mine = desks.filter((d) => d.pool_id === s.pool_id);
+    const busy = phase === 'finish' ? mine.slice(0, 1) : [];
+    return delay({ phase, done: mine.filter((d) => !busy.includes(d)).map((d) => ({ id: d.id, name: d.name })),
+      skipped: busy.map((d) => ({ id: d.id, name: d.name, reason: 'in_use' })), failed: [] });
+  },
   rightsizing: (cid, days) => {
     if (cid !== CLUSTER.id) return fail(404, 'Cluster not found');
     const row = (vmid: number, name: string, cpu: [number, number], mem: [number, number], cores: number, gb: number,

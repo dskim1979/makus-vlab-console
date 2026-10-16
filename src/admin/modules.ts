@@ -62,10 +62,10 @@ export const MODULES: AdminModule[] = [
     label: { ko: 'LAB', en: 'Labs' },
     summary: { ko: 'LAB(공용 공간), 단말, 사용 일정, 일정형 풀', en: 'Labs (shared spaces), terminals, schedules, scheduled pools' },
     pages: [
-      { id: 'list', label: { ko: 'LAB 관리', en: 'Labs' }, phase: 2 },
-      { id: 'terminals', label: { ko: '단말 관리', en: 'Terminals' }, phase: 2 },
-      { id: 'schedules', label: { ko: '사용 일정', en: 'Schedules' }, phase: 2 },
-      { id: 'pools', label: { ko: '일정형 풀', en: 'Scheduled pools' }, phase: 2 },
+      { id: 'list', label: { ko: 'LAB 관리', en: 'Labs' }, phase: 1 },
+      { id: 'terminals', label: { ko: '단말 관리', en: 'Terminals' }, phase: 1 },
+      { id: 'schedules', label: { ko: '사용 일정', en: 'Schedules' }, phase: 1 },
+      { id: 'pools', label: { ko: '일정형 풀', en: 'Scheduled pools' }, phase: 1 },
     ],
   },
   {

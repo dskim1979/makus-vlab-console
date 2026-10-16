@@ -1,7 +1,7 @@
 // Admin console calls: /api/vlab/admin/* only (makus-vlab pegaprox/api/vlab.py).
 import { ApiError, isMock, request } from './client';
 import { mockAdminApi } from './mockAdmin';
-import type { RightSizing, AlertChannel, AlertChannelInput, AlertRule, AlertRuleInput, AlertMute, ClusterAlerts, MuteInput, Infra, InfraRange, AdminDesktop, AssignableUser, AccelInventory, AdminLease, AuditPage, BackupJob, BackupStorage, Branding, BrandingSlot, PbsServer, VmBackup, PoolPolicy, PoolPolicyAnswer, AuditQuery, GpuApplyResult, GpuPolicy, VgpuProfile, PowerAction, ClusterNode, ClusterStorage, PlatformSettings, UsageReport, Directory, DirectoryTest, CloneResult, Cluster, Guest, NewCluster, Pool, PoolResetResult, PoolType, SessionRow, Summary, Template, UserAccess } from './types';
+import type { Lab, LabInput, LabRun, LabSchedule, LabScheduleInput, Terminal, RightSizing, AlertChannel, AlertChannelInput, AlertRule, AlertRuleInput, AlertMute, ClusterAlerts, MuteInput, Infra, InfraRange, AdminDesktop, AssignableUser, AccelInventory, AdminLease, AuditPage, BackupJob, BackupStorage, Branding, BrandingSlot, PbsServer, VmBackup, PoolPolicy, PoolPolicyAnswer, AuditQuery, GpuApplyResult, GpuPolicy, VgpuProfile, PowerAction, ClusterNode, ClusterStorage, PlatformSettings, UsageReport, Directory, DirectoryTest, CloneResult, Cluster, Guest, NewCluster, Pool, PoolResetResult, PoolType, SessionRow, Summary, Template, UserAccess } from './types';
 
 // Calls that must succeed: a non-2xx answer throws with the engine's own message.
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -54,6 +54,22 @@ const realAdminApi = {
   deleteBackupJob: async (clusterId: string, jobId: string) => {
     await call('DELETE', `/api/vlab/admin/clusters/${enc(clusterId)}/backup/jobs/${enc(jobId)}`);
   },
+  labs: async () => (await call<{ labs: Lab[]; now: string }>('GET', '/api/vlab/admin/labs')).labs,
+  saveLab: async (id: string | null, body: LabInput) =>
+    (await call<{ lab: Lab }>(id ? 'PUT' : 'POST', id ? `/api/vlab/admin/labs/${enc(id)}` : '/api/vlab/admin/labs', body)).lab,
+  deleteLab: async (id: string) => { await call('DELETE', `/api/vlab/admin/labs/${enc(id)}`); },
+  terminals: async () => (await call<{ terminals: Terminal[] }>('GET', '/api/vlab/admin/terminals')).terminals,
+  addTerminal: async (body: { mac: string; name?: string; lab_id?: string | null }) =>
+    (await call<{ terminal: Terminal }>('POST', '/api/vlab/admin/terminals', body)).terminal,
+  updateTerminal: async (id: string, body: { name?: string; lab_id?: string | null; state?: Terminal['state'] }) =>
+    (await call<{ terminal: Terminal }>('PUT', `/api/vlab/admin/terminals/${enc(id)}`, body)).terminal,
+  deleteTerminal: async (id: string) => { await call('DELETE', `/api/vlab/admin/terminals/${enc(id)}`); },
+  labSchedules: async () => (await call<{ schedules: LabSchedule[] }>('GET', '/api/vlab/admin/lab-schedules')).schedules,
+  saveLabSchedule: async (id: string | null, body: LabScheduleInput) =>
+    (await call<{ schedule: LabSchedule }>(id ? 'PUT' : 'POST', id ? `/api/vlab/admin/lab-schedules/${enc(id)}` : '/api/vlab/admin/lab-schedules', body)).schedule,
+  deleteLabSchedule: async (id: string) => { await call('DELETE', `/api/vlab/admin/lab-schedules/${enc(id)}`); },
+  runLabSchedule: async (id: string, phase: 'prepare' | 'finish') =>
+    call<LabRun>('POST', `/api/vlab/admin/lab-schedules/${enc(id)}/run`, { phase }),
   rightsizing: async (clusterId: string, days: 7 | 30) =>
     call<RightSizing>('GET', `/api/vlab/admin/clusters/${enc(clusterId)}/rightsizing?days=${days}`),
   infra: async (clusterId: string, range: InfraRange) =>
