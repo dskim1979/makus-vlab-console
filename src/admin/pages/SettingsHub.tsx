@@ -1,6 +1,7 @@
 import { NavLink, Navigate } from 'react-router-dom';
 import { useI18n } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
+import { AccountSettingsPage } from './AccountSettingsPage';
 import { BrandingPage } from './BrandingPage';
 import { DirectoryPage } from './DirectoryPage';
 import { NoticesPage } from './NoticesPage';
@@ -12,9 +13,10 @@ import { SupportPage } from './SupportPage';
 // 운영 > 플랫폼 설정: everything that sets how the platform behaves, in one place -
 // 일반 (sign-in, passwords, audit, mail), 도메인 (AD/LDAP sign-in), 화이트라벨 (the look) and
 // 클라이언트 (the Windows client's version and download), 공지 (the bars on top of every screen) and
-// 서버 이중화 (MOAVI Desk's own active and standby servers) and 지원 (the support bundle for a period).
+// 서버 이중화 (MOAVI Desk's own active and standby servers) and 지원 (the support bundle for a period),
+// 계정 · 약관 (account expiry, the address in mails, terms of use and privacy with the consents).
 const TABS: { id: string; key: MessageKey }[] = [
-  { id: 'general', key: 'hub.general' }, { id: 'directory', key: 'hub.directory' }, { id: 'branding', key: 'hub.branding' }, { id: 'client', key: 'hub.client' },
+  { id: 'general', key: 'hub.general' }, { id: 'accounts', key: 'hub.accounts' }, { id: 'directory', key: 'hub.directory' }, { id: 'branding', key: 'hub.branding' }, { id: 'client', key: 'hub.client' },
   { id: 'notices', key: 'hub.notices' }, { id: 'pair', key: 'hub.pair' }, { id: 'support', key: 'hub.support' },
 ];
 
@@ -34,6 +36,7 @@ export function SettingsHub({ tab }: { tab?: string }) {
         ))}
       </nav>
       {id === 'general' && <SettingsPage />}
+      {id === 'accounts' && <AccountSettingsPage />}
       {id === 'directory' && <DirectoryPage />}
       {id === 'branding' && <BrandingPage />}
       {id === 'client' && <ClientSettingsPage />}

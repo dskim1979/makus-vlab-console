@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { adminApi } from '../../api/admin';
 import { nextApi } from '../../api/next';
-import type { Board, BuildJob, CardRow, ClientSettings, Department, ExternalDesktop, Gateway, GatewayKind, GoldenImage, JobStatus, LicenseServer, RolloutResult, Signup, SignupStatus, UsbCategory, UsbDevice } from '../../api/next';
+import type { Board, BuildJob, CardRow, ClientSettings, Department, ExternalDesktop, Gateway, GatewayKind, GoldenImage, JobStatus, LicenseServer, RolloutResult, Signup, SignupSettings, SignupStatus, UsbCategory, UsbDevice, VerifyMode } from '../../api/next';
 import { Dialog } from '../../components/Dialog';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
@@ -536,27 +536,28 @@ export function SignupsPage() {
   const settings = useLoad(nextApi.signupSettings);
   const deps = useLoad(nextApi.departments);
   const [rejecting, setRejecting] = useState<Signup | null>(null);
+  const [approving, setApproving] = useState<Signup | null>(null);
+  const [editing, setEditing] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
   const depName = (id: string | null) => (id && deps.state === 'ok' ? deps.data.find((d) => d.id === id)?.name : null) ?? '-';
-  const open = settings.state === 'ok' ? settings.data.enabled : false;
+  const s = settings.state === 'ok' ? settings.data : null;
+  const open = s?.enabled ?? false;
   async function toggle() {
-    try { await nextApi.saveSignupSettings(!open); settings.reload(); } catch (e) { setNotice({ kind: 'error', text: errText(e) }); }
+    try { await nextApi.saveSignupSettings({ enabled: !open }); settings.reload(); } catch (e) { setNotice({ kind: 'error', text: errText(e) }); }
   }
-  async function approve(s: Signup) {
-    try { await nextApi.approveSignup(s.id); data.reload(); setNotice({ kind: 'info', text: L(`${s.username} 계정을 만들었습니다. 데스크톱은 풀 권한으로 따로 줍니다.`, `Created ${s.username}. Give desktops through pool rights.`) }); }
-    catch (e) { setNotice({ kind: 'error', text: errText(e) }); }
-  }
+  const verifyLabel = (m?: string) => m === 'required' ? L('필수', 'required') : m === 'optional' ? L('선택', 'optional') : L('끔', 'off');
   return (
     <>
-      <Intro>{L('로그인 화면의 "가입 신청"으로 들어온 요청을 승인하거나 거절합니다. 승인하면 일반 사용자 계정(작업 공간만)이 생기고, 신청한 부서에 들어갑니다.',
-        'Approve or reject requests made with 가입 신청 on the sign-in screen. Approving makes a portal-only user in the department asked for.')}</Intro>
+      <Intro>{L('로그인 화면의 "가입 신청"으로 들어온 요청을 승인하거나 거절합니다. 승인하면 일반 사용자 계정(작업 공간만)이 생기고, 신청한 부서에 들어갑니다. 가입 설정에서 메일 인증과 기관 메일 자동 승인을 정합니다.',
+        'Approve or reject requests made with 가입 신청 on the sign-in screen. Approving makes a portal-only user in the department asked for. 가입 설정 sets the mail check and the institution domains approved at once.')}</Intro>
       <div className="toolbar">
         <label className="check"><input id="signup-open" type="checkbox" checked={open} onChange={toggle} /><span>{L('로그인 화면에서 가입 신청 받기', 'Take sign-up requests on the sign-in screen')}</span></label>
+        <button type="button" className="btn" disabled={!s} onClick={() => setEditing(true)}><Icon name="gear" size={16} />{L('가입 설정', 'Sign-up settings')}</button>
         <span className="spacer" />
         <nav className="seg" role="tablist">
-          {(['pending', 'approved', 'rejected'] as SignupStatus[]).map((s) => (
-            <button key={s} type="button" role="tab" aria-selected={tab === s} className={tab === s ? 'on' : ''} onClick={() => setTab(s)}>
-              {s === 'pending' ? L('대기', 'Pending') : s === 'approved' ? L('승인', 'Approved') : L('거절', 'Rejected')}
+          {(['pending', 'approved', 'rejected'] as SignupStatus[]).map((x) => (
+            <button key={x} type="button" role="tab" aria-selected={tab === x} className={tab === x ? 'on' : ''} onClick={() => setTab(x)}>
+              {x === 'pending' ? L('대기', 'Pending') : x === 'approved' ? L('승인', 'Approved') : L('거절', 'Rejected')}
             </button>))}
         </nav>
       </div>
@@ -567,19 +568,25 @@ export function SignupsPage() {
             <SettingsStatus items={[
               { label: L('대기 중', 'Pending'), value: String(pending), tone: pending ? 'warn' : undefined },
               { label: L('가입 신청', 'Sign-up'), value: open ? L('받는 중', 'open') : L('닫힘', 'closed'), tone: open ? 'ok' : 'off' },
+              { label: L('메일 인증', 'Mail check'), value: verifyLabel(s?.verify_email), tone: s?.verify_email === 'off' ? 'off' : 'ok' },
+              { label: L('자동 승인 도메인', 'Auto-approved domains'), value: s?.auto_domains.length ? s.auto_domains.join(', ') : L('없음', 'none'), tone: s?.auto_domains.length ? 'ok' : 'off' },
             ]} />
             {signups.length === 0 ? <div className="empty"><p>{L('요청이 없습니다.', 'No requests.')}</p></div> : (
               <div className="table-scroll"><table className="table compact-head">
                 <thead><tr><th>{L('아이디', 'Username')}</th><th>{L('이름', 'Name')}</th><th>{L('메일', 'Mail')}</th><th>{L('부서', 'Department')}</th><th>{L('메모', 'Note')}</th><th>{L('신청', 'Asked')}</th>{tab !== 'pending' && <th>{L('처리', 'Reviewed')}</th>}<th className="actions" /></tr></thead>
-                <tbody>{signups.map((s) => (
-                  <tr key={s.id}>
-                    <td className="strong">{s.username}</td><td>{s.display_name}</td><td className="muted small">{s.email || '-'}</td>
-                    <td>{depName(s.department_id)}</td><td className="muted small">{s.note || '-'}</td>
-                    <td className="muted small">{when(s.created_at)}<div>{s.client_ip}</div></td>
-                    {tab !== 'pending' && <td className="muted small">{s.reviewed_by} · {when(s.reviewed_at)}{s.reason && <div>{s.reason}</div>}</td>}
-                    <td className="actions">{s.status === 'pending' && (<>
-                      <button type="button" className="btn small-btn primary" onClick={() => approve(s)}>{L('승인', 'Approve')}</button>
-                      <button type="button" className="btn-ghost small-btn danger" onClick={() => setRejecting(s)}>{L('거절', 'Reject')}</button>
+                <tbody>{signups.map((x) => (
+                  <tr key={x.id}>
+                    <td className="strong">{x.username}</td><td>{x.display_name}</td>
+                    <td className="muted small">{x.email || '-'}
+                      {x.email && x.email_verified && <span className="chip chip-on chip-gap">{L('인증됨', 'verified')}</span>}
+                      {x.email && !x.email_verified && x.status === 'pending' && <span className="chip chip-warn chip-gap" title={x.verify_sent ? L('코드를 보냈지만 아직 인증하지 않았습니다', 'A code was sent, not confirmed yet') : ''}>{L('메일 미인증', 'mail not verified')}</span>}
+                    </td>
+                    <td>{depName(x.department_id)}</td><td className="muted small">{x.note || '-'}</td>
+                    <td className="muted small">{when(x.created_at)}<div>{x.client_ip}</div></td>
+                    {tab !== 'pending' && <td className="muted small">{x.reviewed_by === 'auto' ? L('자동 승인', 'auto') : x.reviewed_by} · {when(x.reviewed_at)}{x.reason && <div>{x.reason}</div>}</td>}
+                    <td className="actions">{x.status === 'pending' && (<>
+                      <button type="button" className="btn small-btn primary" onClick={() => setApproving(x)}>{L('승인', 'Approve')}</button>
+                      <button type="button" className="btn-ghost small-btn danger" onClick={() => setRejecting(x)}>{L('거절', 'Reject')}</button>
                     </>)}</td>
                   </tr>))}</tbody>
               </table></div>
@@ -588,7 +595,89 @@ export function SignupsPage() {
         )}
       </LoadState>
       {rejecting && <RejectDialog signup={rejecting} onClose={() => setRejecting(null)} onDone={() => { setRejecting(null); data.reload(); }} />}
+      {approving && <ApproveDialog signup={approving} verifyMode={s?.verify_email} onClose={() => setApproving(null)}
+        onDone={(text) => { setApproving(null); data.reload(); setNotice({ kind: 'info', text }); }} />}
+      {editing && s && <SignupSettingsDialog initial={s} deps={deps.state === 'ok' ? deps.data : []} onClose={() => setEditing(false)}
+        onDone={() => { setEditing(false); settings.reload(); setNotice({ kind: 'info', text: L('가입 설정을 저장했습니다.', 'Sign-up settings saved.') }); }} />}
     </>
+  );
+}
+
+function ApproveDialog({ signup, verifyMode, onClose, onDone }: { signup: Signup; verifyMode?: string; onClose: () => void; onDone: (text: string) => void }) {
+  const { L } = useL();
+  const [until, setUntil] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function submit() {
+    setBusy(true); setError(null);
+    try {
+      await nextApi.approveSignup(signup.id, until || null);
+      onDone(L(`${signup.username} 계정을 만들었습니다. 데스크톱은 풀 권한으로 따로 줍니다.`, `Created ${signup.username}. Give desktops through pool rights.`));
+    } catch (e) { setError(errText(e)); } finally { setBusy(false); }
+  }
+  const unverified = !!signup.email && !signup.email_verified;
+  return (
+    <Dialog open title={L(`${signup.username} 가입 승인`, `Approve ${signup.username}`)} onClose={onClose} onSubmit={submit} submitLabel={L('승인', 'Approve')} busy={busy} error={error}>
+      {unverified && <div className={`alert small ${verifyMode === 'required' ? 'error' : 'info'}`}>{L('신청자가 아직 메일을 인증하지 않았습니다. 본인 확인을 따로 했을 때만 승인하세요.',
+        'The applicant has not confirmed the mail yet. Approve only if you checked who they are some other way.')}</div>}
+      <label><span>{L('사용 기한 (선택)', 'Last day of use (optional)')}</span>
+        <input id="appr-until" type="date" value={until} min={new Date().toISOString().slice(0, 10)} onChange={(e) => setUntil(e.target.value)} />
+        <small className="muted">{L('이 날이 지나면 로그인이 막히고 배정된 데스크톱이 회수됩니다. 비우면 기한 없음.', 'After this day the account cannot sign in and its desktops are taken back. Empty: no limit.')}</small></label>
+    </Dialog>
+  );
+}
+
+function SignupSettingsDialog({ initial, deps, onClose, onDone }: { initial: SignupSettings; deps: Department[]; onClose: () => void; onDone: () => void }) {
+  const { L } = useL();
+  const pools = useLoad(() => adminApi.pools().catch(() => []));
+  const [f, setF] = useState({ ...initial, domains: initial.auto_domains.join(', ') });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function submit() {
+    setBusy(true); setError(null);
+    try {
+      await nextApi.saveSignupSettings({ verify_email: f.verify_email, auto_domains: f.domains.split(/[\s,;]+/).map((d) => d.trim().replace(/^@/, '').toLowerCase()).filter(Boolean),
+        auto_role: f.auto_role, auto_department_id: f.auto_department_id || null, auto_pool_ids: f.auto_pool_ids, auto_expires_at: f.auto_expires_at || null });
+      onDone();
+    } catch (e) { setError(errText(e)); } finally { setBusy(false); }
+  }
+  const poolList = pools.state === 'ok' ? pools.data : [];
+  const togglePool = (id: string) => setF({ ...f, auto_pool_ids: f.auto_pool_ids.includes(id) ? f.auto_pool_ids.filter((x) => x !== id) : [...f.auto_pool_ids, id] });
+  return (
+    <Dialog open wide title={L('가입 설정', 'Sign-up settings')} onClose={onClose} onSubmit={submit} submitLabel={L('저장', 'Save')} busy={busy} error={error}>
+      <label><span>{L('메일 인증', 'Mail check')}</span>
+        <select id="su-verify" value={f.verify_email} onChange={(e) => setF({ ...f, verify_email: e.target.value as VerifyMode })}>
+          <option value="off">{L('끔 — 메일을 확인하지 않음', 'Off — the address is not checked')}</option>
+          <option value="optional">{L('선택 — 메일을 넣으면 코드로 확인', 'Optional — checked when given')}</option>
+          <option value="required">{L('필수 — 메일을 꼭 넣고 확인', 'Required — every request confirms a mail')}</option>
+        </select>
+        <small className="muted">{L('신청자에게 6자리 코드와 링크를 보냅니다(30분). 플랫폼 설정 > 일반의 메일(SMTP)을 씁니다. 인증 전에는 대기 목록에 "메일 미인증"으로 보입니다.',
+          'The applicant gets a 6-digit code and a link (30 minutes), sent with the SMTP of Platform settings > General. Until then the request shows "mail not verified".')}</small></label>
+      <h3 className="panel-title">{L('기관 메일 자동 승인', 'Institution mail, approved at once')}</h3>
+      <label><span>{L('허용 도메인', 'Domains')}</span>
+        <input id="su-domains" value={f.domains} placeholder="univ.ac.kr, lab.re.kr" onChange={(e) => setF({ ...f, domains: e.target.value })} />
+        <small className="muted">{L('이 도메인(하위 도메인 포함) 메일을 인증하면 관리자 승인 없이 계정이 생깁니다. 메일 인증이 꺼져 있어도 이 도메인은 인증합니다. 그 밖의 메일은 지금처럼 심사합니다.',
+          'A confirmed mail of these domains (and sub-domains) makes the account without review; these addresses are checked even with the mail check off. Others wait for review.')}</small></label>
+      <div className="form-row form-row-even">
+        <label><span>{L('역할', 'Role')}</span>
+          <select id="su-role" value={f.auto_role} onChange={(e) => setF({ ...f, auto_role: e.target.value })}>
+            <option value="user">{L('사용자', 'User')}</option><option value="viewer">{L('조회자', 'Viewer')}</option>
+            {!['user', 'viewer'].includes(f.auto_role) && <option value={f.auto_role}>{f.auto_role}</option>}
+          </select></label>
+        <label><span>{L('기본 부서', 'Department')}</span>
+          <select id="su-dep" value={f.auto_department_id ?? ''} onChange={(e) => setF({ ...f, auto_department_id: e.target.value || null })}>
+            <option value="">{L('신청자가 고른 부서', 'The one the applicant picked')}</option>
+            {deps.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select></label>
+        <label><span>{L('사용 기한', 'Last day of use')}</span>
+          <input id="su-until" type="date" value={f.auto_expires_at ?? ''} onChange={(e) => setF({ ...f, auto_expires_at: e.target.value || null })} /></label>
+      </div>
+      <fieldset className="check-list">
+        <legend>{L('풀 권한 (선택)', 'Pool rights (optional)')}</legend>
+        {poolList.length === 0 ? <p className="muted small">{L('풀이 없습니다.', 'No pools.')}</p> : poolList.map((p) => (
+          <label key={p.id} className="check"><input type="checkbox" checked={f.auto_pool_ids.includes(p.id)} onChange={() => togglePool(p.id)} /><span>{p.name}</span></label>))}
+      </fieldset>
+    </Dialog>
   );
 }
 

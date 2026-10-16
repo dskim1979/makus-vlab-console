@@ -1398,3 +1398,24 @@ fieldset.plain:disabled { opacity: .55; }
 .install-way h4 { margin: 0; font-size: .9rem; }
 .role-checks { display: flex; flex-wrap: wrap; gap: .25rem 1rem; }
 .danger-text { color: var(--danger); }
+
+/* 계정 · 약관: 비밀번호 찾기, 약관 동의, 일괄 등록 (auth/PasswordResetPages, components/Terms, admin/pages/UserImport) */
+.login-forgot { margin: .25rem 0 0; text-align: right; }
+.terms-boxes { display: flex; flex-direction: column; gap: .5rem; }
+.terms-box { max-height: 14rem; overflow: auto; padding: .6rem .8rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); }
+.terms-text { font-size: .85rem; line-height: 1.55; }
+.terms-text h4 { margin: .4rem 0 .25rem; font-size: .92rem; }
+.terms-text p { margin: .15rem 0; white-space: pre-wrap; word-break: break-word; }
+.terms-text ul { margin: .15rem 0; padding-left: 1.2rem; }
+.terms-details summary { cursor: pointer; font-size: .88rem; margin-bottom: .4rem; }
+.terms-gate { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: color-mix(in srgb, var(--surface-3) 88%, transparent); }
+.terms-gate-card { width: min(720px, 100%); max-height: calc(100vh - 32px); overflow: auto; display: flex; flex-direction: column; gap: .75rem;
+  padding: 1.25rem; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); box-shadow: 0 12px 40px rgba(0, 0, 0, .25); }
+.terms-gate-card h2 { margin: 0; font-size: 1.15rem; }
+.check-list { display: flex; flex-direction: column; gap: .3rem; border: 1px solid var(--border); border-radius: 8px; padding: .5rem .75rem; margin: 0; }
+.check-list legend { font-size: .85rem; padding: 0 .25rem; }
+.import-preview { max-height: 40vh; }
+.table tr.row-error td { background: color-mix(in srgb, var(--danger, #d33) 7%, transparent); }
+.import-preview th, .import-preview td { white-space: nowrap; }
+.import-preview td:last-child { white-space: normal; min-width: 12rem; }

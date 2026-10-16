@@ -4,18 +4,19 @@
 import { ApiError, isMock, request } from './client';
 import { mockMustChange, mockWhoAmI } from './mock';
 import { mockDisabledUsers, mockUsers } from './mockAdmin';
-import { mockMemberOf } from './next';
+import { mockExpiry, mockMemberOf } from './next';
 
 export type Account = {
   username: string; display_name: string; role: string; auth_source: string; email?: string;
   enabled?: boolean; tenant_id?: string; desktops?: number; last_connected?: string | null;
   totp_enabled?: boolean; last_login?: string | null; must_change_password?: boolean; department_id?: string | null;
+  expires_at?: string | null; expired?: boolean;   // last day of use (YYYY-MM-DD); past it the account is disabled
 };
 export type AccountInput = {
   username: string; password: string; display_name?: string; email?: string; role: string;
-  department_id?: string | null; must_change_password?: boolean;
+  department_id?: string | null; must_change_password?: boolean; expires_at?: string | null;
 };
-export type AccountUpdate = { display_name?: string; email?: string; role?: string; enabled?: boolean; department_id?: string | null };
+export type AccountUpdate = { display_name?: string; email?: string; role?: string; enabled?: boolean; department_id?: string | null; expires_at?: string | null };
 export type LockedAccount = { username: string; locked_until: number; remaining_seconds: number; attempt_count: number };
 export type Permission = { permission: string; description: string; category: string; warning?: string };
 export type Role = { id: string; name: string; builtin: boolean; permissions: string[]; scope: 'global' | 'tenant'; tenant_id?: string; created_by?: string };
@@ -122,6 +123,7 @@ const mockUsersApi: UsersApi = {
   list: () => delay(allAccounts().map(({ u, enabled }) => ({
     ...u, enabled, tenant_id: 'default', totp_enabled: !!extra[u.username]?.totp, last_login: extra[u.username]?.last_login ?? null,
     must_change_password: mockMustChange.has(u.username), department_id: mockMemberOf[u.username] ?? null,
+    expires_at: mockExpiry[u.username] ?? null, expired: !!mockExpiry[u.username] && mockExpiry[u.username] < new Date().toISOString().slice(0, 10),
   }))),
   create: (u) => {
     const name = u.username.trim().toLowerCase();
@@ -133,6 +135,7 @@ const mockUsersApi: UsersApi = {
     mockUsers.push({ username: name, display_name: u.display_name || name, role: u.role, auth_source: 'local', email: u.email ?? '' });
     if (u.department_id) mockMemberOf[name] = u.department_id;
     if (u.must_change_password) mockMustChange.add(name);
+    if (u.expires_at) mockExpiry[name] = u.expires_at;
     return delay({ username: name, display_name: u.display_name || name, role: u.role, auth_source: 'local', email: u.email,
       department_id: u.department_id ?? null, must_change_password: !!u.must_change_password });
   },
@@ -151,6 +154,9 @@ const mockUsersApi: UsersApi = {
     }
     if (b.department_id !== undefined) {
       if (b.department_id) mockMemberOf[username] = b.department_id; else delete mockMemberOf[username];
+    }
+    if (b.expires_at !== undefined) {
+      if (b.expires_at) mockExpiry[username] = b.expires_at; else delete mockExpiry[username];
     }
     return delay(undefined);
   },

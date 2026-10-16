@@ -10,6 +10,7 @@ import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
 import { relativeTime } from '../../portal/DesktopCard';
+import { ImportDialog } from './UserImport';
 
 export function roleLabel(t: (k: MessageKey) => string, role: string, roles?: Role[]) {
   if (['admin', 'user', 'viewer'].includes(role)) return t(`role.${role}` as MessageKey);
@@ -85,6 +86,28 @@ function RowMenu({ label, children }: { label: string; children: (close: () => v
 
 type Notice = { kind: 'info' | 'error'; text: string } | null;
 
+// days until the last day of use (0 = today is the last), null without one
+export function daysLeft(day?: string | null) {
+  if (!day) return null;
+  const end = new Date(`${day}T00:00:00`).getTime();
+  const today = new Date(new Date().toDateString()).getTime();
+  return Math.round((end - today) / 864e5);
+}
+
+function ExpiryCell({ account }: { account: Account }) {
+  const L = useL();
+  if (!account.expires_at) return <span className="muted">-</span>;
+  const left = daysLeft(account.expires_at)!;
+  return (
+    <>
+      {account.expires_at}
+      {account.expired ? <span className="chip chip-off chip-gap">{L('만료됨', 'Expired')}</span>
+        : left <= 7 ? <span className="chip chip-warn chip-gap">D-{left}</span>
+        : left <= 30 ? <span className="chip chip-free chip-gap">D-{left}</span> : null}
+    </>
+  );
+}
+
 // 사용자 > 사용자 목록: accounts of the caller's tenant - make, change, delete, reset a password
 // or two-step sign-in, unlock; with their desktops and last connect.
 export function UsersPage() {
@@ -99,6 +122,8 @@ export function UsersPage() {
   const [role, setRole] = useState('');
   const [source, setSource] = useState('');
   const [showDisabled, setShowDisabled] = useState(false);
+  const [expiry, setExpiry] = useState<'' | 'set' | 'soon' | 'expired'>('');
+  const [importing, setImporting] = useState(false);
   const [editing, setEditing] = useState<Account | 'new' | null>(null);
   const [pwFor, setPwFor] = useState<Account | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
@@ -113,10 +138,12 @@ export function UsersPage() {
 
   const rows = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return all.filter((u) => (showDisabled || u.enabled !== false) &&
+    const soon = (u: Account) => { const d = daysLeft(u.expires_at); return !u.expired && d !== null && d <= 30; };
+    return all.filter((u) => (showDisabled || u.enabled !== false || (expiry === 'expired' && u.expired)) &&
       (!role || u.role === role) && (!source || (u.auth_source || 'local') === source) &&
+      (!expiry || (expiry === 'set' && !!u.expires_at) || (expiry === 'expired' && !!u.expired) || (expiry === 'soon' && soon(u))) &&
       (!needle || [u.username, u.display_name, u.email ?? ''].some((s) => s.toLowerCase().includes(needle))));
-  }, [all, q, role, source, showDisabled]);
+  }, [all, q, role, source, showDisabled, expiry]);
 
   function reload() { users.reload(); locked.reload(); }
   async function act(fn: () => Promise<void>, done: string) {
@@ -129,6 +156,7 @@ export function UsersPage() {
     <>
       <div className="toolbar">
         <button type="button" className="btn primary" onClick={() => setEditing('new')}><Icon name="plus" size={16} />{L('사용자 만들기', 'Add user')}</button>
+        <button type="button" className="btn" onClick={() => setImporting(true)}><Icon name="list" size={16} />{L('일괄 등록', 'Import')}</button>
         <input type="search" placeholder={t('common.search')} aria-label={t('common.search')} value={q} onChange={(e) => setQ(e.target.value)} />
         <select aria-label={t('users.role')} value={role} onChange={(e) => setRole(e.target.value)}>
           <option value="">{L('모든 역할', 'All roles')}</option>
@@ -137,6 +165,12 @@ export function UsersPage() {
         <select aria-label={t('users.source')} value={source} onChange={(e) => setSource(e.target.value)}>
           <option value="">{L('모든 출처', 'All sources')}</option>
           {sources.map((s) => <option key={s} value={s}>{SOURCES[s] ?? s.toUpperCase()}</option>)}
+        </select>
+        <select aria-label={L('사용 기한', 'Last day of use')} value={expiry} onChange={(e) => setExpiry(e.target.value as typeof expiry)}>
+          <option value="">{L('사용 기한: 전체', 'Last day: all')}</option>
+          <option value="set">{L('기한 있음', 'Has a last day')}</option>
+          <option value="soon">{L('30일 안에 만료', 'Ends within 30 days')}</option>
+          <option value="expired">{L('만료됨', 'Expired')}</option>
         </select>
         <label className="check-inline">
           <input type="checkbox" checked={showDisabled} onChange={(e) => setShowDisabled(e.target.checked)} />
@@ -165,7 +199,7 @@ export function UsersPage() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>{t('users.username')}</th><th>{t('users.name')}</th><th>{t('users.role')}</th><th>{L('부서', 'Department')}</th>
+                  <th>{t('users.username')}</th><th>{t('users.name')}</th><th>{t('users.role')}</th><th>{L('부서', 'Department')}</th><th>{L('사용 기한', 'Last day')}</th>
                   <th>{t('users.source')}</th><th className="num">{t('users.desktops')}</th><th>{t('portal.lastConnected')}</th><th />
                 </tr>
               </thead>
@@ -185,6 +219,7 @@ export function UsersPage() {
                       <td>{u.display_name}{u.email && <div className="muted small">{u.email}</div>}</td>
                       <td>{roleLabel(t, u.role, roleList)}</td>
                       <td>{depName(u.department_id) || <span className="muted">-</span>}</td>
+                      <td className="nowrap"><ExpiryCell account={u} /></td>
                       <td><span className="chip">{SOURCES[u.auth_source] ?? u.auth_source.toUpperCase()}</span></td>
                       <td className="num">{u.desktops ?? 0}</td>
                       <td>{relativeTime(u.last_connected, lang) ?? <span className="muted">{t('portal.never')}</span>}</td>
@@ -223,6 +258,7 @@ export function UsersPage() {
       </LoadState>
       {editing && <AccountDialog account={editing === 'new' ? null : editing} roles={roleList} deps={depList} self={editing !== 'new' && editing.username === me?.username}
         onClose={() => setEditing(null)} onDone={(text) => { setEditing(null); setNotice({ kind: 'info', text }); reload(); }} />}
+      {importing && <ImportDialog onClose={() => setImporting(false)} onDone={(text) => { setImporting(false); setNotice({ kind: 'info', text }); reload(); }} />}
       {pwFor && <PasswordDialog account={pwFor} onClose={() => setPwFor(null)} onDone={(text) => { setPwFor(null); setNotice({ kind: 'info', text }); reload(); }} />}
     </>
   );
@@ -239,6 +275,7 @@ function AccountDialog({ account, roles, deps, self, onClose, onDone }: {
   const [role, setRole] = useState(account?.role ?? 'user');
   const [dep, setDep] = useState(account?.department_id ?? '');
   const [enabled, setEnabled] = useState(account?.enabled !== false);
+  const [until, setUntil] = useState(account?.expires_at ?? '');
   const [password, setPassword] = useState('');
   const [mustChange, setMustChange] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -252,7 +289,8 @@ function AccountDialog({ account, roles, deps, self, onClose, onDone }: {
     try {
       if (!account) {
         await usersApi.create({ username: username.trim().toLowerCase(), password, role, must_change_password: mustChange,
-          ...(name.trim() ? { display_name: name.trim() } : {}), ...(email.trim() ? { email: email.trim() } : {}), ...(dep ? { department_id: dep } : {}) });
+          ...(name.trim() ? { display_name: name.trim() } : {}), ...(email.trim() ? { email: email.trim() } : {}), ...(dep ? { department_id: dep } : {}),
+          ...(until && role !== 'admin' ? { expires_at: until } : {}) });
         onDone(L(`${username.trim().toLowerCase()} 계정을 만들었습니다.`, `${username.trim().toLowerCase()} created.`));
       } else {
         const b: Parameters<typeof usersApi.update>[1] = {};
@@ -261,6 +299,7 @@ function AccountDialog({ account, roles, deps, self, onClose, onDone }: {
         if (role !== account.role) b.role = role;
         if (enabled !== (account.enabled !== false)) b.enabled = enabled;
         if (dep !== (account.department_id ?? '')) b.department_id = dep || null;
+        if (until !== (account.expires_at ?? '')) b.expires_at = until || null;
         if (Object.keys(b).length) await usersApi.update(account.username, b);
         onDone(L('저장했습니다.', 'Saved.'));
       }
@@ -294,6 +333,12 @@ function AccountDialog({ account, roles, deps, self, onClose, onDone }: {
           </select>
         </label>
       </div>
+      <label><span>{L('사용 기한 (선택)', 'Last day of use (optional)')}</span>
+        <input id="acc-until" type="date" value={until} disabled={role === 'admin'} onChange={(e) => setUntil(e.target.value)} />
+        <small className="muted">{role === 'admin' ? L('관리자 계정은 기한을 두지 않습니다.', 'Administrator accounts do not expire.')
+          : L('이 날이 지나면 로그인이 막히고 배정된 데스크톱이 회수됩니다(플랫폼 설정 > 계정 · 약관). 비우면 기한 없음.', 'After this day the account cannot sign in and its desktops are taken back (Platform settings > Accounts and terms). Empty: no limit.')}</small>
+        {account?.expired && <small className="muted">{L('만료된 계정입니다. 앞으로의 날짜를 넣으면 다시 쓸 수 있습니다.', 'Expired. A day still to come makes it usable again.')}</small>}
+      </label>
       {!account && <>
         <label><span>{L('초기 비밀번호', 'Initial password')}</span>
           <PasswordInput id="acc-password" value={password} onChange={setPassword} generate />

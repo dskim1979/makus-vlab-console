@@ -10,7 +10,19 @@ export type SignupStatus = 'pending' | 'approved' | 'rejected';
 export type Signup = {
   id: string; username: string; display_name: string; email: string; department_id: string | null; note: string;
   status: SignupStatus; reviewed_by: string; reviewed_at: string | null; reason: string; client_ip: string; created_at: string;
+  email_verified?: boolean; verify_sent?: boolean;
 };
+export type VerifyMode = 'off' | 'optional' | 'required';
+export type SignupSettings = {
+  enabled: boolean; verify_email: VerifyMode; auto_domains: string[]; auto_role: string; auto_department_id: string | null;
+  auto_pool_ids: string[]; auto_expires_at: string | null;
+};
+export type SignupConfig = {
+  enabled: boolean; departments: { id: string; name: string; parent_id: string | null }[];
+  verify_email?: VerifyMode; auto_domains?: string[]; terms?: { enabled: boolean; version: string };
+};
+export type SignupInput = { username: string; password: string; display_name: string; email: string; department_id: string | null; note: string; terms_version?: string };
+export type SignupAnswer = { request: { id: string; status: string; verify?: 'sent' | 'failed' | 'none'; auto?: boolean } };
 export type UsbCategory = 'jtag' | 'security-key' | 'storage' | 'serial' | 'camera' | 'other';
 export type UsbDevice = { id: string; name: string; vid: string; pid: string; category: UsbCategory; notes: string; builtin: number; pools: number };
 export type UsbInput = { name: string; vid: string; pid: string; category: UsbCategory; notes: string };
@@ -83,11 +95,11 @@ const realNextApi = {
   },
 
   signups: async (status?: SignupStatus) =>
-    call<{ signups: Signup[]; pending: number }>('GET', `${A}/signups${status ? `?status=${status}` : ''}`),
-  approveSignup: async (id: string) => { await call('POST', `${A}/signups/${enc(id)}/approve`); },
+    call<{ signups: Signup[]; pending: number; verify_email?: VerifyMode }>('GET', `${A}/signups${status ? `?status=${status}` : ''}`),
+  approveSignup: async (id: string, expires_at?: string | null) => { await call('POST', `${A}/signups/${enc(id)}/approve`, expires_at ? { expires_at } : {}); },
   rejectSignup: async (id: string, reason: string) => { await call('POST', `${A}/signups/${enc(id)}/reject`, { reason }); },
-  signupSettings: async () => (await call<{ signup: { enabled: boolean } }>('GET', `${A}/signup-settings`)).signup,
-  saveSignupSettings: async (enabled: boolean) => (await call<{ signup: { enabled: boolean } }>('PUT', `${A}/signup-settings`, { enabled })).signup,
+  signupSettings: async () => withDefaults((await call<{ signup: Partial<SignupSettings> }>('GET', `${A}/signup-settings`)).signup),
+  saveSignupSettings: async (b: Partial<SignupSettings>) => withDefaults((await call<{ signup: Partial<SignupSettings> }>('PUT', `${A}/signup-settings`, b)).signup),
 
   usbDevices: async () => (await call<{ devices: UsbDevice[] }>('GET', `${A}/usb-devices`)).devices,
   saveUsbDevice: async (id: string | null, b: UsbInput) =>
@@ -162,15 +174,20 @@ const realNextApi = {
     return status === 200 ? data.desktops ?? [] : [];
   },
   myExternalRdp: async (id: string) => call<{ filename: string; rdp: string }>('GET', `/api/vlab/me/external/${enc(id)}/rdp`),
-  signupConfig: async () => {
+  signupConfig: async (): Promise<SignupConfig> => {
     try {
-      const { status, data } = await request<{ enabled: boolean; departments: { id: string; name: string; parent_id: string | null }[] }>('GET', '/api/vlab/signup/config');
+      const { status, data } = await request<SignupConfig>('GET', '/api/vlab/signup/config');
       return status === 200 ? data : { enabled: false, departments: [] };
     } catch { return { enabled: false, departments: [] }; }
   },
-  signup: async (b: { username: string; password: string; display_name: string; email: string; department_id: string | null; note: string }) =>
-    call<{ request: { id: string; status: string } }>('POST', '/api/vlab/signup', b),
+  signup: async (b: SignupInput) => call<SignupAnswer>('POST', '/api/vlab/signup', b),
 };
+
+// an engine before the mail check answers {enabled} only
+function withDefaults(s: Partial<SignupSettings>): SignupSettings {
+  return { enabled: !!s.enabled, verify_email: s.verify_email ?? 'off', auto_domains: s.auto_domains ?? [], auto_role: s.auto_role ?? 'user',
+    auto_department_id: s.auto_department_id ?? null, auto_pool_ids: s.auto_pool_ids ?? [], auto_expires_at: s.auto_expires_at ?? null };
+}
 
 export type NextApi = typeof realNextApi;
 
@@ -191,12 +208,15 @@ const deps: Department[] = [
 ];
 const memberOf: Record<string, string> = { alice: 'dep_lab', bob: 'dep_cs', carol: 'dep_rnd', dave: 'dep_ee' };
 export { memberOf as mockMemberOf };   // the user list's 부서 (api/users.ts)
-let signupOpen = true;
+// accounts' last day of use (api/users.ts, api/accounts.ts)
+export const mockExpiry: Record<string, string> = { bob: new Date(Date.now() + 5 * 864e5).toISOString().slice(0, 10), olduser: '2026-08-31' };
+export const mockNextDeps = () => deps;
+const signupSettings: SignupSettings = { enabled: true, verify_email: 'optional', auto_domains: [], auto_role: 'user', auto_department_id: null, auto_pool_ids: [], auto_expires_at: null };
 const signups: Signup[] = [
   { id: 'sig_1', username: 'kim.minji', display_name: '김민지', email: 'minji@univ.ac.kr', department_id: 'dep_cs', note: '데이터베이스 실습 수강생',
-    status: 'pending', reviewed_by: '', reviewed_at: null, reason: '', client_ip: '10.20.1.33', created_at: iso(42) },
-  { id: 'sig_2', username: 'lee.junho', display_name: '이준호', email: 'junho@univ.ac.kr', department_id: 'dep_lab', note: 'FPGA 연구실 신입 연구원',
-    status: 'pending', reviewed_by: '', reviewed_at: null, reason: '', client_ip: '10.20.4.12', created_at: iso(180) },
+    status: 'pending', reviewed_by: '', reviewed_at: null, reason: '', client_ip: '10.20.1.33', created_at: iso(42), email_verified: true, verify_sent: true },
+  { id: 'sig_2', username: 'lee.junho', display_name: '이준호', email: 'junho@gmail.com', department_id: 'dep_lab', note: 'FPGA 연구실 신입 연구원',
+    status: 'pending', reviewed_by: '', reviewed_at: null, reason: '', client_ip: '10.20.4.12', created_at: iso(180), email_verified: false, verify_sent: true },
   { id: 'sig_3', username: 'park.sora', display_name: '박소라', email: 'sora@univ.ac.kr', department_id: 'dep_ee', note: '',
     status: 'approved', reviewed_by: 'admin', reviewed_at: iso(1500), reason: '', client_ip: '10.20.2.7', created_at: iso(1600) },
   { id: 'sig_4', username: 'guest01', display_name: '외부인', email: 'guest@mail.com', department_id: null, note: '',
@@ -316,19 +336,26 @@ const mockNextApi: NextApi = {
   setUserDepartment: (u, d) => { if (d) memberOf[u] = d; else delete memberOf[u]; return delay(undefined); },
 
   signups: (status) => delay({ signups: signups.filter((s) => !status || s.status === status).map((s) => ({ ...s })), pending: signups.filter((s) => s.status === 'pending').length }),
-  approveSignup: (id) => {
+  approveSignup: (id, expires_at) => {
     const s = signups.find((x) => x.id === id); if (!s) return fail(404, 'Request not found');
     if (s.status !== 'pending') return fail(409, `This request is already ${s.status}`);
     Object.assign(s, { status: 'approved', reviewed_by: 'admin', reviewed_at: iso(0) });
     if (s.department_id) memberOf[s.username] = s.department_id;
+    if (expires_at) mockExpiry[s.username] = expires_at;
     return delay(undefined);
   },
   rejectSignup: (id, reason) => {
     const s = signups.find((x) => x.id === id); if (!s) return fail(404, 'Request not found');
     Object.assign(s, { status: 'rejected', reviewed_by: 'admin', reviewed_at: iso(0), reason }); return delay(undefined);
   },
-  signupSettings: () => delay({ enabled: signupOpen }),
-  saveSignupSettings: (enabled) => { signupOpen = enabled; return delay({ enabled }); },
+  signupSettings: () => delay({ ...signupSettings }),
+  saveSignupSettings: (b) => {
+    if (b.auto_role === 'admin') return fail(400, 'role: admin accounts are made one by one');
+    const bad = (b.auto_domains ?? []).find((d) => !/^([a-z0-9-]+\.)+[a-z]{2,}$/.test(d));
+    if (bad) return fail(400, `auto_domains: "${bad}" is not a domain`);
+    Object.assign(signupSettings, b);
+    return delay({ ...signupSettings });
+  },
 
   usbDevices: () => delay(usb.map((d) => ({ ...d }))),
   saveUsbDevice: (id, b) => {
@@ -485,14 +512,27 @@ const mockNextApi: NextApi = {
     const e = external.find((x) => x.id === id); if (!e) return fail(404, 'External desktop not found');
     return delay({ filename: `${e.name.replace(/[^A-Za-z0-9._-]+/g, '-') || 'desktop'}.rdp`, rdp: `full address:s:${e.address}:${e.port}\r\nusername:s:alice\r\n` });
   },
-  signupConfig: () => delay({ enabled: signupOpen, departments: signupOpen ? deps.map(({ id, name, parent_id }) => ({ id, name, parent_id })) : [] }),
+  signupConfig: () => delay(signupSettings.enabled
+    ? { enabled: true, departments: deps.map(({ id, name, parent_id }) => ({ id, name, parent_id })), verify_email: signupSettings.verify_email,
+        auto_domains: [...signupSettings.auto_domains], terms: { enabled: true, version: '2026-09' } }
+    : { enabled: false, departments: [] }),
   signup: (b) => {
     if (!/^[a-z0-9][a-z0-9._-]{2,31}$/.test(b.username)) return fail(400, 'username: 3-32 lower-case letters, digits, ".", "_" or "-"');
     if (b.password.length < 8) return fail(400, 'Password must be at least 8 characters');
+    if (signupSettings.verify_email === 'required' && !b.email) return fail(400, 'email: a mail address is needed to check it');
+    if (!b.terms_version) return fail(400, 'Agree to the terms of use and the privacy policy');
     if (signups.some((s) => s.username === b.username && s.status === 'pending')) return fail(409, 'This username is taken or already waiting for review');
-    const s: Signup = { id: nid('sig'), ...b, status: 'pending', reviewed_by: '', reviewed_at: null, reason: '', client_ip: '127.0.0.1', created_at: iso(0) };
-    signups.unshift(s); return delay({ request: { id: s.id, status: 'pending' } });
+    const { terms_version: _tv, ...rest } = b;
+    void _tv;
+    const auto = !!b.email && signupSettings.auto_domains.some((d) => b.email.toLowerCase().endsWith('@' + d) || b.email.toLowerCase().endsWith('.' + d));
+    const verify = b.email && (signupSettings.verify_email !== 'off' || auto) ? 'sent' as const : 'none' as const;
+    const s: Signup = { id: nid('sig'), ...rest, status: 'pending', reviewed_by: '', reviewed_at: null, reason: '', client_ip: '127.0.0.1', created_at: iso(0),
+      email_verified: false, verify_sent: verify === 'sent' };
+    signups.unshift(s); return delay({ request: { id: s.id, status: 'pending', verify, auto } });
   },
 };
+
+// the mail check in mock mode (api/accounts.ts): code 123456
+export const mockSignupState = { signups, settings: signupSettings };
 
 export const nextApi: NextApi = isMock ? mockNextApi : realNextApi;

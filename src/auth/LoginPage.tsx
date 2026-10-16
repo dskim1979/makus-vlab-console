@@ -137,6 +137,9 @@ export function LoginPage() {
             </a>
           )}
           {unauth?.ldap_enabled && <p className="muted small">{t('login.ldapOn')}</p>}
+          {step === 'password' && (
+            <p className="muted small login-forgot"><Link to="/forgot-password">{pick({ ko: '비밀번호를 잊었나요?', en: 'Forgot your password?' })}</Link></p>
+          )}
           {signupOpen && step === 'password' && (
             <p className="muted small login-signup">{pick({ ko: '계정이 없나요?', en: 'No account?' })} <Link to="/signup">{pick({ ko: '가입 신청', en: 'Ask for one' })}</Link></p>
           )}
