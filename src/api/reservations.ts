@@ -19,7 +19,7 @@ export type ReserveSettings = {
   enabled: boolean; approval: boolean; open_from: string; open_to: string; weekdays: number[]; max_minutes: number;
   max_days_ahead: number; roles: string[]; pool_ids: string[]; prepare_min: number; after: 'reset' | 'off' | 'none'; banner: boolean;
 };
-export type GlobalSettings = { mail: boolean; channels: string[] };
+export type GlobalSettings = { mail: boolean; channels: string[]; remind_min: number };
 export type PoolOption = { id: string; name: string; type: string; desktops: number };
 export type LabOption = { id: string; name: string; location: string; seats: number; settings: ReserveSettings; may_book: boolean; pools: PoolOption[] };
 export type ReserveOptions = { labs: LabOption[]; pools: PoolOption[]; pool_settings: ReserveSettings; pool_may_book: boolean;
@@ -142,7 +142,7 @@ export function kindText(k: ReserveKind, L: (ko: string, en: string) => string):
 const DEFAULTS: ReserveSettings = { enabled: true, approval: false, open_from: '08:00', open_to: '22:00', weekdays: [0, 1, 2, 3, 4, 5, 6],
   max_minutes: 240, max_days_ahead: 60, roles: [], pool_ids: [], prepare_min: 10, after: 'reset', banner: false };
 const mockSettings: Record<string, ReserveSettings> = { lab_a: { ...DEFAULTS, approval: true, open_from: '09:00', open_to: '21:00', weekdays: [0, 1, 2, 3, 4] } };
-let mockGlobal: GlobalSettings = { mail: true, channels: [] };
+let mockGlobal: GlobalSettings = { mail: true, channels: [], remind_min: 30 };
 const mockRows: Reservation[] = [];
 let seq = 1;
 const me = () => { try { return JSON.parse(localStorage.getItem('vlab.mock.user') || 'null')?.username || 'alice'; } catch { return 'alice'; } };

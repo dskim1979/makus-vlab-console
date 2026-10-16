@@ -266,6 +266,10 @@ function NotifyCard({ s, onSaved }: { s: SettingsAnswer; onSaved: () => void }) 
       <p className="muted small">{L('승인 · 거절 · 취소 · 변경 때 신청자에게 알립니다. 새 신청은 고른 웹훅 채널로 담당자에게 갑니다.',
         'The requester hears of approvals, rejections, cancellations and changes; new requests go to the chosen webhook channels.')}</p>
       <label className="check"><input type="checkbox" checked={v.mail} onChange={(e) => setV({ ...v, mail: e.target.checked })} /><span>{L('신청자에게 메일 (계정의 이메일, 플랫폼 설정의 메일 서버)', 'Mail the requester (their account email, the platform mail server)')}</span></label>
+      <label className="rsv-remind"><span>{L('시작 전 알림 (분, 0이면 보내지 않음)', 'Reminder before the start (min, 0: none)')}</span>
+        <input type="number" min={0} max={1440} value={v.remind_min ?? 30} onChange={(e) => setV({ ...v, remind_min: Number(e.target.value) })} />
+        <small className="muted">{L('승인된 예약의 신청자 · 참가자(사용자 · 부서)에게 한 번 메일을 보냅니다. 각자 내 계정 › 알림 메일에서 끌 수 있습니다.',
+          'The requester and participants (users, departments) of an approved booking get one mail; each can turn it off under My account › Notice mails.')}</small></label>
       <span className="field-label">{L('웹훅 채널 (알림 채널에서 만든 것)', 'Webhook channels (from the alert channels)')}</span>
       <div className="check-row">
         {s.channels.length === 0 && <span className="muted small">{L('알림 채널이 없습니다.', 'No alert channels yet.')}</span>}

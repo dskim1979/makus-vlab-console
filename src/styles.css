@@ -1555,3 +1555,5 @@ fieldset.plain:disabled { opacity: .55; }
 .ops-row label.check input { margin-top: 3px; }
 /* 내 계정 > 알림 메일 (components/MyAccountDialog.tsx) */
 .notice-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 4px 16px; }
+.rsv-remind { display: flex; flex-direction: column; gap: 4px; max-width: 420px; }
+.rsv-remind input { width: 110px; }
