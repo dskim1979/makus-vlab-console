@@ -261,17 +261,18 @@ function SnapshotsTab({ v, onNotice, onChanged }: TabProps) {
           <label className="vmm-grow">{L('설명 (선택)', 'Description (optional)')}<input value={desc} maxLength={200} onChange={(e) => setDesc(e.target.value)} /></label>
         </div>
         <div className="vmm-row">
-          <label className="check"><input type="checkbox" checked={ram && running} disabled={!running || v.type !== 'qemu'} onChange={(e) => setRam(e.target.checked)} />
+          <label className="check"><input type="checkbox" checked={ram && running && !v.passthrough.length} disabled={!running || v.type !== 'qemu' || v.passthrough.length > 0} onChange={(e) => setRam(e.target.checked)} />
             {L('메모리 포함 (켜진 상태 그대로 되돌림)', 'Include memory (roll back to the running state)')}</label>
           <button type="button" className="btn primary small-btn" disabled={busy || !/^[A-Za-z][A-Za-z0-9_.-]{0,39}$/.test(name)}
             onClick={() => run(async () => {
-              await vmApi.takeSnapshot(v.desktop_id, { name, description: desc, vmstate: ram && running });
+              await vmApi.takeSnapshot(v.desktop_id, { name, description: desc, vmstate: ram && running && !v.passthrough.length });
               setName(''); setDesc('');
               return done(L(`스냅샷 '${name}'을(를) 만들었습니다.`, `Snapshot '${name}' taken.`));
             })}>{L('만들기', 'Take')}</button>
         </div>
         <p className="muted small">{L('이름은 영문자로 시작하고 영문자 · 숫자 · - _ . 만 씁니다. GPU 패스스루 VM은 메모리 포함 스냅샷이 안 될 수 있습니다.',
-          'A name starts with a letter and uses letters, digits, - _ . only. VMs with a passed-through GPU may refuse a snapshot with memory.')}</p>
+          'A name starts with a letter and uses letters, digits, - _ . only. VMs with a passed-through GPU may refuse a snapshot with memory.')}
+          {v.passthrough.length > 0 && L(' 이 VM은 패스스루 장치가 있어 메모리 포함 스냅샷을 만들 수 없습니다(되돌리면 카드 상태가 맞지 않음).', ' This VM has a passthrough device, so a snapshot with memory is not possible (a rollback would not match the card).')}</p>
       </section>
       <LoadState value={snaps} retry={snaps.reload}>
         {({ snapshots }) => snapshots.length === 0 ? <div className="empty"><p>{L('스냅샷이 없습니다.', 'No snapshots.')}</p></div> : (

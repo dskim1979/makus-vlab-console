@@ -124,7 +124,7 @@ export function LeasesPage() {
 }
 
 function LendDialog({ active, onClose, onDone }: { active: AdminLease[]; onClose: () => void; onDone: (n: Notice) => void }) {
-  const { t } = useI18n();
+  const { t, pick } = useI18n();
   const desktops = useLoad(adminApi.desktops);
   const assigned = desktops.state === 'ok' ? desktops.data.filter((d) => d.assigned_user && !active.some((l) => l.desktop_id === d.id)) : [];
   const [deskId, setDeskId] = useState('');
@@ -151,7 +151,9 @@ function LendDialog({ active, onClose, onDone }: { active: AdminLease[]; onClose
     setBusy(true); setError(null);
     try {
       const r = await adminApi.lend({ desktop_id: desk.id, mapping, ends_at: new Date(ends).toISOString(), name: name.trim() || undefined });
-      onDone({ kind: 'info', text: t('ln.lent').replace('{name}', r.lease.resource_name) + (r.needs_restart ? ` ${t('ln.restart')}` : '') });
+      const warns = (r.warnings ?? []).filter((w) => w.severity !== 'info');
+      onDone({ kind: warns.length ? 'error' : 'info', text: t('ln.lent').replace('{name}', r.lease.resource_name) + (r.needs_restart ? ` ${t('ln.restart')}` : '')
+        + (warns.length ? ` ${t('ln.checks').replace('{n}', String(warns.length))} ${pick({ ko: warns[0].ko, en: warns[0].en })}` : '') });
     } catch (e) {
       setError((e as Error).message);
     } finally {

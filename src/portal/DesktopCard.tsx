@@ -70,6 +70,8 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
   const running = d.state === 'ready' || d.state === 'in_use';
   const last = relativeTime(d.last_connected, lang);
   const canPower = d.policy?.allow_power !== false;
+  const hasCard = (d.resources ?? []).some((r) => r.kind === 'card');
+  const cardOk = () => !hasCard || confirm(t('power.cardReset'));
   const autoStart = d.policy?.start_on_connect !== false;
 
   useEffect(() => {
@@ -117,14 +119,14 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
               {!canPower ? null : running ? (
                 <>
                   <button type="button" role="menuitem" disabled={busy}
-                    onClick={() => { setMenu(false); if (confirm(t('power.shutdownConfirm'))) onPower('shutdown'); }}>
+                    onClick={() => { setMenu(false); if (confirm(t('power.shutdownConfirm')) && cardOk()) onPower('shutdown'); }}>
                     <Icon name="logout" size={16} />{t('power.shutdown')}
                   </button>
-                  <button type="button" role="menuitem" disabled={busy} onClick={() => { setMenu(false); onPower('reboot'); }}>
+                  <button type="button" role="menuitem" disabled={busy} onClick={() => { setMenu(false); if (cardOk()) onPower('reboot'); }}>
                     <Icon name="refresh" size={16} />{t('power.reboot')}
                   </button>
                   <button type="button" role="menuitem" className="danger" disabled={busy}
-                    onClick={() => { setMenu(false); if (confirm(t('power.stopConfirm'))) onPower('stop'); }}>
+                    onClick={() => { setMenu(false); if (confirm(t('power.stopConfirm')) && cardOk()) onPower('stop'); }}>
                     <Icon name="info" size={16} />{t('power.stop')}
                   </button>
                 </>

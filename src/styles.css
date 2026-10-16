@@ -1309,3 +1309,11 @@ dialog.dialog { white-space: normal; text-align: start; }
 .support-counts { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .6rem; margin-bottom: .8rem; }
 .support-counts > div { display: flex; flex-direction: column; gap: .15rem; padding: .6rem .75rem; border-radius: 10px; background: var(--surface-2); }
 .support-cmd { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; padding: .45rem .6rem; border-radius: 8px; background: var(--surface-2); }
+
+/* 가속 자원 > 카드 · 패스스루 점검 */
+.checks-list { display: flex; flex-direction: column; gap: .8rem; }
+.checks-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .6rem; }
+.checks-items li { display: flex; gap: .7rem; align-items: flex-start; }
+.checks-items li > .chip { flex: none; margin-top: .1rem; }
+.checks-items p { margin: 0 0 .2rem; line-height: 1.5; }
+.checks-tips { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .3rem; }

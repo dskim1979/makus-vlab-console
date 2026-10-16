@@ -27,7 +27,7 @@ const realAdminApi = {
   leases: async (all = false) =>
     (await call<{ leases: AdminLease[] }>('GET', `/api/vlab/admin/leases${all ? '?all=1' : ''}`)).leases,
   lend: async (l: { desktop_id: string; mapping: string; ends_at: string; name?: string }) =>
-    call<{ lease: AdminLease; needs_restart: boolean }>('POST', '/api/vlab/admin/leases', l),
+    call<{ lease: AdminLease; needs_restart: boolean; warnings?: { code: string; severity: string; ko: string; en: string }[] }>('POST', '/api/vlab/admin/leases', l),
   returnLease: async (id: string) => { await call('POST', `/api/vlab/admin/leases/${enc(id)}/return`); },
   extendLease: async (id: string, ends_at: string) => { await call('POST', `/api/vlab/admin/leases/${enc(id)}/extend`, { ends_at }); },
   branding: async () => (await call<{ branding: Branding }>('GET', '/api/vlab/admin/branding')).branding,

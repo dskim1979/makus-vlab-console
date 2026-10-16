@@ -84,6 +84,7 @@ export const MODULES: AdminModule[] = [
       { id: 'buildfarm', label: { ko: '빌드 팜', en: 'Build farm' }, phase: 1 },
       { id: 'licenses', label: { ko: '라이선스 서버', en: 'License servers' }, phase: 1 },
       { id: 'usage', label: { ko: '카드 사용 보고서', en: 'Card usage report' }, phase: 1 },
+      { id: 'checks', label: { ko: '카드 · 패스스루 점검', en: 'Card and passthrough checks' }, phase: 1 },
     ],
   },
   {

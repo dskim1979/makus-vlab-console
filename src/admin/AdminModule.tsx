@@ -24,6 +24,7 @@ import { ReportPage } from './pages/ReportPage';
 import { UsagePage } from './pages/UsagePage';
 import { RolesPage } from './pages/RolesPage';
 import { UsersPage } from './pages/UsersPage';
+import { AccelChecksPage } from './pages/AccelChecksPage';
 import { BoardsPage, BuildFarmPage, CardUsagePage, DepartmentsPage, ExternalDesktopsPage, GatewaysPage, GoldenImagesPage, LicenseServersPage, SignupsPage, UsbLibraryPage } from './pages/NextPages';
 
 // Pages that exist so far; every other menu entry shows its planned phase.
@@ -70,6 +71,7 @@ function pageBody(moduleId: string, pageId: string, subId?: string) {
   if (key === 'accel/buildfarm') return <BuildFarmPage />;
   if (key === 'accel/licenses') return <LicenseServersPage />;
   if (key === 'accel/usage') return <CardUsagePage />;
+  if (key === 'accel/checks') return <AccelChecksPage />;
   return null;
 }
 

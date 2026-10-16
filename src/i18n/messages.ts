@@ -1079,6 +1079,8 @@ export const messages = {
   'hub.notices': { ko: '공지', en: 'Notices' },
   'hub.pair': { ko: '서버 이중화', en: 'Server pair' },
   'hub.support': { ko: '지원', en: 'Support' },
+  'ln.checks': { ko: '점검에서 주의 {n}건(가속 자원 › 카드 · 패스스루 점검):', en: '{n} warning(s) (Accelerators › Card and passthrough checks):' },
+  'power.cardReset': { ko: '이 데스크톱에는 가속 카드가 붙어 있습니다. 끄거나 다시 시작하면 카드가 리셋되어 카드에 올린 비트스트림(xclbin)과 작업 상태가 지워집니다. 계속할까요?', en: 'This desktop has an accelerator card. Shutting down or restarting resets the card: the bitstream (xclbin) and work loaded on it are lost. Continue?' },
   'notice.intro': { ko: '공지는 포털과 관리 콘솔 맨 위에 띠로 보입니다. 사용자가 닫으면 그 브라우저에서는 다시 보이지 않고, 내용을 고치면 다시 보입니다.', en: 'Notices show as a bar at the top of the portal and the admin console. A user can close one in their browser; a changed text shows again.' },
   'notice.new': { ko: '공지 만들기', en: 'New notice' },
   'notice.edit': { ko: '공지 고치기', en: 'Edit notice' },
