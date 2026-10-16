@@ -6,15 +6,26 @@ import { LoadState } from '../components/LoadState';
 import { useLoad } from '../components/useLoad';
 import { useI18n } from '../i18n';
 import { InfraBoard } from './InfraBoard';
-import { MODULES } from './modules';
+import { visibleModules } from './modules';
+import { useFeatures } from '../features';
+import { FeaturesChooser } from './pages/FeaturesPage';
 import { ReservationsCard } from './pages/ReservationsPage';
 import { Breakdown } from './SummaryTiles';
 
 // Admin dashboard: the monitoring board on one screen (InfraBoard), then below it the
 // system health, quick actions, desktops by state and the modules.
 export function AdminHome() {
-  const { t } = useI18n();
+  const { t, pick } = useI18n();
   const summary = useLoad(adminApi.summary);
+  const features = useFeatures();
+  if (features.loaded && !features.chosen) {
+    return (
+      <main className="page">
+        <header className="page-head"><div><h1>{pick({ ko: '시작하기', en: 'Getting started' })}</h1></div></header>
+        <FeaturesChooser firstRun />
+      </main>
+    );
+  }
   return (
     <main className="page page-wide dash">
       <LoadState value={summary} retry={summary.reload}>
@@ -28,13 +39,13 @@ export function AdminHome() {
                 <h2 className="card-title">{t('dash.quick')}</h2>
                 <ul className="link-list">
                   <Quick to="/admin/pools/list" icon="pool" label={t('dash.qPool')} />
-                  <Quick to="/admin/vms/templates" icon="box" label={t('dash.qClone')} />
-                  <Quick to="/admin/accel/leases" icon="gpu" label={t('dash.qGpu')} />
+                  <Quick to="/admin/vms/images/templates" icon="box" label={t('dash.qClone')} />
+                  {features.on(['gpuai', 'fpga']) && <Quick to="/admin/accel/loans" icon="gpu" label={t('dash.qGpu')} />}
                   <Quick to="/admin/users/list" icon="users" label={t('dash.qUsers')} />
                   <Quick to="/admin/ops/reports" icon="ops" label={t('dash.qReport')} />
                 </ul>
               </section>
-              <ReservationsCard />
+              {features.on('lab') && <ReservationsCard />}
             </div>
             <Breakdown s={s} />
             </div>
@@ -83,12 +94,13 @@ function Health({ s }: { s: Summary }) {
 
 function ModuleList() {
   const { t, pick } = useI18n();
+  const { on } = useFeatures();
   return (
     <section className="modules">
       <h2 className="section-title">{t('dash.modules')}</h2>
       <div className="module-grid">
-        {MODULES.map((m) => (
-          <Link key={m.id} to={`/admin/${m.id}/${m.pages[0].id}`} className="module">
+        {visibleModules(on).map((m) => (
+          <Link key={m.id} to={`/admin/${m.id}/${m.visiblePages[0].id}`} className="module">
             <span className="module-icon"><Icon name={m.icon} size={20} /></span>
             <span className="module-text">
               <span className="module-name">{pick(m.label)}</span>

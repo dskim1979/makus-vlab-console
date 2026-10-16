@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useFeatures } from '../../features';
 import { enrollApi, kioskPasswordHash, msiexecLine, saveFile, serverOfConsole, type EnrollCode, type EnrollCodeStatus, type InstallSettings } from '../../api/enroll';
 import type { Lab, Terminal } from '../../api/types';
 import { usersApi } from '../../api/users';
@@ -424,6 +425,7 @@ export function PortalInstallButtons({ fallbackHref, version, label, title }: { 
   const [open, setOpen] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const i = info.state === 'ok' ? info.data : null;
+  const labOn = useFeatures().on('lab');
   async function personal() {
     try { saveFile(await enrollApi.personalInstaller(), 'moavi-desk-install.cmd'); } catch (e) { setErr((e as Error).message); }
   }
@@ -438,7 +440,7 @@ export function PortalInstallButtons({ fallbackHref, version, label, title }: { 
           <Icon name="download" size={16} />{label}{version && <span className="tag-soft tag">v{version}</span>}
         </a>
       )}
-      {i?.allowed && (
+      {i?.allowed && labOn && (
         <button type="button" className="btn-ghost" onClick={() => setOpen(true)}><Icon name="lab" size={16} />{L('실습실 PC로 설치', 'Install as a room PC')}</button>
       )}
       {err && <span className="small danger-text">{err}</span>}

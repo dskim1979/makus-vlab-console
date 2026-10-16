@@ -1,7 +1,8 @@
-import { Navigate, useParams } from 'react-router-dom';
+import { Link, NavLink, Navigate, useParams } from 'react-router-dom';
+import { useFeatures } from '../features';
 import { Icon } from '../components/Icon';
 import { useI18n } from '../i18n';
-import { findModule } from './modules';
+import { findModule, findRender, pageVisible, visibleModules, visibleTabs } from './modules';
 import { AccelInventoryPage, MappingsPage, VgpuProfilesPage } from './pages/AccelPages';
 import { LeasesPage } from './pages/LeasesPage';
 import { LabSchedulesPage, LabsPage, ScheduledPoolsPage, TerminalsPage } from './pages/LabPages';
@@ -32,8 +33,7 @@ import { GpuQueuePage, GpuQuotasPage, GpuUsagePage, IdeSessionsPage } from './pa
 import { BoardsPage, BuildFarmPage, CardUsagePage, DepartmentsPage, ExternalDesktopsPage, GatewaysPage, GoldenImagesPage, LicenseServersPage, SignupsPage, UsbLibraryPage } from './pages/NextPages';
 
 // Pages that exist so far; every other menu entry shows its planned phase.
-function pageBody(moduleId: string, pageId: string, subId?: string) {
-  const key = `${moduleId}/${pageId}`;
+function pageBody(key: string, subId?: string) {
   if (key === 'pools/list') return subId ? <PoolDetailPage poolId={subId} /> : <PoolsPage />;
   if (key === 'pools/status') return <DesktopStatusPage />;
   if (key === 'ops/sessions') return <SessionsPage />;
@@ -90,18 +90,33 @@ function pageBody(moduleId: string, pageId: string, subId?: string) {
   return null;
 }
 
-// One admin page. The module's pages are listed in the sidebar (Sidebar.tsx).
+// One admin page: its tabs (related screens), or the one screen it shows. Old addresses of
+// screens that are tabs now redirect there; a page of a feature that is off says so.
 export function AdminModule() {
   const { moduleId, pageId, subId } = useParams();
   const { t, pick, lang } = useI18n();
+  const features = useFeatures();
+  const on = (g?: Parameters<typeof features.on>[0]) => features.on(g);
   const mod = findModule(moduleId);
 
   // 도메인 and 화이트라벨 moved into 플랫폼 설정
   if (moduleId === 'users' && pageId === 'directory') return <Navigate to="/admin/ops/settings/directory" replace />;
   if (moduleId === 'ops' && pageId === 'branding') return <Navigate to="/admin/ops/settings/branding" replace />;
-  if (!mod) return <Navigate to="/admin" replace />;
-  const page = mod.pages.find((p) => p.id === pageId);
-  if (!page) return <Navigate to={`/admin/${mod.id}/${mod.pages[0].id}`} replace />;
+  const page = mod?.pages.find((p) => p.id === pageId);
+  if (!mod || !page) {
+    const moved = findRender(`${moduleId}/${pageId}`);
+    if (moved) return <Navigate to={`/admin/${moved[0]}/${moved[1]}${moved[2] ? `/${moved[2]}` : subId ? `/${subId}` : ''}`} replace />;
+    const first = visibleModules(on).find((m) => m.id === moduleId) ?? null;
+    if (first) return <Navigate to={`/admin/${first.id}/${first.visiblePages[0].id}`} replace />;
+    return <Navigate to="/admin" replace />;
+  }
+
+  const off = !page.hidden && !pageVisible(page, on);
+  const tabs = page.tabs ? visibleTabs(page, on) : [];
+  const tab = page.tabs ? (tabs.find((x) => x.id === subId) ?? tabs[0]) : undefined;
+  if (page.tabs && subId && tab && tab.id !== subId) return <Navigate to={`/admin/${mod.id}/${page.id}/${tab.id}`} replace />;
+  const key = tab ? tab.render : (page.render ?? `${mod.id}/${page.id}`);
+  const body = off ? null : pageBody(key, tab ? undefined : subId);
 
   return (
     <main className="page">
@@ -109,11 +124,24 @@ export function AdminModule() {
         <div>
           <nav className="crumbs" aria-label="breadcrumb">
             <span>{pick(mod.label)}</span><Icon name="chevron" size={12} /><span>{pick(page.label)}</span>
+            {tab && <><Icon name="chevron" size={12} /><span>{pick(tab.label)}</span></>}
           </nav>
           <h1>{pick(page.label)}</h1>
         </div>
       </header>
-      {pageBody(mod.id, page.id, subId) ?? (
+      {tabs.length > 1 && (
+        <nav className="page-tabs" aria-label={pick(page.label)}>
+          {tabs.map((x) => (
+            <NavLink key={x.id} to={`/admin/${mod.id}/${page.id}/${x.id}`} className={() => (x.id === tab?.id ? 'on' : '')}>{pick(x.label)}</NavLink>
+          ))}
+        </nav>
+      )}
+      {off ? (
+        <div className="empty">
+          <p>{pick({ ko: '이 기능은 이 사이트에서 꺼져 있습니다.', en: 'This feature is off for this site.' })}</p>
+          <p><Link to="/admin/ops/settings/features" className="btn">{pick({ ko: '플랫폼 설정 › 기능에서 켜기', en: 'Turn it on in Platform settings › Features' })}</Link></p>
+        </div>
+      ) : body ?? (
         <div className="placeholder">
           <p>{t('admin.placeholder')}</p>
           <p className="muted small">

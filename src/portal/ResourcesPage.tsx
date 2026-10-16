@@ -2,6 +2,7 @@ import { api } from '../api/client';
 import { nextApi } from '../api/next';
 import { FOLDER_KEYS, folderName, sizeText, storageApi, storageCodeText } from '../api/storage';
 import { BuildJobsPanel } from '../admin/pages/NextPages';
+import { useFeatures } from '../features';
 import { Icon } from '../components/Icon';
 import { LoadState } from '../components/LoadState';
 import { useLoad } from '../components/useLoad';
@@ -11,6 +12,7 @@ import { MyGpuCard } from './WebIde';
 
 // 내 자원: accelerator cards, boards and desktops on loan to the user.
 export function ResourcesPage() {
+  const { on } = useFeatures();
   const { t, lang, pick } = useI18n();
   const L = (ko: string, en: string) => pick({ ko, en });
   const leases = useLoad(api.myLeases);
@@ -52,7 +54,7 @@ export function ResourcesPage() {
           )}
         </LoadState>
       )}
-      <MyGpuCard />
+      {on('gpuai') && <MyGpuCard />}
       {folders.state === 'ok' && folders.data.length > 0 && (
         <section className="panel">
           <div className="panel-head">
@@ -91,7 +93,7 @@ export function ResourcesPage() {
           ))}
         </section>
       )}
-      {jobs.state === 'ok' && jobs.data.pools.length > 0 && <BuildJobsPanel pools={jobs.data.pools} />}
+      {on('fpga') && jobs.state === 'ok' && jobs.data.pools.length > 0 && <BuildJobsPanel pools={jobs.data.pools} />}
     </main>
   );
 }

@@ -1526,3 +1526,18 @@ fieldset.plain:disabled { opacity: .55; }
   .gpu-quota-item.wide { grid-column: auto; }
   .ide-actions { width: 100%; }
 }
+
+/* 플랫폼 설정 > 기능 · 시작하기 */
+.features { display: flex; flex-direction: column; gap: .9rem; max-width: 1100px; }
+.profile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: .7rem; }
+.profile-card { display: flex; flex-direction: column; gap: .35rem; text-align: left; padding: 1rem; border-radius: var(--radius); border: 1.5px solid var(--border);
+  background: var(--surface); color: inherit; cursor: pointer; font: inherit; }
+.profile-card:hover { border-color: var(--accent); }
+.profile-card.on { border-color: var(--accent); background: var(--accent-soft); }
+.profile-icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.features-sub { margin: .4rem 0 0; font-size: .95rem; }
+.bundle-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: .6rem; }
+.features-detail summary { cursor: pointer; font-weight: 600; }
+.group-list { display: flex; flex-direction: column; gap: .45rem; margin: .6rem 0; }
+.preview-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
+.features-preview { margin: 0; }

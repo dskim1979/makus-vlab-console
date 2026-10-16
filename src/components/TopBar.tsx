@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import { useFeatures } from '../features';
 import { useAuth } from '../auth/AuthContext';
 import { useSupportUrl } from '../branding';
 import { useI18n } from '../i18n';
@@ -20,6 +21,7 @@ function initials(name: string) {
 // console"), language, about and the user menu.
 export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu: () => void }) {
   const { t, lang, setLang } = useI18n();
+  const { on } = useFeatures();
   const { user, logout, isAdmin } = useAuth();
   const [about, setAbout] = useState(false);
   const [account, setAccount] = useState(false);
@@ -52,8 +54,8 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
         <nav className="tb-tabs" aria-label={t('nav.menu')}>
           <NavLink to="/" end>{t('nav.home')}</NavLink>
           <NavLink to="/resources">{t('nav.resources')}</NavLink>
-          <NavLink to="/reserve">{t('nav.reserve')}</NavLink>
-          <NavLink to="/data">{t('nav.data')}</NavLink>
+          {on('lab') && <NavLink to="/reserve">{t('nav.reserve')}</NavLink>}
+          {on('data') && <NavLink to="/data">{t('nav.data')}</NavLink>}
         </nav>
       )}
 

@@ -58,6 +58,8 @@ services:
       PEGAPROX_TRUSTED_PROXIES: "172.16.0.0/12,192.168.0.0/16,10.0.0.0/8"   # X-Forwarded-For from the proxy
       PEGAPROX_HTTP_PORT: "-1"
       VLAB_GUAC_BUILTIN: ${VLAB_GUACAMOLE:-1}               # the bundled Guacamole as a gateway (0: disabled)
+      VLAB_PROFILE: ${VLAB_PROFILE:-}                       # optional: general | small_lab | university | research (first start only)
+      VLAB_FEATURES: ${VLAB_FEATURES:-}                     # optional: fpga,gpuai
       VLAB_GUAC_KEY_FILE: /etc/vlab/guac/json-secret-key
       VLAB_HOSTNAME: ${VLAB_HOSTNAME:-vlab.local}           # the gateway's address as shown in the console
       VLAB_HTTPS_PORT: ${VLAB_HTTPS_PORT:-443}

@@ -1084,6 +1084,7 @@ export const messages = {
   'hub.notices': { ko: '공지', en: 'Notices' },
   'hub.pair': { ko: '서버 이중화', en: 'Server pair' },
   'hub.support': { ko: '지원', en: 'Support' },
+  'hub.features': { ko: '기능', en: 'Features' },
   'hub.accounts': { ko: '계정 · 약관', en: 'Accounts and terms' },
   'ln.checks': { ko: '점검에서 주의 {n}건(가속 자원 › 카드 · 패스스루 점검):', en: '{n} warning(s) (Accelerators › Card and passthrough checks):' },
   'power.cardReset': { ko: '이 데스크톱에는 가속 카드가 붙어 있습니다. 끄거나 다시 시작하면 카드가 리셋되어 카드에 올린 비트스트림(xclbin)과 작업 상태가 지워집니다. 계속할까요?', en: 'This desktop has an accelerator card. Shutting down or restarting resets the card: the bitstream (xclbin) and work loaded on it are lost. Continue?' },

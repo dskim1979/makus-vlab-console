@@ -34,7 +34,7 @@ export function SetupPage() {
       const r = await api.login(username.trim(), password);
       if (r.kind === 'ok') {
         signedIn(r.user);
-        navigate('/admin/cluster/connections', { replace: true });   // the first thing to set up
+        navigate('/admin', { replace: true });   // the site profile first (AdminHome), then the cluster
       } else {
         window.location.assign('/login');
       }
