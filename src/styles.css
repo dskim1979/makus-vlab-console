@@ -1419,3 +1419,14 @@ fieldset.plain:disabled { opacity: .55; }
 .table tr.row-error td { background: color-mix(in srgb, var(--danger, #d33) 7%, transparent); }
 .import-preview th, .import-preview td { white-space: nowrap; }
 .import-preview td:last-child { white-space: normal; min-width: 12rem; }
+/* 라이선스 서버 > 좌석 사용량 (admin/pages/LicenseSeats.tsx) */
+.seat-panel { margin-top: 1.25rem; }
+.seat-cell { min-width: 190px; }
+.seat-bar { position: relative; display: block; margin-top: .3rem; }
+.seat-bar .bar-track { height: 7px; }
+.seat-mark { position: absolute; top: -2px; width: 2px; height: 11px; background: var(--text-2); opacity: .55; border-radius: 1px; }
+.seat-holders > td { background: var(--surface-2); padding: .5rem .85rem .75rem; }
+.seat-holders .table { background: var(--surface); }
+.seat-chart { margin-top: .5rem; }
+.seat-chart .panel-head select { margin-left: auto; max-width: 260px; }
+.seat-denials summary { cursor: pointer; font-weight: 600; margin: .6rem 0; }

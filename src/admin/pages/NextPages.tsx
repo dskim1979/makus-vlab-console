@@ -8,6 +8,7 @@ import { LoadState } from '../../components/LoadState';
 import { SettingsStatus } from '../../components/SettingsShell';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
+import { LicenseSeatsPanel, modeLabel } from './LicenseSeats';
 import { useHaRegister } from './OpsPages';
 import { TerminalInstallPanel } from './TerminalEnroll';
 
@@ -1143,6 +1144,7 @@ export function LicenseServersPage() {
   const servers = useLoad(nextApi.licenseServers);
   const [editing, setEditing] = useState<LicenseServer | 'new' | null>(null);
   const [checking, setChecking] = useState<string | null>(null);
+  const [seatsOf, setSeatsOf] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
   const ha = useHaRegister((text, ok) => { setNotice({ kind: ok ? 'info' : 'error', text }); if (ok) servers.reload(); });
   async function check(s: LicenseServer) {
@@ -1166,13 +1168,14 @@ export function LicenseServersPage() {
             { label: L('문제', 'Problem'), value: String(list.filter((s) => s.last_ok === 0).length), tone: list.some((s) => s.last_ok === 0) ? 'warn' : undefined },
             { label: L('HA 등록', 'Under HA'), value: String(list.filter((s) => s.vm_ha).length) },
             { label: L('자동 감시', 'Watched'), value: String(list.filter((s) => s.watch).length) },
+            { label: L('좌석 수집', 'Seats read'), value: String(list.filter((s) => s.usage_mode && s.usage_mode !== 'off').length) },
           ]} />
           <p className="muted small">{L('자동 감시를 켠 서버는 5분마다 포트를 확인하고, 응답이 없으면 알림 채널(웹훅 · 메일)로 한 번 알리고 다시 살아나면 또 알립니다.',
             'Watched servers are checked every 5 minutes; when one stops answering the alert channels (webhook, mail) hear once, and again when it is back.')}</p>
           <NoticeBar notice={notice} />
           {list.length === 0 ? <div className="empty"><p>{L('등록된 라이선스 서버가 없습니다.', 'No licence servers yet.')}</p></div> : (
             <div className="table-scroll"><table className="table compact-head">
-              <thead><tr><th>{L('이름', 'Name')}</th><th>{L('주소', 'Host')}</th><th>{L('포트', 'Ports')}</th><th>VM</th><th>{L('고정 MAC', 'Fixed MAC')}</th><th>{L('마지막 확인', 'Checked')}</th><th className="actions" /></tr></thead>
+              <thead><tr><th>{L('이름', 'Name')}</th><th>{L('주소', 'Host')}</th><th>{L('포트', 'Ports')}</th><th>VM</th><th>{L('고정 MAC', 'Fixed MAC')}</th><th>{L('좌석', 'Seats')}</th><th>{L('마지막 확인', 'Checked')}</th><th className="actions" /></tr></thead>
               <tbody>{list.map((s) => (
                 <tr key={s.id}>
                   <td className="strong">{s.name}{s.watch ? <span className="chip chip-on" style={{ marginLeft: 6 }}>{L('감시', 'watched')}</span> : null}
@@ -1188,8 +1191,12 @@ export function LicenseServersPage() {
                       title={L('노드가 멈추면 다른 노드에서 이 VM을 다시 켭니다', 'Restarts this VM on another node when its node stops')}
                       onClick={() => ha.register(s.id, s.cluster_id, s.vmid!, s.name)}>{L('HA 등록', 'Add to HA')}</button>}</> : '-'}</td>
                   <td>{s.fixed_mac ? <code className="code">{s.fixed_mac}</code> : '-'}</td>
+                  <td className="nowrap"><span className={`chip ${s.usage_mode && s.usage_mode !== 'off' ? (s.usage_ok === 0 ? 'chip-warn' : 'chip-on') : ''}`}
+                    title={s.usage_ok === 0 ? s.usage_error : undefined}>{modeLabel(s.usage_mode, L)}{s.usage_ok === 0 ? ` · ${L('실패', 'failed')}` : ''}</span>
+                    {Object.values(s.seat_alerted ?? {}).includes('full') && <span className="chip chip-off">{L('좌석 없음', 'full')}</span>}</td>
                   <td className="muted small">{when(s.last_check)}</td>
                   <td className="actions">
+                    <button type="button" className="btn-ghost small-btn" aria-pressed={seatsOf === s.id} onClick={() => setSeatsOf(seatsOf === s.id ? null : s.id)}>{L('좌석 사용량', 'Seats')}</button>
                     <button type="button" className="btn-ghost small-btn" disabled={checking === s.id} onClick={() => check(s)}>{L('포트 확인', 'Check')}</button>
                     <button type="button" className="btn-ghost small-btn" onClick={() => setEditing(s)}>{L('편집', 'Edit')}</button>
                     <button type="button" className="btn-ghost small-btn danger" onClick={async () => {
@@ -1199,6 +1206,9 @@ export function LicenseServersPage() {
                   </td>
                 </tr>))}</tbody>
             </table></div>
+          )}
+          {seatsOf && list.some((s) => s.id === seatsOf) && (
+            <LicenseSeatsPanel key={seatsOf} server={list.find((s) => s.id === seatsOf)!} onChanged={servers.reload} onClose={() => setSeatsOf(null)} />
           )}
           {editing && <LicenseDialog server={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onDone={() => { setEditing(null); servers.reload(); }} />}
         </>

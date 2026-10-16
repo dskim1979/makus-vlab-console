@@ -6,6 +6,7 @@ import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
+import { LicenseSeatReport } from './LicenseSeats';
 import { ReservationReport } from './ReservationReport';
 
 const PERIODS = [7, 30, 90];
@@ -64,6 +65,7 @@ export function UsagePage() {
         )}
       </LoadState>
       <ReservationReport days={days} />
+      <LicenseSeatReport days={days} />
     </>
   );
 }

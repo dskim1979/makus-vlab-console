@@ -56,6 +56,8 @@ export type LicenseServer = {
   id: string; name: string; host: string; ports: number[]; cluster_id: string; vmid: number | null; fixed_mac: string; notes: string;
   last_check: string | null; last_ok: number | null; last_detail: PortCheck[]; vm_status?: string; vm_ha?: boolean;
   watch?: number; alerted_at?: string | null;
+  // licence seats (api/licenses.ts): how they are read and the last read
+  usage_mode?: 'off' | 'engine' | 'agent'; usage_at?: string | null; usage_ok?: number | null; usage_error?: string; seat_alerted?: Record<string, string>;
 };
 export type LicenseInput = { name: string; host: string; ports: string; cluster_id: string; vmid: number | null; fixed_mac: string; notes: string; watch: boolean };
 export type GrantType = 'user' | 'department' | 'group';
@@ -270,12 +272,12 @@ const farm: FarmPool[] = [
 ];
 const licenses: LicenseServer[] = [
   { id: 'lic_1', name: 'FPGA 설계 툴 라이선스 (FlexLM)', host: 'lic01.univ.ac.kr', ports: [2100, 27000], cluster_id: 'lab-cluster', vmid: 210, fixed_mac: '52:54:00:1a:2b:3c',
-    notes: 'Proxmox HA 등록 · MAC 고정', last_check: iso(5), last_ok: 1,
+    notes: 'Proxmox HA 등록 · MAC 고정', last_check: iso(5), last_ok: 1, usage_mode: 'agent', usage_at: iso(3), usage_ok: 1, usage_error: '', seat_alerted: {},
     last_detail: [{ port: 2100, ok: true, ms: 3, error: '' }, { port: 27000, ok: true, ms: 2, error: '' }], vm_status: 'running', vm_ha: true },
   { id: 'lic_2', name: 'NVIDIA vGPU 라이선스 (DLS)', host: 'dls.univ.ac.kr', ports: [443], cluster_id: '', vmid: null, fixed_mac: '',
     notes: '', last_check: iso(30), last_ok: 0, last_detail: [{ port: 443, ok: false, ms: 2001, error: 'timed out' }] },
   { id: 'lic_3', name: 'EDA 툴 라이선스 (Cadence)', host: 'lic02.univ.ac.kr', ports: [5280], cluster_id: 'lab-cluster', vmid: 220, fixed_mac: '52:54:00:4d:5e:6f',
-    notes: 'MAC 고정', last_check: iso(5), last_ok: 1, last_detail: [{ port: 5280, ok: true, ms: 4, error: '' }], vm_status: 'running', vm_ha: false },
+    notes: 'MAC 고정', last_check: iso(5), last_ok: 1, usage_mode: 'engine', usage_at: iso(3), usage_ok: 1, usage_error: '', seat_alerted: {}, last_detail: [{ port: 5280, ok: true, ms: 4, error: '' }], vm_status: 'running', vm_ha: false },
 ];
 let client: ClientSettings = { latest_version: '0.9.0', min_version: '0.9.0', download_url: '', protocol: 'auto' };
 const grants: Record<string, Grant[]> = {
@@ -536,3 +538,5 @@ const mockNextApi: NextApi = {
 export const mockSignupState = { signups, settings: signupSettings };
 
 export const nextApi: NextApi = isMock ? mockNextApi : realNextApi;
+export { licenses as mockLicenses };   // the seat settings of the mock servers (api/licenses.ts)
+
