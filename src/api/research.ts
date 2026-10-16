@@ -5,7 +5,7 @@
 import { ApiError, isMock, request } from './client';
 
 export type GpuEnv = { kind: 'conda'; name: string } | { kind: 'container'; image: string };
-export type Notify = { mail?: boolean; webhook?: boolean };
+export type Notify = { mail?: boolean; webhook?: boolean; start?: boolean };
 export type GpuJobFields = { gpus?: number; gpu_kind?: string; memory_gb?: number; max_minutes?: number; env?: GpuEnv | null; notify?: Notify };
 export type WaitReason = '' | 'quota_gpus' | 'quota_gpus_department' | 'quota_hours' | 'held_for_older' | 'no_free_gpu' | 'no_free_vm' | 'no_gpu_pool';
 export type Runtime = 'docker' | 'podman' | 'apptainer';
@@ -23,7 +23,12 @@ export type QueueJob = {
   gpu_index: number[]; position?: number | null; wait_reason?: WaitReason; waited_min?: number; status: string;
 };
 export type QueuePool = { id: string; name: string; kind: string; gpus_per_vm: number; vms: number; gpus: number; gpus_used: number; max_minutes: number; runtime: Runtime };
-export type GpuSettings = { mail: boolean; channels: string[]; starve_minutes: number; default_max_minutes: number; max_queued_per_user: number };
+export type GpuSettings = {
+  mail: boolean; channels: string[]; starve_minutes: number; default_max_minutes: number; max_queued_per_user: number;
+  // per-user notices (engine pegaprox/api/vlab_notices.py); each user turns kinds off in 내 계정 > 알림
+  quota_notice: boolean; quota_warn_pct: number; loan_remind_hours: number; loan_notice: boolean; ide_notice: boolean;
+  notice_webhook: boolean; queue_alert_hours: number;
+};
 export type GpuQueue = { queued: QueueJob[]; running: QueueJob[]; pools: QueuePool[]; settings: GpuSettings };
 export type QuotaList = { quotas: Quota[]; users: { username: string; gpus_now: number; hours_month: number }[]; month_start: string };
 export type QuotaInput = { subject_type: Quota['subject_type']; subject_id?: string; max_gpus: number; monthly_gpu_hours: number; hard: boolean; note: string };
@@ -109,7 +114,8 @@ const mockJobs: QueueJob[] = [
   { id: 'job_g6', pool_id: '', pool: null, username: 'bob', name: '평가 스윕', command: 'python eval.py --all', gpus: 1, gpu_kind: '',
     memory_gb: 16, max_minutes: 120, env: null, created_at: ago(12), started_at: null, desktop: null, gpu_index: [], status: 'queued' },
 ];
-let mockSettings: GpuSettings = { mail: true, channels: ['ch_slack'], starve_minutes: 60, default_max_minutes: 1440, max_queued_per_user: 50 };
+let mockSettings: GpuSettings = { mail: true, channels: ['ch_slack'], starve_minutes: 60, default_max_minutes: 1440, max_queued_per_user: 50,
+  quota_notice: true, quota_warn_pct: 80, loan_remind_hours: 24, loan_notice: true, ide_notice: true, notice_webhook: false, queue_alert_hours: 6 };
 const mockQuotas: Quota[] = [
   { subject_type: 'default', subject_id: '', max_gpus: 4, monthly_gpu_hours: 500, hard: false, note: '기본', updated_at: ago(9000) },
   { subject_type: 'department', subject_id: 'dep_ai', name: '공과대학 > AI 연구실', max_gpus: 8, monthly_gpu_hours: 3000, hard: false, note: '연구실 전체', updated_at: ago(8000) },
@@ -190,7 +196,12 @@ const mock: typeof real = {
     mockQuotas.splice(i, 1); return delay(undefined);
   },
   settings: () => delay({ ...mockSettings }),
-  saveSettings: (s) => { mockSettings = { ...mockSettings, ...s }; return delay({ ...mockSettings }); },
+  saveSettings: (s) => {
+    if (s.quota_warn_pct !== undefined && (s.quota_warn_pct < 0 || s.quota_warn_pct > 99)) return Promise.reject(new ApiError(400, 'quota_warn_pct must be a whole number from 0 to 99'));
+    if (s.loan_remind_hours !== undefined && (s.loan_remind_hours < 0 || s.loan_remind_hours > 168)) return Promise.reject(new ApiError(400, 'loan_remind_hours must be a whole number from 0 to 168'));
+    if (s.queue_alert_hours !== undefined && (s.queue_alert_hours < 0 || s.queue_alert_hours > 168)) return Promise.reject(new ApiError(400, 'queue_alert_hours must be a whole number from 0 to 168'));
+    mockSettings = { ...mockSettings, ...s }; return delay({ ...mockSettings });
+  },
   poolConf: (poolId) => {
     const p = mockPools.find((x) => x.id === poolId);
     return delay({ gpu_jobs: p ? { gpus_per_vm: p.gpus_per_vm, kind: p.kind, max_minutes: p.max_minutes, runtime: p.runtime } : { gpus_per_vm: 0, kind: '', max_minutes: 0, runtime: 'docker' }, saved: !!p });

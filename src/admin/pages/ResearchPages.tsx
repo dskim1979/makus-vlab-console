@@ -178,7 +178,10 @@ function QueueSettingsDialog({ initial, onClose, onSaved }: { initial: GpuSettin
     setBusy(true); setError(null);
     try { await researchApi.saveSettings({ ...s, channels: channels.split(',').map((x) => x.trim()).filter(Boolean) }); onSaved(); } catch (e) { setError(errText(e)); } finally { setBusy(false); }
   }
-  const num = (k: 'starve_minutes' | 'default_max_minutes' | 'max_queued_per_user', v: string) => setS({ ...s, [k]: Math.max(0, Number(v) || 0) });
+  const num = (k: 'starve_minutes' | 'default_max_minutes' | 'max_queued_per_user' | 'quota_warn_pct' | 'loan_remind_hours' | 'queue_alert_hours', v: string) =>
+    setS({ ...s, [k]: Math.max(0, Math.round(Number(v) || 0)) });
+  const flag = (k: 'quota_notice' | 'loan_notice' | 'ide_notice' | 'notice_webhook') => (
+    { checked: s[k], onChange: (e: { target: { checked: boolean } }) => setS({ ...s, [k]: e.target.checked }) });
   return (
     <Dialog open title={L('GPU 큐 설정 · 알림', 'GPU queue settings and notices')} onClose={onClose} onSubmit={save} submitLabel={L('저장', 'Save')} busy={busy} error={error}>
       <div className="form-row">
@@ -190,6 +193,23 @@ function QueueSettingsDialog({ initial, onClose, onSaved }: { initial: GpuSettin
       <label className="check"><input type="checkbox" checked={s.mail} onChange={(e) => setS({ ...s, mail: e.target.checked })} /><span>{L('작업이 끝나면 요청한 사용자에게 메일 (계정의 메일 주소, 플랫폼 설정의 SMTP)', 'Mail the owner when a job ends, when they asked (account address, platform SMTP)')}</span></label>
       <label><span>{L('웹훅 채널 ID (쉼표로)', 'Webhook channel ids (comma separated)')}</span><input id="qs-ch" value={channels} placeholder="ch_slack, ch_teams" onChange={(e) => setChannels(e.target.value)} />
         <small className="muted">{L('운영 > 경보 > 알림 채널의 ID. 사용자가 "웹훅 알림"을 고른 작업만 보냅니다.', 'Ids from 운영 > 경보 > channels. Only jobs whose owner asked for it.')}</small></label>
+      <h3>{L('사용자 개인 알림 (메일)', 'Notices to each user (mail)')}</h3>
+      <p className="muted small">{L('계정의 메일 주소로 보냅니다. 사용자는 내 계정 > 알림에서 종류별로 끌 수 있습니다.', "Sent to the account's address. Each user can turn kinds off in 내 계정 > 알림.")}</p>
+      <div className="form-row">
+        <label className="check"><input id="qs-quota" type="checkbox" {...flag('quota_notice')} /><span>{L('GPU 할당량 경고 (월 GPU-시간, 달마다 한 번씩)', 'GPU quota warnings (monthly GPU-hours, once a month each)')}</span></label>
+        <label><span>{L('미리 알릴 사용률 (%)', 'Early warning at (%)')}</span><input id="qs-quota-pct" type="number" min={0} max={99} value={s.quota_warn_pct} disabled={!s.quota_notice} onChange={(e) => num('quota_warn_pct', e.target.value)} />
+          <small className="muted">{L('이 비율과 100%에서 알립니다. 0 = 100%에서만. 부서 할당량은 부서 책임자와 이번 달 쓴 사람에게 갑니다.', "At this share and at 100%. 0 = at 100% only. A department's goes to its manager and to those who used it this month.")}</small></label>
+      </div>
+      <div className="form-row">
+        <label><span>{L('대여 종료 전 알림 (시간)', 'Loan reminder before the end (h)')}</span><input id="qs-loan-h" type="number" min={0} max={168} value={s.loan_remind_hours} onChange={(e) => num('loan_remind_hours', e.target.value)} />
+          <small className="muted">{L('GPU·NPU·FPGA 카드와 보드 대여. 0 = 보내지 않음', 'Card and board loans. 0 = none')}</small></label>
+        <label className="check"><input id="qs-loan" type="checkbox" {...flag('loan_notice')} /><span>{L('대여 기간이 끝나 자동 반납되면 알림', 'Tell when a loan ended and went back by itself')}</span></label>
+      </div>
+      <label className="check"><input id="qs-ide" type="checkbox" {...flag('ide_notice')} /><span>{L('웹 IDE가 유휴 시간으로 또는 관리자가 닫으면 알림', 'Tell when a web IDE closed for being idle or by an administrator')}</span></label>
+      <label className="check"><input id="qs-hook" type="checkbox" {...flag('notice_webhook')} /><span>{L('위 알림을 웹훅 채널에도 보내기', 'Post these notices to the webhook channels too')}</span></label>
+      <h3>{L('관리자 경보', 'Alerts to administrators')}</h3>
+      <label><span>{L('GPU 작업이 이만큼 기다리면 경보 (시간)', 'Alert when a GPU job waits this long (h)')}</span><input id="qs-late" type="number" min={0} max={168} value={s.queue_alert_hours} onChange={(e) => num('queue_alert_hours', e.target.value)} />
+        <small className="muted">{L('작업마다 한 번, 운영 > 경보의 채널과 경보 메일 수신자에게. 0 = 끔', 'Once per job, to the alert channels and alert mail recipients. 0 = off')}</small></label>
     </Dialog>
   );
 }

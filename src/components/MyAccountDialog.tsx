@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { noticesApi, type NoticeKind } from '../api/notices';
 import { usersApi, type TotpSetup } from '../api/users';
 import { useAuth } from '../auth/AuthContext';
 import { PasswordInput, roleLabel } from '../admin/pages/UsersPage';
@@ -6,7 +7,8 @@ import { useI18n } from '../i18n';
 import { useLoad } from './useLoad';
 
 // 내 계정 (the user menu, portal and admin console alike): who I am, a new password, and
-// two-step sign-in (TOTP) - enrol with a QR code, replace the device, or turn it off.
+// two-step sign-in (TOTP) - enrol with a QR code, replace the device, or turn it off - and the
+// notice mails I take (api/notices.ts).
 // The engine's /api/auth/* routes; a new password ends every session, this one too.
 export function MyAccountDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { t, pick } = useI18n();
@@ -43,6 +45,7 @@ export function MyAccountDialog({ open, onClose }: { open: boolean; onClose: () 
           {idp
             ? <section className="acct-section"><h3>{L('2단계 인증', 'Two-step sign-in')}</h3><p className="muted small">{L('2단계 인증은 조직의 로그인 서비스에서 관리합니다.', 'Your organisation’s sign-in service manages two-step sign-in.')}</p></section>
             : <TwoFactor />}
+          {user.role !== 'viewer' && <MyNoticeChoices />}
           <div className="dialog-actions">
             <button type="button" className="btn" onClick={onClose}>{t('about.close')}</button>
           </div>
@@ -80,6 +83,40 @@ export function ChangePassword({ onChanged, current: given }: { onChanged: (next
       {error && <div className="alert error small" role="alert">{error}</div>}
       <div><button type="submit" className="btn primary" disabled={busy || !next || (given === undefined && !current)}>{L('비밀번호 바꾸기', 'Change password')}</button></div>
     </form>
+  );
+}
+
+// 알림: which mails I take (GPU jobs, quotas, loans, web IDEs, desktops, requests). Saved as it
+// is ticked; security notices always go.
+function MyNoticeChoices() {
+  const { pick } = useI18n();
+  const L = (ko: string, en: string) => pick({ ko, en });
+  const got = useLoad(noticesApi.get);
+  const [kinds, setKinds] = useState<NoticeKind[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const shown = kinds ?? (got.state === 'ok' ? got.data.kinds : null);
+  async function flip(id: string, on: boolean) {
+    setError(null);
+    try { setKinds((await noticesApi.save({ [id]: on })).kinds); } catch (e) { setError((e as Error).message); }
+  }
+  return (
+    <section className="acct-section">
+      <h3>{L('알림 메일', 'Notice mails')}</h3>
+      {got.state === 'loading' && <p className="muted small">…</p>}
+      {got.state === 'error' && <p className="alert error small">{got.message}</p>}
+      {got.state === 'ok' && <>
+        <p className="muted small">{got.data.email
+          ? L(`${got.data.email} 로 보냅니다. 받지 않을 종류는 끄세요. 비밀번호·2단계 인증 초기화와 계정 중지·만료 안내는 항상 보냅니다.`,
+            `Sent to ${got.data.email}. Turn off what you do not want. Password / two-step resets and account disabled / expired notices always go.`)
+          : L('계정에 메일 주소가 없어 알림 메일을 보낼 수 없습니다. 관리자에게 메일 주소 등록을 요청하세요.', 'Your account has no mail address, so no notice can be sent. Ask an administrator to add one.')}</p>
+        <div className="notice-choices">
+          {shown?.map((k) => (
+            <label key={k.id} className="check"><input id={`notice-${k.id}`} type="checkbox" checked={k.on} disabled={!got.data.email} onChange={(e) => flip(k.id, e.target.checked)} />
+              <span>{pick({ ko: k.label_ko, en: k.label_en })}</span></label>))}
+        </div>
+      </>}
+      {error && <div className="alert error small" role="alert">{error}</div>}
+    </section>
   );
 }
 

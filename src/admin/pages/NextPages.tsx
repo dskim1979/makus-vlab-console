@@ -805,13 +805,15 @@ export function DepartmentsPage() {
 
 function DepartmentDialog({ dep, all, parent, onClose, onDone }: { dep: Department | null; all: Department[]; parent?: string; onClose: () => void; onDone: () => void }) {
   const { L } = useL();
+  const users = useLoad(adminApi.users);
+  const [manager, setManager] = useState(dep?.manager ?? '');
   const [name, setName] = useState(dep?.name ?? '');
   const [parentId, setParentId] = useState(dep ? dep.parent_id ?? '' : parent ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function submit() {
     setBusy(true); setError(null);
-    try { await nextApi.saveDepartment(dep?.id ?? null, { name, parent_id: parentId || null }); onDone(); } catch (e) { setError(errText(e)); } finally { setBusy(false); }
+    try { await nextApi.saveDepartment(dep?.id ?? null, { name, parent_id: parentId || null, manager }); onDone(); } catch (e) { setError(errText(e)); } finally { setBusy(false); }
   }
   return (
     <Dialog open title={dep ? L('부서 편집', 'Edit department') : L('부서 추가', 'Add department')} onClose={onClose} onSubmit={submit} submitLabel={L('저장', 'Save')} busy={busy || !name.trim()} error={error}>
@@ -821,6 +823,13 @@ function DepartmentDialog({ dep, all, parent, onClose, onDone }: { dep: Departme
           <option value="">{L('없음 (최상위)', 'None (top level)')}</option>
           {all.filter((d) => d.id !== dep?.id).map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
         </select></label>
+      <label><span>{L('책임자', 'Manager')}</span>
+        <select id="dep-manager" value={manager} onChange={(e) => setManager(e.target.value)}>
+          <option value="">{L('없음 (상위 부서의 책임자)', 'None (the parent’s manager)')}</option>
+          {manager && !(users.state === 'ok' && users.data.some((u) => u.username === manager)) && <option value={manager}>{manager}</option>}
+          {(users.state === 'ok' ? users.data : []).map((u) => <option key={u.username} value={u.username}>{u.display_name || u.username} ({u.username})</option>)}
+        </select>
+        <small className="muted">{L('부서 GPU 할당량이 경고 비율이나 100%에 닿으면 메일을 받습니다.', "Gets a mail when the department's GPU quota reaches its warning share or 100%.")}</small></label>
     </Dialog>
   );
 }
@@ -1109,6 +1118,7 @@ function JobDialog({ pools, admin, onClose, onDone }: { pools: JobPool[]; admin:
   const [image, setImage] = useState('');
   const [mail, setMail] = useState(true);
   const [hook, setHook] = useState(false);
+  const [start, setStart] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function submit() {
@@ -1117,7 +1127,7 @@ function JobDialog({ pools, admin, onClose, onDone }: { pools: JobPool[]; admin:
       const gpu = gpuMode ? {
         gpus, gpu_kind: kind, memory_gb: mem, ...(minutes ? { max_minutes: minutes } : {}),
         env: envKind === 'conda' ? { kind: 'conda' as const, name: envName } : envKind === 'container' ? { kind: 'container' as const, image } : null,
-        notify: { mail, webhook: hook },
+        notify: { mail, webhook: hook, ...(start && (mail || hook) ? { start } : {}) },
       } : {};
       const b = { pool_id: pool === AUTO ? '' : pool, name, command, workdir, ...(admin && user ? { username: user } : {}), ...gpu };
       onDone(await (admin ? nextApi.submitJob(b) : nextApi.mySubmitJob(b)));
@@ -1160,6 +1170,7 @@ function JobDialog({ pools, admin, onClose, onDone }: { pools: JobPool[]; admin:
           <div className="check-row">
             <label className="check"><input type="checkbox" checked={mail} onChange={(e) => setMail(e.target.checked)} /><span>{L('끝나면 메일', 'Mail me when it ends')}</span></label>
             <label className="check"><input type="checkbox" checked={hook} onChange={(e) => setHook(e.target.checked)} /><span>{L('끝나면 웹훅(메신저) 알림', 'Webhook (messenger) when it ends')}</span></label>
+            <label className="check"><input id="job-start" type="checkbox" checked={start} disabled={!mail && !hook} onChange={(e) => setStart(e.target.checked)} /><span>{L('대기열을 떠나 시작할 때도 알림', 'Tell me when it starts too')}</span></label>
           </div>
         </>
       )}

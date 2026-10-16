@@ -76,7 +76,7 @@ export const messages = {
   'nav.home': { ko: '홈', en: 'Home' },
   'nav.logout': { ko: '로그아웃', en: 'Sign out' },
   'nav.about': { ko: '정보 (버전·라이선스)', en: 'About (version, licence)' },
-  'nav.account': { ko: '내 계정 (비밀번호·2단계 인증)', en: 'My account (password, two-step sign-in)' },
+  'nav.account': { ko: '내 계정 (비밀번호·2단계 인증·알림)', en: 'My account (password, two-step sign-in, notices)' },
   'login.mustChange': { ko: '관리자가 비밀번호를 바꾸도록 했습니다. 새 비밀번호를 정하면 계속합니다.', en: 'An administrator asks you to pick a new password before going on.' },
 
   'portal.title': { ko: '내 데스크톱', en: 'My desktops' },
