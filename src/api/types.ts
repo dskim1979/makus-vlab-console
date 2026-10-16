@@ -42,15 +42,17 @@ export type Desktop = {
   last_connected?: string | null;
   gpu?: { mode: 'passthrough' | 'vgpu'; label: string };
   policy?: { clipboard: Clipboard; allow_power: boolean; start_on_connect: boolean };
-  // 공유 저장소: the user's build folder on the pool's NAS, and how its last mount went
-  storage?: StoragePaths & { ok: boolean | null; code: string };
+  // 공유 저장소: the user's folders on the pool's NAS, and how the last check went
+  storage?: StoragePaths & { ok: boolean | null; code: string; warnings: string[] };
 };
 
 // --- shared storage (공유 저장소, makus-vlab pegaprox/vlab/nas.py) ----------------------
-export type StoragePaths = { linux: string; windows: string | null; nas: string; folder: string; kind: 'nfs' | 'smb' };
+export type FolderKey = 'home' | 'project' | 'scratch';
+export type StorageFolder = { linux: string; windows: string | null; nas: string; folder: string; quota_gb: number; retention_days?: number };
+export type StoragePaths = { kind: 'nfs' | 'smb'; folders: Partial<Record<FolderKey, StorageFolder>>; data_on_nas_only: boolean };
 export type StorageResult = {
   ok: boolean | null; code: string; detail: string; path: string; os: string; at: string; changed: boolean;
-  paths?: StoragePaths;
+  warnings: string[]; usage: Partial<Record<FolderKey, number>>; paths?: StoragePaths;
 };
 
 export type Branding = {

@@ -8,7 +8,7 @@ import { useI18n } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
 import { storageApi } from '../../api/storage';
 import type { PoolStorage } from '../../api/storage';
-import { draftOf, StorageStep, storageSummary } from './PoolStorage';
+import { draftOf, StorageStep, storageBody, storageStepError, storageSummary } from './PoolStorage';
 import type { StorageDraft } from './PoolStorage';
 import { useL } from './OpsPages';
 
@@ -84,15 +84,12 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
   async function next() {
     setError(null);
     if (step === 'conn' && p.protocols.length === 0) { setError(t('pol.protocols')); return; }
-    if (step === 'storage' && st.enabled && (!st.server || !st.share)) { setError(L('NAS 서버와 공유 경로를 넣으세요.', 'Enter the NAS server and the share.')); return; }
-    if (step === 'storage' && st.enabled && !st.folder_rule.includes('{username}')) { setError(L('사용자 폴더 규칙에 {username} 이 들어가야 합니다.', 'The folder rule must contain {username}.')); return; }
-    if (step === 'storage' && st.enabled && st.kind === 'smb' && st.smb_auth === 'service' && (!st.smb_user || !(st.smb_password || storage.has_password))) {
-      setError(L('서비스 계정의 이름과 비밀번호를 넣으세요.', 'Enter the service account and its password.')); return;
-    }
+    const why = step === 'storage' ? storageStepError(st, storage.has_password, L) : null;
+    if (why) { setError(why); return; }
     if (!last) { setStep(STEPS[i + 1]); return; }
     setBusy(true);
     // the storage first: its checks are the stricter ones, so a refusal leaves both as they were
-    try { await storageApi.save(pool.id, st); await adminApi.savePoolPolicy(pool.id, p); onSaved(); }
+    try { await storageApi.save(pool.id, storageBody(st)); await adminApi.savePoolPolicy(pool.id, p); onSaved(); }
     catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   }
@@ -207,7 +204,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
             <dt>{t('pol.s.account')}</dt><dd>{p.allow_power ? t('pol.allowPower') : `${t('pol.s.power')}: ${t('pol.offShort')}`}
               {p.max_session_hours ? ` · ${t('pol.maxSession')} ${p.max_session_hours}${t('pol.hours')}` : ''}</dd>
             <dt>{L('공유 저장소', 'Shared storage')}</dt><dd>{storageSummary({ ...st, has_password: storage.has_password }, L)}
-              {st.enabled ? ` · ${st.private ? L('본인만 읽기 · 쓰기', 'owner only') : L('공유 권한', 'shared rights')}` : ''}</dd>
+              {st.enabled ? ` · ${st.kind === 'smb' || st.create_by === 'user' ? L('폴더는 사용자 본인이 만듦', 'folders made by the user') : L('폴더는 엔진이 만듦', 'folders made by the engine')}` : ''}</dd>
           </dl>
         </div>
       )}

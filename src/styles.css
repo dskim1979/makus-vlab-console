@@ -1328,3 +1328,8 @@ fieldset.plain:disabled { opacity: .55; }
 .folder-item .folder-paths { display: flex; flex-wrap: wrap; gap: .35rem .9rem; min-width: 0; }
 .folder-item code { word-break: break-all; }
 .storage-panel td.storage-result { min-width: 18rem; }
+.dtile-note { margin-top: -.2rem; }
+.nas-folders td { vertical-align: top; }
+.nas-folders input:not([type=checkbox]) { min-width: 11rem; }
+.nas-folders .num-input { width: 6rem; min-width: 0; }
+.nas-folders td:first-child { min-width: 11rem; }

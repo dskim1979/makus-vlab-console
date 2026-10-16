@@ -27,11 +27,16 @@ export const mockWhoAmI = () => current?.username ?? '';
 
 const desktops: Desktop[] = [
   { id: 'd1', name: 'vivado-build-01', pool: 'FPGA 빌드 팜', state: 'ready', os: 'Rocky Linux 9', spec: { cpu: 16, memory_gb: 64 }, protocols: ['spice', 'vnc'], resources: [{ kind: 'card', name: 'Alveo U250 #2' }], pool_type: 'buildfarm', last_connected: new Date(Date.now() - 3 * 864e5).toISOString(),
-    storage: { linux: '/mnt/nas/builds/alice', windows: null, nas: 'nas01.lab.local:/export/fpga/builds/alice', folder: 'builds/alice', kind: 'nfs', ok: true, code: 'OK' } },
+    storage: { kind: 'nfs', data_on_nas_only: false, ok: true, code: 'OK', warnings: [], folders: {
+      home: { linux: '/nas/home/alice', windows: null, nas: 'nas01.lab.local:/export/eda/home/alice', folder: 'home/alice', quota_gb: 0 },
+      scratch: { linux: '/nas/scratch/alice', windows: null, nas: 'nas01.lab.local:/export/eda/scratch/alice', folder: 'scratch/alice', quota_gb: 500, retention_days: 14 } } } },
   { id: 'd2', name: 'board-lab-zcu102', pool: '보드 LAB', state: 'in_use', os: 'Ubuntu 22.04', spec: { cpu: 8, memory_gb: 32 }, protocols: ['spice', 'vnc'], resources: [{ kind: 'usb', name: 'JTAG ZCU102 #1' }], pool_type: 'dedicated', last_connected: new Date(Date.now() - 2 * 36e5).toISOString(),
-    storage: { linux: '/mnt/nas/alice', windows: null, nas: 'nas01.lab.local:/export/board-lab/alice', folder: 'alice', kind: 'nfs', ok: false, code: 'FOLDER_DENIED' } },
+    storage: { kind: 'nfs', data_on_nas_only: false, ok: false, code: 'FOLDER_DENIED', warnings: [], folders: {
+      home: { linux: '/nas/home/alice', windows: null, nas: 'nas01.lab.local:/export/board-lab/home/alice', folder: 'home/alice', quota_gb: 0 } } } },
   { id: 'd4', name: 'ai-ws-03', pool: 'AI 연구실', state: 'ready', os: 'Windows 11', spec: { cpu: 8, memory_gb: 32 }, protocols: ['spice', 'vnc', 'rdp', 'guac'], gpu: { mode: 'vgpu', label: 'A16-4Q' }, pool_type: 'dedicated', last_connected: new Date(Date.now() - 26 * 36e5).toISOString() },
-  { id: 'd3', name: 'lab-win11-07', pool: '공용 LAB A', state: 'stopped', os: 'Windows 11', spec: { cpu: 4, memory_gb: 8 }, protocols: ['vnc', 'spice'], pool_type: 'reset', last_connected: null, policy: { clipboard: 'to_desktop', allow_power: false, start_on_connect: true } },
+  { id: 'd3', name: 'lab-win11-07', pool: '공용 LAB A', state: 'stopped', os: 'Windows 11', spec: { cpu: 4, memory_gb: 8 }, protocols: ['vnc', 'spice'], pool_type: 'reset', last_connected: null, policy: { clipboard: 'to_desktop', allow_power: false, start_on_connect: true },
+    storage: { kind: 'smb', data_on_nas_only: true, ok: null, code: '', warnings: [], folders: {
+      home: { linux: '/nas/home/alice', windows: 'H:\\', nas: '\\\\nas01.lab.local\\lab\\home\\alice', folder: 'home/alice', quota_gb: 20 } } } },
 ];
 
 const leases: Lease[] = [
@@ -151,8 +156,8 @@ export const mockApi: Api = {
     }
     // nothing answers this websocket in mock mode: the console shows "disconnected"
     const st = d.storage;
-    const storage = st ? { ok: st.ok, code: st.code, path: st.linux, os: 'linux', at: new Date().toISOString(), changed: false,
-      detail: st.ok === false ? 'root_squash or share permissions: alice could not be made' : '' } : undefined;
+    const storage = st ? { ok: st.ok, code: st.code, path: st.folders.home?.linux ?? '', os: 'linux', at: new Date().toISOString(), changed: false,
+      warnings: st.warnings, usage: {}, detail: st.ok === false ? 'home/alice: alice may not make it (the top folder needs mode 1777)' : '' } : undefined;
     return delay({ type: 'vnc' as const, ws_path: '/api/mock/vncwebsocket', password: 'mock', session_id: 'mock-sess', clipboard: d.policy?.clipboard ?? 'both', storage });
   },
   async endSession() { /* nothing to close */ },

@@ -1,6 +1,6 @@
 import { api } from '../api/client';
 import { nextApi } from '../api/next';
-import { storageApi, storageCodeText } from '../api/storage';
+import { FOLDER_KEYS, folderName, sizeText, storageApi, storageCodeText } from '../api/storage';
 import { BuildJobsPanel } from '../admin/pages/NextPages';
 import { Icon } from '../components/Icon';
 import { LoadState } from '../components/LoadState';
@@ -50,26 +50,37 @@ export function ResourcesPage() {
           <div className="panel-head">
             <span className="stat-icon tone-blue"><Icon name="layers" size={18} /></span>
             <div>
-              <h2 className="section-title">{L('내 빌드 폴더', 'My build folders')}</h2>
-              <p className="muted small" style={{ margin: 0 }}>{L('공유 NAS에 있는 내 폴더입니다. 데스크톱 · 빌드 VM 어디서 접속해도 같은 폴더가 보이니 빌드 데이터는 여기에 두세요. 나만 읽고 쓸 수 있습니다.',
-                'Your folder on the shared NAS. Every desktop and build VM sees the same folder, so keep build data here. Only you can read and write it.')}</p>
+              <h2 className="section-title">{L('내 폴더 (공유 NAS)', 'My folders (shared NAS)')}</h2>
+              <p className="muted small" style={{ margin: 0 }}>{L('데스크톱 · 빌드 VM 어디서 접속해도 같은 폴더입니다. 홈은 매일 백업되고, 스크래치는 백업되지 않으며 빌드 작업 폴더는 보관 기간 뒤 지워집니다.',
+                'The same folders from every desktop and build VM. Home is backed up daily; scratch is not, and build job folders go after the retention.')}</p>
             </div>
           </div>
-          <div className="folder-list">
-            {folders.data.map((f) => (
-              <div key={f.pool_id} className="folder-item">
-                <span className="strong">{f.pool}</span>
-                <span className="folder-paths">
-                  <span><span className="muted small">Linux </span><code className="code">{f.paths.linux}</code></span>
-                  {f.paths.windows && <span><span className="muted small">Windows </span><code className="code">{f.paths.windows}</code></span>}
-                  <span><span className="muted small">NAS </span><code className="code">{f.paths.nas}</code></span>
-                </span>
-                {f.last ? <span className={f.last.ok ? 'chip chip-on' : f.last.ok === false ? 'chip chip-warn' : 'chip'}
-                  title={storageCodeText(f.last.code, L)}>{f.last.ok ? L('준비됨', 'Ready') : f.last.ok === false ? storageCodeText(f.last.code, L) : L('대기', 'Pending')}</span>
-                  : <span className="chip">{L('첫 접속 때 만들어짐', 'Made on first connect')}</span>}
+          {folders.data.map((f) => (
+            <div key={f.pool_id} className="folder-list">
+              <div className="strong">{f.pool}
+                {f.last && f.last.ok === false && <span className="chip chip-warn" style={{ marginLeft: 8 }}>{storageCodeText(f.last.code, L)}</span>}
+                {f.last?.warnings.includes('LOCAL_ACCOUNT') && <span className="chip chip-accent" style={{ marginLeft: 8 }}>{storageCodeText('LOCAL_ACCOUNT', L)}</span>}
               </div>
-            ))}
-          </div>
+              {f.data_on_nas_only && <div className="alert info small">{L('이 풀의 데스크톱은 처음 상태로 돌아갑니다. 데이터는 아래 NAS 폴더에만 남습니다.', "This pool's desktops go back to their base; data stays only in the NAS folders below.")}</div>}
+              {FOLDER_KEYS.filter((k) => f.folders[k]).map((k) => {
+                const x = f.folders[k]!;
+                const used = f.usage[k];
+                return (
+                  <div key={k} className="folder-item">
+                    <span className="strong">{folderName(k, L)}</span>
+                    <span className="folder-paths">
+                      <span><span className="muted small">Linux </span><code className="code">{x.linux}</code></span>
+                      {x.windows && <span><span className="muted small">Windows </span><code className="code">{x.windows}</code></span>}
+                      <span><span className="muted small">NAS </span><code className="code">{x.nas}</code></span>
+                      {k === 'scratch' && x.retention_days ? <span className="muted small">{L(`빌드 작업 폴더 ${x.retention_days}일 보관`, `job folders kept ${x.retention_days} days`)}</span> : null}
+                    </span>
+                    <span className={x.quota_gb && used !== undefined && used > x.quota_gb * 1048576 ? 'chip chip-warn' : 'chip'}>
+                      {used !== undefined ? sizeText(used) : L('사용량 미측정', 'not measured')}{x.quota_gb ? ` / ${x.quota_gb} GB` : ''}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </section>
       )}
       {jobs.state === 'ok' && jobs.data.pools.length > 0 && <BuildJobsPanel pools={jobs.data.pools} />}

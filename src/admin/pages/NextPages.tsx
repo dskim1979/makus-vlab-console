@@ -964,9 +964,9 @@ function JobDialog({ pools, admin, onClose, onDone }: { pools: { id: string; nam
   const [pool, setPool] = useState(pools[0]?.id ?? '');
   const [name, setName] = useState('');
   const [command, setCommand] = useState('');
-  // 공유 저장소: the user's build folder when the pool has one (the engine fills it in too when left empty)
+  // 공유 저장소: left empty, the engine starts the job in <the user's scratch>/<job id>, as the user
   const folderOf = (id: string) => pools.find((p) => p.id === id)?.workdir ?? '';
-  const [workdir, setWorkdir] = useState(folderOf(pools[0]?.id ?? ''));
+  const [workdir, setWorkdir] = useState('');
   const [user, setUser] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -980,13 +980,13 @@ function JobDialog({ pools, admin, onClose, onDone }: { pools: { id: string; nam
   return (
     <Dialog open title={L('빌드 작업 넣기', 'Queue a build job')} onClose={onClose} onSubmit={submit} submitLabel={L('큐에 넣기', 'Queue')} busy={busy || !pool || !name || !command} error={error}>
       <label><span>{L('빌드 팜', 'Build farm')}</span>
-        <select id="job-pool" value={pool} onChange={(e) => { if (workdir === folderOf(pool)) setWorkdir(folderOf(e.target.value)); setPool(e.target.value); }}>{pools.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+        <select id="job-pool" value={pool} onChange={(e) => setPool(e.target.value)}>{pools.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
       <label><span>{L('작업 이름', 'Name')}</span><input id="job-name" value={name} maxLength={80} placeholder={L('예: zcu102 비트스트림', 'e.g. zcu102 bitstream')} onChange={(e) => setName(e.target.value)} /></label>
       <label><span>{L('명령', 'Command')}</span><input id="job-cmd" value={command} maxLength={2000} placeholder="vivado -mode batch -source build.tcl" onChange={(e) => setCommand(e.target.value)} /></label>
       <div className="form-row form-row-wide">
-        <label><span>{L('작업 폴더 (빌드 VM 안)', 'Folder (on the build VM)')}</span><input id="job-dir" value={workdir} placeholder={folderOf(pool) || '/proj/zcu102'} onChange={(e) => setWorkdir(e.target.value.trim())} />
-          {folderOf(pool) && <small className="muted">{workdir === folderOf(pool) ? L('공유 NAS의 내 빌드 폴더입니다.', 'Your build folder on the shared NAS.')
-            : L(`비워 두면 내 빌드 폴더(${folderOf(pool)})에서 시작합니다.`, `Left empty, it starts in your build folder (${folderOf(pool)}).`)}</small>}</label>
+        <label><span>{L('작업 폴더 (빌드 VM 안)', 'Folder (on the build VM)')}</span><input id="job-dir" value={workdir} placeholder={folderOf(pool) ? `${folderOf(pool)}/<${L('작업 ID', 'job id')}>` : '/proj/zcu102'} onChange={(e) => setWorkdir(e.target.value.trim())} />
+          {folderOf(pool) && <small className="muted">{L(`비워 두면 내 스크래치 폴더 아래 작업마다 새 폴더(${folderOf(pool)}/작업 ID)에서 내 권한으로 실행합니다. 스크래치는 백업되지 않습니다.`,
+            `Left empty, each job runs as you in a new folder under your scratch (${folderOf(pool)}/<job id>). Scratch is not backed up.`)}</small>}</label>
         {admin && <label><span>{L('사용자 (선택)', 'For user (optional)')}</span><input id="job-user" value={user} placeholder="alice" onChange={(e) => setUser(e.target.value.trim())} /></label>}
       </div>
       <p className="muted small">{L('빌드 VM에는 게스트 에이전트가 있어야 하고, 프로젝트 폴더는 공유 저장소에 두세요(풀 정책 > 공유 저장소를 켜면 시작 전에 마운트를 확인합니다). 출력은 마지막 8KB만 남습니다.',

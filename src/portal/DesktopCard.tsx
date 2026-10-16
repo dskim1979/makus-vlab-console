@@ -74,6 +74,7 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
   const hasCard = (d.resources ?? []).some((r) => r.kind === 'card');
   const cardOk = () => !hasCard || confirm(t('power.cardReset'));
   const autoStart = d.policy?.start_on_connect !== false;
+  const folder = d.storage ? d.storage.folders.home ?? d.storage.folders.scratch ?? d.storage.folders.project : undefined;
 
   useEffect(() => {
     if (!menu) return;
@@ -152,13 +153,17 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
         ))}
       </div>
 
-      {d.storage && (
-        <div className="dtile-folder" title={`${d.storage.nas}${d.storage.ok === false ? ` · ${storageCodeText(d.storage.code, (ko, en) => pick({ ko, en }))}` : ''}`}>
+      {folder && d.storage && (
+        <div className="dtile-folder" title={`${folder.nas}${d.storage.ok === false ? ` · ${storageCodeText(d.storage.code, (ko, en) => pick({ ko, en }))}` : ''}`}>
           <Icon name="layers" size={14} />
-          <span className="muted">{pick({ ko: '내 빌드 폴더', en: 'My build folder' })}</span>
-          <code className="code">{family === 'windows' && d.storage.windows ? d.storage.windows : d.storage.linux}</code>
+          <span className="muted">{pick({ ko: '내 폴더', en: 'My folder' })}</span>
+          <code className="code">{family === 'windows' && folder.windows ? folder.windows : folder.linux}</code>
           {d.storage.ok === false && <span className="chip chip-warn">{pick({ ko: '확인 필요', en: 'Check' })}</span>}
         </div>
+      )}
+      {d.storage?.data_on_nas_only && (
+        <div className="muted small dtile-note">{pick({ ko: '이 데스크톱은 처음 상태로 돌아갑니다 — 남길 파일은 내 폴더(NAS)에 저장하세요.',
+          en: 'This desktop goes back to its base - keep files in your NAS folder.' })}</div>
       )}
 
       {error && <div className="alert error small" role="alert">{error}</div>}

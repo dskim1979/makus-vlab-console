@@ -148,7 +148,7 @@ const realNextApi = {
   claim: async (poolId: string) => call<{ desktop: { id: string; name: string }; new: boolean }>('POST', `/api/vlab/me/pools/${enc(poolId)}/claim`),
   route: async (poolId: string) => call<{ desktop: { id: string; name: string }; sessions: number; limit: number }>('POST', `/api/vlab/me/pools/${enc(poolId)}/route`),
   myExternalGuac: async (id: string) => call<{ url: string }>('GET', `/api/vlab/me/external/${enc(id)}/guac`),
-  // pools[].workdir: the user's folder on the pool's shared storage when build jobs start there (else '')
+  // pools[].workdir: the user's scratch folder when build jobs start there (each job in <workdir>/<job id>), else ''
   myJobs: async () => call<{ jobs: BuildJob[]; pools: { id: string; name: string; workdir?: string }[] }>('GET', '/api/vlab/me/build-jobs'),
   mySubmitJob: async (b: JobInput) => (await call<{ job: BuildJob }>('POST', '/api/vlab/me/build-jobs', b)).job,
   myCancelJob: async (id: string) => { await call('POST', `/api/vlab/me/build-jobs/${enc(id)}/cancel`); },
@@ -464,9 +464,10 @@ const mockNextApi: NextApi = {
   },
   route: () => delay({ desktop: { id: 'd1', name: 'eda-server-02' }, sessions: 3, limit: 10 }),
   myExternalGuac: () => delay({ url: 'https://guac.univ.ac.kr:8443/guacamole/?data=mock' }),
-  myJobs: () => delay({ jobs: jobs.filter((j) => j.username === 'alice').map((j) => ({ ...j })), pools: [{ id: 'p_farm', name: 'FPGA 빌드 팜', workdir: '/mnt/nas/builds/alice' }] }),
+  myJobs: () => delay({ jobs: jobs.filter((j) => j.username === 'alice').map((j) => ({ ...j })), pools: [{ id: 'p_farm', name: 'FPGA 빌드 팜', workdir: '/nas/scratch/alice' }] }),
   mySubmitJob: (b) => {
-    const j: BuildJob = { id: nid('job'), pool_id: b.pool_id, pool: 'FPGA 빌드 팜', username: 'alice', name: b.name, command: b.command, workdir: b.workdir || '/mnt/nas/builds/alice',
+    const id = nid('job');
+    const j: BuildJob = { id, pool_id: b.pool_id, pool: 'FPGA 빌드 팜', username: 'alice', name: b.name, command: b.command, workdir: b.workdir || `/nas/scratch/alice/${id}`,
       status: 'queued', desktop_id: null, desktop: null, pid: null, exit_code: null, output: '', error: '', created_at: iso(0), started_at: null, finished_at: null };
     jobs.unshift(j); return delay({ ...j });
   },
