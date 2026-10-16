@@ -9,6 +9,15 @@
 </p>
 
 <p align="center">
+  <b>MOAVI Desk는 100% 무료 오픈소스로 배포됩니다</b> — 콘솔 · 엔진 AGPL-3.0, Windows 클라이언트 MIT. 라이선스 비용 없이 내려받아 설치하고, 고치고, 다시 배포할 수 있습니다.
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-1559d6"></a>
+  <img alt="Free and open source" src="https://img.shields.io/badge/100%25-free%20%26%20open%20source-2ea44f">
+</p>
+
+<p align="center">
   <a href="https://github.com/dskim1979/makus-vlab">엔진(makus-vlab)</a> ·
   <a href="deploy/README.md">서버에 설치</a> ·
   <a href="NOTICE.md">고지</a>
@@ -323,4 +332,7 @@ nginx 는 `proxy_set_header Host $http_host;` 로 둡니다.
 
 - 모든 화면 하단·로그인·정보 창의 **"Powered by PegaProx"** 고지는 엔진의 AGPL-3.0 제7조(b) 저작자 표시라 지우거나 가리지 않습니다
   (`src/components/EngineNotice.tsx`, [NOTICE.md](NOTICE.md)).
-- 이 콘솔의 라이선스는 (주)매커스시스템즈가 정합니다(`UNLICENSED`, 별도 허락 없이 사용·배포할 수 없음). 사용한 공개 라이브러리는 [NOTICE.md](NOTICE.md).
+- 이 콘솔은 **GNU AGPL-3.0**으로 배포합니다([LICENSE](LICENSE)). 누구나 무료로 쓰고 고치고 다시 배포할 수 있고, 고친 것을 네트워크 서비스로
+  제공하면 그 소스도 같은 라이선스로 공개합니다. 로그인 화면과 정보 창에 소스 링크가 있습니다(제13조). 사용한 공개 라이브러리는 [NOTICE.md](NOTICE.md).
+- MOAVI Desk 전체: 콘솔 AGPL-3.0, 엔진 [makus-vlab](https://github.com/dskim1979/makus-vlab) AGPL-3.0(PegaProx 기반), Windows 클라이언트
+  [moavi-desk](https://github.com/dskim1979/moavi-desk) MIT. 소프트웨어는 100% 무료이고, 하드웨어 공급 · 구축 · 기술 지원은 (주)매커스 · (주)매커스시스템즈가 따로 제공합니다.

@@ -10,6 +10,16 @@ export const BRAND = {
   feedbackUrl: 'https://github.com/dskim1979/makus-vlab-console/issues/new/choose',
   // MOAVI Desk Client (Windows MSI): the latest release, unless the engine's client settings name another download
   clientDownload: 'https://github.com/dskim1979/moavi-desk/releases/latest',
+  // MOAVI Desk is free and open source: the console and the engine AGPL-3.0, the Windows client MIT
+  openSource: {
+    ko: 'MOAVI Desk는 100% 무료 오픈소스로 배포됩니다',
+    en: 'MOAVI Desk is 100% free and open source',
+  },
+  sources: {
+    console: 'https://github.com/dskim1979/makus-vlab-console',
+    engine: 'https://github.com/dskim1979/makus-vlab',
+    client: 'https://github.com/dskim1979/moavi-desk',
+  },
   tagline: {
     ko: '연구·개발·교육을 위한 가상 데스크톱과 자원 할당',
     en: 'Virtual desktops and shared resources for R&D and labs',

@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "vLAB console - user portal and admin console (talks to vlab-engine /api/vlab only)",
-  "license": "UNLICENSED",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -1,3 +1,4 @@
+import { OsLogo } from '../../components/OsLogo';
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../../api/admin';
@@ -414,7 +415,8 @@ function VmWizard({ cluster }: { cluster: Cluster }) {
                   {osCards.map((o) => (
                     <label key={o.id} className={`mode-card${form.ostype === o.id ? ' on' : ''}`}>
                       <input type="radio" name="ostype" checked={form.ostype === o.id} onChange={() => pickOs(o.id)} />
-                      <span className="strong">{o.title}</span><span className="muted small">{o.hint}</span>
+                      <span className="os-pick"><OsLogo os={o.id === 'win11' || o.id === 'win10' ? 'windows' : o.id === 'l26' ? 'linux' : 'other'} size={28} />
+                        <span className="strong">{o.title}</span></span><span className="muted small">{o.hint}</span>
                     </label>
                   ))}
                 </div>

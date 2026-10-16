@@ -5,6 +5,7 @@ import { useI18n } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
 import { storageCodeText } from '../api/storage';
 import { WorkStrip } from '../components/WorkParts';
+import { OsLogo, osLogoKey, osLogoName } from '../components/OsLogo';
 
 export type OsFamily = 'windows' | 'linux' | 'other';
 
@@ -67,6 +68,7 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
 }) {
   const { t, lang, pick } = useI18n();
   const family = osFamily(d);
+  const logo = osLogoKey(d.os, d.name);
   const [menu, setMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const running = d.state === 'ready' || d.state === 'in_use';
@@ -87,10 +89,10 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
   return (
     <article className="dtile" id={`dtile-${d.id}`}>
       <header className="dtile-head">
-        <span className={`os-badge os-${family}`}><OsGlyph family={family} /></span>
+        <span className="os-badge-logo"><OsLogo os={logo} size={36} /></span>
         <div className="dtile-title">
           <div className="dtile-name" title={d.name}>{d.name}</div>
-          <div className="dtile-sub">{[d.os || OS_LABEL[family], d.pool].filter(Boolean).join(' · ')}</div>
+          <div className="dtile-sub">{[d.os || osLogoName(logo) || OS_LABEL[family], d.pool].filter(Boolean).join(' · ')}</div>
         </div>
         <button type="button" className={`icon-btn star${fav ? ' on' : ''}`} aria-pressed={fav}
           aria-label={t(fav ? 'portal.unfav' : 'portal.fav')} title={t(fav ? 'portal.unfav' : 'portal.fav')} onClick={onFav}>

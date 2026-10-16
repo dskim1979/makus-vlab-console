@@ -44,6 +44,16 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
         </>}
         <dt>{t('sup.remote')}</dt><dd><a href={support} target="_blank" rel="noopener noreferrer">{support}</a></dd>
         {b.docsUrl && <><dt>{t('wl.docs')}</dt><dd><a href={b.docsUrl} target="_blank" rel="noreferrer">{b.docsUrl}</a></dd></>}
+        <dt>{pick({ ko: '라이선스', en: 'Licence' })}</dt>
+        <dd>
+          <span className="strong">{pick(BRAND.openSource)}</span>
+          <br />
+          {pick({ ko: '콘솔 · 엔진 AGPL-3.0, Windows 클라이언트 MIT', en: 'Console and engine AGPL-3.0, Windows client MIT' })}
+          <br />
+          <a href={BRAND.sources.console} target="_blank" rel="noreferrer">{BRAND.sources.console}</a>
+          <br />
+          <a href={BRAND.sources.client} target="_blank" rel="noreferrer">{BRAND.sources.client}</a>
+        </dd>
         <dt>{t('about.engine')}</dt>
         <dd>
           <span className="strong">Powered by <a href={ENGINE_NOTICE.homepage} target="_blank" rel="noreferrer">{ENGINE_NOTICE.name}</a></span>

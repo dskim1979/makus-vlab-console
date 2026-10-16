@@ -1,3 +1,4 @@
+import { OpenSourceNote } from '../components/OpenSource';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { nextApi } from '../api/next';
@@ -149,6 +150,7 @@ export function LoginPage() {
 
       <footer className="login-foot">
         <a className="login-support" href={support} target="_blank" rel="noopener noreferrer"><Icon name="support" size={15} />{t('sup.remote')}</a>
+        <OpenSourceNote />
         <CompanyNotice />
       </footer>
     </div>
