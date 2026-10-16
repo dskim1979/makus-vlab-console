@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <b>MOAVI Desk는 100% 무료 오픈소스로 배포됩니다</b> — 콘솔 · 엔진 AGPL-3.0, Windows 클라이언트 MIT. 라이선스 비용 없이 내려받아 설치하고, 고치고, 다시 배포할 수 있습니다.
+  <b>MOAVI Desk는 100% 무료 오픈소스로 배포됩니다</b> — 콘솔 · 엔진 AGPL-3.0, Windows 클라이언트 MIT. 라이선스 비용 없이 내려받아 설치하고, 고치고, 다시 배포할 수 있습니다. 유상은 구축 대행뿐입니다.
 </p>
 
 <p align="center">
@@ -335,4 +335,4 @@ nginx 는 `proxy_set_header Host $http_host;` 로 둡니다.
 - 이 콘솔은 **GNU AGPL-3.0**으로 배포합니다([LICENSE](LICENSE)). 누구나 무료로 쓰고 고치고 다시 배포할 수 있고, 고친 것을 네트워크 서비스로
   제공하면 그 소스도 같은 라이선스로 공개합니다. 로그인 화면과 정보 창에 소스 링크가 있습니다(제13조). 사용한 공개 라이브러리는 [NOTICE.md](NOTICE.md).
 - MOAVI Desk 전체: 콘솔 AGPL-3.0, 엔진 [makus-vlab](https://github.com/dskim1979/makus-vlab) AGPL-3.0(PegaProx 기반), Windows 클라이언트
-  [moavi-desk](https://github.com/dskim1979/moavi-desk) MIT. 소프트웨어는 100% 무료이고, 하드웨어 공급 · 구축 · 기술 지원은 (주)매커스 · (주)매커스시스템즈가 따로 제공합니다.
+  [moavi-desk](https://github.com/dskim1979/moavi-desk) MIT. 소프트웨어 · 업데이트 · 기술 지원은 무료이고, 유상은 (주)매커스시스템즈의 **구축 대행**(설계 · 설치 · 전환)뿐입니다. 구축 매뉴얼로 직접 설치하면 비용이 들지 않습니다.
