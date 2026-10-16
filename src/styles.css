@@ -1541,3 +1541,15 @@ fieldset.plain:disabled { opacity: .55; }
 .group-list { display: flex; flex-direction: column; gap: .45rem; margin: .6rem 0; }
 .preview-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
 .features-preview { margin: 0; }
+
+/* 운영 알림 (경보) */
+.ops-notices { display: flex; flex-direction: column; gap: 14px; }
+.ops-row { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.ops-row label.inline { display: flex; align-items: center; gap: 8px; }
+.ops-row label.inline input { width: 90px; }
+.chip-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-pick { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; cursor: pointer; font-size: 13px; }
+.chip-pick.on { border-color: var(--accent); }
+.chip-pick input { margin: 0; }
+.ops-row label.check { display: flex; align-items: flex-start; gap: 8px; }
+.ops-row label.check input { margin-top: 3px; }

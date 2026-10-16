@@ -1,10 +1,12 @@
 import { useCallback, useState } from 'react';
 import { adminApi } from '../../api/admin';
+import { opsNoticesApi, type OpsNoticeSettings, type OpsNotices } from '../../api/opsNotices';
 import type { ActiveAlert, AlertChannel, AlertMute, AlertRule, AlertRuleInput, AlertSeverity, AlertTargetType, ChannelType, ClusterAlerts, ClusterNode } from '../../api/types';
 import { Dialog } from '../../components/Dialog';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { useLoad, type Loaded } from '../../components/useLoad';
+import { useFeatures } from '../../features';
 import { useI18n } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
 import { ClusterFrame, useCluster } from './ClusterPages';
@@ -69,6 +71,7 @@ export function AlertsPage() {
                 nodes={nodes.state === 'ok' ? nodes.data : []} reload={data.reload} />
               <Mutes clusterId={c.id} mutes={d.mutes} rules={d.rules} reload={data.reload} />
               <Channels channels={channels} />
+              <OpsNoticesPanel channels={channels.state === 'ok' ? channels.data : []} />
               <p className="muted small">{t('al.note')}</p>
             </>
           )}
@@ -507,5 +510,90 @@ function ChannelDialog({ channel, onClose, onDone }: { channel: AlertChannel | n
         placeholder={channel?.token ? '********' : ''} onChange={(e) => setToken(e.target.value)} />
         {channel && <small className="muted">{t('al.secretKept')}</small>}</label>
     </Dialog>
+  );
+}
+
+// MOAVI Desk 운영 알림: what the engine tells the administrators by itself (lab PCs waiting, the
+// server pair, licence refusals, failed long tasks), on the channels above and the alert mail.
+function OpsNoticesPanel({ channels }: { channels: AlertChannel[] }) {
+  const { pick } = useI18n();
+  const L = (ko: string, en: string) => pick({ ko, en });
+  const features = useFeatures();
+  const data = useLoad(opsNoticesApi.get);
+  return (
+    <section className="panel bk-section" id="ops-notices">
+      <div className="panel-head"><h2 className="section-title">{L('MOAVI Desk 운영 알림', 'MOAVI Desk operations notices')}</h2></div>
+      <p className="muted small">{L('엔진이 스스로 관리자에게 알리는 것들입니다. 위의 알림 채널(웹훅)과 일반 설정의 경보 메일 받는 사람에게 갑니다.',
+        'Notices the engine sends the administrators by itself, on the channels above and to the alert mail recipients of the general settings.')}</p>
+      {data.state === 'error' && data.status === 403
+        ? <p className="muted small">{L('플랫폼 설정 권한이 있는 관리자만 바꿀 수 있습니다.', 'Only administrators with the platform settings right can change these.')}</p>
+        : <LoadState value={data} retry={data.reload}>{(d) => <OpsNoticesForm initial={d} channels={channels} lab={features.on('lab')} fpga={features.on('fpga')} onSaved={data.reload} />}</LoadState>}
+    </section>
+  );
+}
+
+function OpsNoticesForm({ initial, channels, lab, fpga, onSaved }: { initial: OpsNotices; channels: AlertChannel[]; lab: boolean; fpga: boolean; onSaved: () => void }) {
+  const { pick } = useI18n();
+  const L = (ko: string, en: string) => pick({ ko, en });
+  const [f, setF] = useState<OpsNoticeSettings>(initial.settings);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const dirty = JSON.stringify(f) !== JSON.stringify(initial.settings);
+  const set = (p: Partial<OpsNoticeSettings>) => setF({ ...f, ...p });
+  const flip = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
+  async function save() {
+    setBusy(true); setMsg(null);
+    try { await opsNoticesApi.save(f); setMsg({ ok: true, text: L('저장했습니다.', 'Saved.') }); onSaved(); }
+    catch (e) { setMsg({ ok: false, text: (e as Error).message }); } finally { setBusy(false); }
+  }
+  return (
+    <div className="ops-notices">
+      {lab && (
+        <div className="ops-row">
+          <label className="check"><input id="on-terminal" type="checkbox" checked={f.terminal_pending} onChange={(e) => set({ terminal_pending: e.target.checked })} />
+            <span><span className="strong">{L('실습실 PC 승인 대기', 'Lab PCs waiting for approval')}</span>
+              <span className="muted small"> — {L('새 PC가 승인을 기다리면 알리고, 실습실 PC 설치의 경고 기준 대수에 닿으면 바로 경고합니다.', 'when PCs wait; at once when the warning count of the lab PC install settings is reached')}</span></span></label>
+          <label className="inline"><span>{L('다시 알리는 간격 (분)', 'Remind every (min)')}</span>
+            <input type="number" min={5} max={1440} value={f.terminal_every_min} disabled={!f.terminal_pending} onChange={(e) => set({ terminal_every_min: Number(e.target.value) })} /></label>
+        </div>
+      )}
+      <div className="ops-row">
+        <label className="check"><input id="on-pair" type="checkbox" checked={f.pair} onChange={(e) => set({ pair: e.target.checked })} />
+          <span><span className="strong">{L('서버 이중화', 'Server pair')}</span>
+            <span className="muted small"> — {L('대기 서버가 응답하지 않을 때와 복구될 때, 이 서버가 활성으로 바뀌었을 때(승격 · 장애 전환)', 'a standby stops answering or is back; this server became the active one (promotion, failover)')}</span></span></label>
+        <label className="inline"><span>{L('응답 없음 기준 (분)', 'Down after (min)')}</span>
+          <input type="number" min={2} max={1440} value={f.pair_down_min} disabled={!f.pair} onChange={(e) => set({ pair_down_min: Number(e.target.value) })} /></label>
+      </div>
+      {fpga && (
+        <div className="ops-row">
+          <label className="check"><input id="on-license" type="checkbox" checked={f.license_denied} onChange={(e) => set({ license_denied: e.target.checked })} />
+            <span><span className="strong">{L('라이선스 거부', 'Licence refusals')}</span>
+              <span className="muted small"> — {L('라이선스 서버가 좌석 부족 등으로 요청을 거부했을 때 (좌석 보기를 켜고 디버그 로그를 읽는 서버)', 'a licence server refused checkouts (servers with seats on and a readable debug log)')}</span></span></label>
+        </div>
+      )}
+      <div className="ops-row">
+        <label className="check"><input id="on-tasks" type="checkbox" checked={f.task_failed} onChange={(e) => set({ task_failed: e.target.checked })} />
+          <span><span className="strong">{L('긴 작업 실패', 'Long tasks that failed')}</span>
+            <span className="muted small"> — {L('고른 종류의 Proxmox 작업이 실패했을 때. 경보 규칙에 "작업 실패"가 있는 클러스터는 그 규칙을 따르고 여기서는 보내지 않습니다.', 'a Proxmox task of a chosen kind failed. A cluster with its own task-failed rule is told by that rule instead.')}</span></span></label>
+        <div className="chip-picks" role="group" aria-label={L('작업 종류', 'Task kinds')}>
+          {Object.entries(initial.task_types).map(([k, label]) => (
+            <label key={k} className={`chip-pick${f.task_types.includes(k) ? ' on' : ''}`}>
+              <input type="checkbox" disabled={!f.task_failed} checked={f.task_types.includes(k)} onChange={() => set({ task_types: flip(f.task_types, k) })} />{label}</label>
+          ))}
+        </div>
+      </div>
+      <div className="ops-row">
+        <span className="strong">{L('보낼 채널', 'Channels')}</span>
+        <div className="chip-picks" role="group" aria-label={L('보낼 채널', 'Channels')}>
+          {channels.length === 0 ? <span className="muted small">{L('채널이 없으면 경보 메일로만 갑니다.', 'Without channels it goes by alert mail only.')}</span> : channels.map((c) => (
+            <label key={c.id} className={`chip-pick${f.channels.includes(c.id) ? ' on' : ''}`}>
+              <input type="checkbox" checked={f.channels.includes(c.id)} onChange={() => set({ channels: flip(f.channels, c.id) })} />{c.name}</label>
+          ))}
+        </div>
+        <span className="muted small">{L('아무것도 고르지 않으면 켜진 채널 모두에 보냅니다.', 'None picked: every enabled channel.')}</span>
+      </div>
+      {msg && <div className={`alert small ${msg.ok ? 'info' : 'error'}`} role={msg.ok ? 'status' : 'alert'}>{msg.text}</div>}
+      <div><button type="button" className="btn primary" disabled={busy || !dirty} onClick={save}>{pick({ ko: '저장', en: 'Save' })}</button></div>
+    </div>
   );
 }
