@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
+import { PortalInstallButtons } from '../admin/pages/TerminalEnroll';
 import { api } from '../api/client';
 import { storageCodeText } from '../api/storage';
 import type { ClientConfig, Clipboard, Desktop, PowerAction } from '../api/types';
@@ -153,9 +154,8 @@ export function PortalHome() {
             <button type="button" className={`btn-ghost${help ? ' on' : ''}`} aria-expanded={help} onClick={() => setHelp((h) => !h)}>
               <Icon name="book" size={16} />{t('quick.help')}
             </button>
-            <a className="btn-ghost" href={client?.download_url || BRAND.clientDownload} target="_blank" rel="noopener noreferrer" title={t('quick.clientDesc')}>
-              <Icon name="download" size={16} />{t('quick.client')}{client?.latest_version && <span className="tag-soft tag">v{client.latest_version}</span>}
-            </a>
+            <PortalInstallButtons fallbackHref={client?.download_url || BRAND.clientDownload} version={client?.latest_version ?? undefined}
+              label={t('quick.client')} title={t('quick.clientDesc')} />
             <div className="seg" role="group" aria-label={t('portal.viewGrid')}>
               <button type="button" className={view === 'grid' ? 'on' : ''} aria-pressed={view === 'grid'}
                 title={t('portal.viewGrid')} aria-label={t('portal.viewGrid')} onClick={() => pickView('grid')}><Icon name="grid" size={16} /></button>

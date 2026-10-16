@@ -9,6 +9,7 @@ import { SettingsStatus } from '../../components/SettingsShell';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import { useHaRegister } from './OpsPages';
+import { TerminalInstallPanel } from './TerminalEnroll';
 
 // The next-phase pages: 골든 이미지, 게이트웨이, USB 장치 라이브러리, 외부 데스크톱, 가입 심사,
 // 부서 관리, 보드 LAB, 빌드 팜, 라이선스 서버, and 플랫폼 설정 > 클라이언트
@@ -1162,9 +1163,12 @@ function LicenseDialog({ server, onClose, onDone }: { server: LicenseServer | nu
 export function ClientSettingsPage() {
   const data = useLoad(nextApi.clientSettings);
   return (
-    <LoadState value={data} retry={data.reload}>
-      {(c) => <ClientForm initial={c} onSaved={data.reload} />}
-    </LoadState>
+    <>
+      <LoadState value={data} retry={data.reload}>
+        {(c) => <ClientForm initial={c} onSaved={data.reload} />}
+      </LoadState>
+      <TerminalInstallPanel />
+    </>
   );
 }
 

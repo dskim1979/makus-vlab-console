@@ -10,7 +10,7 @@ import { SettingsStatus } from '../../components/SettingsShell';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
-import { BulkApprove, EnrollCodesPanel, KeyDelivery } from './TerminalEnroll';
+import { AgentStatus, BulkActions, EnrollCodesPanel, KeyDelivery, TerminalDetail, isStale } from './TerminalEnroll';
 
 // LAB: rooms of shared PCs (training rooms, labs, shift offices), their terminals, and the
 // weekly schedules that start a pool's desktops before a session and put them back after it
@@ -168,6 +168,7 @@ export function TerminalsPage() {
   const [keyOf, setKeyOf] = useState<{ terminal: Terminal; key: string } | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
   const [picked, setPicked] = useState<string[]>([]);
+  const [detail, setDetail] = useState<string | null>(null);
   const { ago } = useWhen();
   const labFilter = params.get('lab') ?? '';
   const stateFilter = params.get('state') ?? '';
@@ -190,11 +191,13 @@ export function TerminalsPage() {
   return (
     <LoadState value={terms} retry={terms.reload}>
       {(all) => {
-        const list = all.filter((x) => (!labFilter || x.lab_id === labFilter) && (!stateFilter || x.state === stateFilter));
+        const list = all.filter((x) => (!labFilter || x.lab_id === labFilter)
+          && (!stateFilter || (stateFilter === 'offline' ? !!x.enrollment && !x.enrollment.online && x.state !== 'rejected' : x.state === stateFilter)));
         const chosen = picked.filter((id) => list.some((x) => x.id === id));
-        const pendingIds = list.filter((x) => x.state === 'pending').map((x) => x.id);
-        const allPicked = pendingIds.length > 0 && pendingIds.every((id) => chosen.includes(id));
+        const allPicked = list.length > 0 && list.every((x) => chosen.includes(x.id));
         const pick = (id: string, on: boolean) => setPicked((p) => (on ? [...p, id] : p.filter((x) => x !== id)));
+        const pendingCount = all.filter((x) => x.state === 'pending').length;
+        const shown = all.find((x) => x.id === detail);
         return (
           <>
             <EnrollCodesPanel labs={labList} />
@@ -203,38 +206,43 @@ export function TerminalsPage() {
               { label: t('term.approved'), value: String(all.filter((x) => x.state === 'approved').length), tone: 'ok' },
               { label: t('term.pending'), value: String(all.filter((x) => x.state === 'pending').length), tone: all.some((x) => x.state === 'pending') ? 'warn' : undefined },
               { label: t('term.noLab'), value: String(all.filter((x) => !x.lab_id).length) },
+              { label: pickL('온라인', 'Online'), value: String(all.filter((x) => x.enrollment?.online).length), tone: 'ok' },
+              { label: pickL('오래 응답 없음', 'Silent for long'), value: String(all.filter(isStale).length), tone: all.some(isStale) ? 'warn' : undefined },
               { label: t('term.seenToday'), value: String(all.filter((x) => x.last_seen && Date.now() - new Date(x.last_seen).getTime() < 86400e3).length) },
             ]} />
+            {pendingCount >= 100 && <div className="alert small warn">{pickL(`승인 대기 단말이 ${pendingCount}대입니다. 모르는 PC가 섞여 있지 않은지 확인하고, 필요 없는 등록 코드는 끄세요.`,
+              `${pendingCount} terminals are waiting. Check for PCs you do not know and switch off codes you no longer need.`)}</div>}
             <div className="toolbar">
               <select aria-label={t('term.filterLab')} value={labFilter} onChange={(e) => setFilter('lab', e.target.value)}>
                 <option value="">{t('term.allLabs')}</option>
                 {labList.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
               <div className="seg" role="group" aria-label={t('term.filterState')}>
-                {(['', 'pending', 'approved'] as const).map((s) => (
+                {(['', 'pending', 'approved', 'offline', 'rejected'] as const).map((s) => (
                   <button key={s} type="button" className={stateFilter === s ? 'on' : ''} aria-pressed={stateFilter === s} onClick={() => setFilter('state', s)}>
-                    {t(s === '' ? 'term.all' : s === 'pending' ? 'term.pending' : 'term.approved')}</button>
+                    {s === 'offline' ? pickL('오프라인', 'Offline') : s === 'rejected' ? pickL('거절됨', 'Refused')
+                      : t(s === '' ? 'term.all' : s === 'pending' ? 'term.pending' : 'term.approved')}</button>
                 ))}
               </div>
               <span className="spacer" />
               <button type="button" className="btn primary" onClick={() => setAdding(true)}><Icon name="plus" size={16} />{t('term.add')}</button>
             </div>
             {notice && <div className={`alert small ${notice.kind === 'error' ? 'error' : 'info'}`}>{notice.text}</div>}
-            {chosen.length > 0 && <BulkApprove ids={chosen} labs={labList} onClear={() => setPicked([])}
+            {chosen.length > 0 && <BulkActions ids={chosen} labs={labList} onClear={() => setPicked([])}
               onDone={(text, error) => { setNotice({ kind: error ? 'error' : 'info', text }); if (!error) setPicked([]); terms.reload(); labs.reload(); }} />}
             {list.length === 0 ? <div className="empty"><p>{t('term.empty')}</p></div> : (
               <div className="table-scroll">
                 <table className="table compact-head">
                   <thead><tr>
-                    <th className="check-col"><input type="checkbox" aria-label={pickL('승인 대기 모두 선택', 'Select every waiting one')} disabled={!pendingIds.length}
-                      checked={allPicked} onChange={(e) => setPicked(e.target.checked ? pendingIds : [])} /></th>
-                    <th>{t('term.name')}</th><th>MAC</th><th>IP</th><th>LAB</th><th>{t('term.state')}</th><th>{pickL('키 전달', 'Key')}</th><th>{t('term.lastSeen')}</th><th>{t('term.by')}</th><th className="actions" /></tr></thead>
+                    <th className="check-col"><input type="checkbox" aria-label={pickL('보이는 단말 모두 선택', 'Select every one shown')}
+                      checked={allPicked} onChange={(e) => setPicked(e.target.checked ? list.map((x) => x.id) : [])} /></th>
+                    <th>{t('term.name')}</th><th>MAC</th><th>IP</th><th>LAB</th><th>{t('term.state')}</th><th>{pickL('에이전트', 'Agent')}</th><th>{pickL('키 전달', 'Key')}</th><th>{t('term.lastSeen')}</th><th>{t('term.by')}</th><th className="actions" /></tr></thead>
                   <tbody>
                     {list.map((x) => (
-                      <tr key={x.id} className={x.state === 'pending' ? 'row-pending' : ''}>
-                        <td className="check-col">{x.state === 'pending' &&
-                          <input type="checkbox" aria-label={x.name || x.mac} checked={chosen.includes(x.id)} onChange={(e) => pick(x.id, e.target.checked)} />}</td>
-                        <td className="strong">{x.name || <span className="muted">{t('term.unnamed')}</span>}</td>
+                      <tr key={x.id} className={x.state === 'pending' ? 'row-pending' : isStale(x) ? 'row-stale' : ''}>
+                        <td className="check-col">
+                          <input type="checkbox" aria-label={x.name || x.mac} checked={chosen.includes(x.id)} onChange={(e) => pick(x.id, e.target.checked)} /></td>
+                        <td className="strong"><button type="button" className="link-btn" onClick={() => setDetail(x.id)}>{x.name || <span className="muted">{t('term.unnamed')}</span>}</button></td>
                         <td><code className="code">{x.mac}</code></td>
                         <td className="small">{x.ip || '-'}</td>
                         <td>
@@ -243,15 +251,17 @@ export function TerminalsPage() {
                             {labList.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                           </select>
                         </td>
-                        <td>{x.state === 'pending' ? <span className="chip chip-warn">{t('term.pending')}</span> : <span className="chip chip-ok">{t('term.approved')}</span>}</td>
+                        <td>{x.state === 'pending' ? <span className="chip chip-warn">{t('term.pending')}</span>
+                          : x.state === 'rejected' ? <span className="chip">{pickL('거절됨', 'Refused')}</span> : <span className="chip chip-ok">{t('term.approved')}</span>}</td>
+                        <td><AgentStatus terminal={x} /></td>
                         <td><KeyDelivery terminal={x} /></td>
                         <td className="small nowrap">{ago(x.last_seen)}</td>
                         <td className="small">{x.registered_by || '-'}</td>
                         <td className="actions">
                           {x.state === 'pending' && <button type="button" className="btn small-btn primary" disabled={!x.lab_id && !labList.length}
                             title={!x.lab_id ? t('term.approveHint') : ''} onClick={() => update(x, { state: 'approved' })}>{t('term.approve')}</button>}
-                          <button type="button" className="btn-ghost small-btn" disabled={!x.lab_id} title={!x.lab_id ? t('term.keyNeedsLab') : ''}
-                            onClick={() => makeKey(x)}>{t(x.has_key ? 'term.keyNew' : 'term.key')}</button>
+                          {x.state !== 'rejected' && <button type="button" className="btn-ghost small-btn" disabled={!x.lab_id} title={!x.lab_id ? t('term.keyNeedsLab') : ''}
+                            onClick={() => makeKey(x)}>{t(x.has_key ? 'term.keyNew' : 'term.key')}</button>}
                           <button type="button" className="btn-ghost small-btn danger" onClick={() => remove(x)}>{t('common.delete')}</button>
                         </td>
                       </tr>
@@ -262,6 +272,7 @@ export function TerminalsPage() {
             )}
             <p className="muted small">{t('term.note')}</p>
             {keyOf && <KeyDialog terminal={keyOf.terminal} kioskKey={keyOf.key} onClose={() => setKeyOf(null)} />}
+            {shown && <TerminalDetail terminal={shown} labName={labList.find((l) => l.id === shown.lab_id)?.name ?? '-'} onClose={() => setDetail(null)} onChanged={terms.reload} />}
             {adding && <TerminalDialog labs={labList} defaultLab={labFilter} onClose={() => setAdding(false)} onDone={() => { setAdding(false); terms.reload(); labs.reload(); }} />}
           </>
         );

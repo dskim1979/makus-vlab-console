@@ -3,7 +3,7 @@ import type { AdminApi } from './admin';
 import { ApiError } from './client';
 import { mockBranding, mockNotices, noticeState } from './mock';
 import { mockNodeState } from './ops';
-import type { Lab, LabAfter, LabSchedule, Terminal, ActiveAlert, AlertChannel, AlertMute, AlertRule, AccelDevice, BackupJob, VmBackup, AccelUser, AdminDesktop, AdminLease, PoolPolicy, ClusterNode, ClusterStorage, Guest, PciMapping, Pool, SessionRow, VgpuProfile } from './types';
+import type { Lab, LabAfter, LabSchedule, Terminal, TerminalEnrollment, ActiveAlert, AlertChannel, AlertMute, AlertRule, AccelDevice, BackupJob, VmBackup, AccelUser, AdminDesktop, AdminLease, PoolPolicy, ClusterNode, ClusterStorage, Guest, PciMapping, Pool, SessionRow, VgpuProfile } from './types';
 
 const CLUSTER = { id: 'lab-cluster', name: 'LAB-PVE', connected: true, host: '10.20.0.11', connection_error: null as string | null, pools: 0 };
 const clusters = [CLUSTER];
@@ -85,24 +85,40 @@ const mockLabs: Omit<Lab, 'terminals' | 'pending' | 'schedules' | 'current' | 'n
   { id: 'lab_a', name: '교육장 A', location: '본관 3층 301호', description: '신입 연구원 교육·사내 교육', seats: 24, tenant_id: '', created_at: '2026-09-01T09:00:00Z' },
   { id: 'lab_b', name: '공용 연구실 B', location: '연구동 2층', description: '교대 근무·야간 분석', seats: 12, tenant_id: '', created_at: '2026-09-01T09:00:00Z' },
 ];
+// the MOAVI Desk Agent's view of a PC (heartbeats every 2 minutes; offline after 3 missed)
+const agoMs = (ms: number) => new Date(Date.now() - ms).toISOString();
+function agent(n: number, mac: string, ip: string, beat: number, state: TerminalEnrollment['state'], code = '301호 일괄 설치',
+  kind: 'admin' | 'user' = 'admin', by = 'admin', user = false): TerminalEnrollment {
+  return {
+    state, code_id: kind === 'user' ? 'enc_u1' : 'enc_1', code, code_kind: kind, requested_by: by, created_at: '2026-10-14T08:50:00Z',
+    last_poll_at: agoMs(beat), last_heartbeat_at: agoMs(beat), delivered_at: state === 'delivered' ? '2026-10-14T09:02:00Z' : null,
+    online: beat < 6 * 60e3, heartbeat_seconds: 120,
+    info: { hostname: `LAB301-PC${String(n).padStart(2, '0')}`, mac, ip, os: 'Microsoft Windows 10.0.26100', client_version: '0.9.1',
+      agent_version: '0.9.1', user_logged_in: user },
+    recent: Array.from({ length: 6 }, (_, k) => ({ at: agoMs(beat + k * 120e3), ip, user: user && k < 3 })),
+  };
+}
 export const mockTerminals: Terminal[] = [
-  ...Array.from({ length: 6 }, (_, i): Terminal => ({ id: `term_a${i + 1}`, lab_id: 'lab_a', name: `A-PC-${String(i + 1).padStart(2, '0')}`,
-    mac: `52:54:00:a1:00:${String(i + 1).padStart(2, '0')}`, ip: `10.30.1.${21 + i}`, state: 'approved', registered_by: 'admin',
-    last_seen: new Date(Date.now() - (i + 1) * 9 * 60e3).toISOString(), created_at: '2026-09-02T09:00:00Z', has_key: true,
-    enrollment: i < 4 ? { state: 'delivered', code_id: 'enc_1', code: '301호 일괄 설치', created_at: '2026-10-14T08:50:00Z',
-      last_poll_at: '2026-10-14T09:02:00Z', delivered_at: '2026-10-14T09:02:00Z' } : null })),
+  ...Array.from({ length: 6 }, (_, i): Terminal => {
+    const mac = `52:54:00:a1:00:${String(i + 1).padStart(2, '0')}`;
+    const ip = `10.30.1.${21 + i}`;
+    return {
+      id: `term_a${i + 1}`, lab_id: 'lab_a', name: `A-PC-${String(i + 1).padStart(2, '0')}`, mac, ip, state: 'approved', registered_by: 'admin',
+      last_seen: agoMs(i === 4 ? 2 * 86400e3 : (i + 1) * 60e3), created_at: '2026-09-02T09:00:00Z', has_key: true,
+      // A-PC-05 has been off for two days; A-PC-06 got its key typed in by hand, before the agent
+      enrollment: i < 5 ? agent(i + 1, mac, ip, i === 4 ? 2 * 86400e3 : (i + 1) * 40e3, 'delivered', undefined, undefined, undefined, i < 2) : null,
+    };
+  }),
   { id: 'term_b1', lab_id: 'lab_b', name: 'B-PC-01', mac: '52:54:00:b2:00:01', ip: '10.30.2.11', state: 'approved', registered_by: 'admin',
-    last_seen: new Date(Date.now() - 3 * 3600e3).toISOString(), created_at: '2026-09-02T09:00:00Z' },
-  { id: 'term_new1', lab_id: 'lab_a', name: 'A-PC-07', mac: '52:54:00:a1:00:07', ip: '10.30.1.27', state: 'pending', registered_by: 'code:301호 일괄 설치',
-    last_seen: new Date(Date.now() - 40e3).toISOString(), created_at: new Date(Date.now() - 4 * 60e3).toISOString(),
-    enrollment: { state: 'waiting', code_id: 'enc_1', code: '301호 일괄 설치', created_at: new Date(Date.now() - 4 * 60e3).toISOString(),
-      last_poll_at: new Date(Date.now() - 40e3).toISOString(), delivered_at: null } },
-  { id: 'term_new3', lab_id: 'lab_a', name: 'A-PC-09', mac: '52:54:00:a1:00:09', ip: '10.30.1.29', state: 'pending', registered_by: 'code:301호 일괄 설치',
-    last_seen: new Date(Date.now() - 25e3).toISOString(), created_at: new Date(Date.now() - 3 * 60e3).toISOString(),
-    enrollment: { state: 'waiting', code_id: 'enc_1', code: '301호 일괄 설치', created_at: new Date(Date.now() - 3 * 60e3).toISOString(),
-      last_poll_at: new Date(Date.now() - 25e3).toISOString(), delivered_at: null } },
-  { id: 'term_new2', lab_id: null, name: '', mac: '52:54:00:a1:00:08', ip: '10.30.1.28', state: 'pending', registered_by: 'bob',
-    last_seen: new Date(Date.now() - 11 * 60e3).toISOString(), created_at: new Date(Date.now() - 11 * 60e3).toISOString() },
+    last_seen: agoMs(3 * 3600e3), created_at: '2026-09-02T09:00:00Z' },
+  { id: 'term_new1', lab_id: 'lab_a', name: 'LAB301-PC07', mac: '52:54:00:a1:00:07', ip: '10.30.1.27', state: 'pending', registered_by: 'admin',
+    last_seen: agoMs(40e3), created_at: agoMs(4 * 60e3), enrollment: agent(7, '52:54:00:a1:00:07', '10.30.1.27', 40e3, 'waiting') },
+  { id: 'term_new3', lab_id: 'lab_a', name: 'LAB301-PC09', mac: '52:54:00:a1:00:09', ip: '10.30.1.29', state: 'pending', registered_by: 'kim_ta',
+    last_seen: agoMs(25e3), created_at: agoMs(3 * 60e3),
+    enrollment: agent(9, '52:54:00:a1:00:09', '10.30.1.29', 25e3, 'waiting', 'kim_ta 포털 설치', 'user', 'kim_ta') },
+  { id: 'term_new4', lab_id: null, name: 'LAB302-PC01', mac: '52:54:00:a2:00:01', ip: '10.30.2.41', state: 'pending', registered_by: 'kim_ta',
+    last_seen: agoMs(70e3), created_at: agoMs(2 * 60e3),
+    enrollment: agent(1, '52:54:00:a2:00:01', '10.30.2.41', 70e3, 'waiting', 'kim_ta 포털 설치', 'user', 'kim_ta') },
 ];
 type MockSchedule = Omit<LabSchedule, 'lab' | 'pool' | 'pool_type'>;
 const mockSchedules: MockSchedule[] = [];

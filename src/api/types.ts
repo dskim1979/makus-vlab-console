@@ -87,11 +87,16 @@ export type LabSlot = { schedule_id: string; pool_id: string; title: string; sta
 export type Lab = { id: string; name: string; location: string; description: string; seats: number; tenant_id: string;
   created_at: string; terminals: number; pending: number; schedules: number; current: LabSlot | null; next: LabSlot | null };
 export type LabInput = { name: string; location?: string; description?: string; seats?: number };
-export type Terminal = { id: string; lab_id: string | null; name: string; mac: string; ip: string; state: 'pending' | 'approved';
+export type Terminal = { id: string; lab_id: string | null; name: string; mac: string; ip: string; state: 'pending' | 'approved' | 'rejected';
   registered_by: string; last_seen: string | null; created_at: string; has_key?: boolean; enrollment?: TerminalEnrollment | null };
-// a terminal that came in with an enrolment code (src/api/enroll.ts): whether its kiosk key went out to the client
-export type TerminalEnrollment = { state: 'waiting' | 'delivered' | 'manual' | 'expired'; code_id: string; code: string;
-  created_at: string; last_poll_at: string | null; delivered_at: string | null };
+// a terminal that came in through the MOAVI Desk Agent with an enrolment code (src/api/enroll.ts): how its kiosk key
+// goes out (state), whether the agent is online, and what its heartbeats said
+export type AgentInfo = { hostname?: string; mac?: string; macs?: string; ip?: string; os?: string; client_version?: string;
+  agent_version?: string; user_logged_in?: boolean };
+export type TerminalEnrollment = { state: 'waiting' | 'delivered' | 'manual' | 'expired' | 'rejected'; code_id: string; code: string;
+  code_kind?: 'admin' | 'user' | ''; requested_by?: string; created_at: string; last_poll_at: string | null; last_heartbeat_at?: string | null;
+  delivered_at: string | null; online?: boolean; heartbeat_seconds?: number; info?: AgentInfo;
+  recent?: { at: string; ip: string; user: boolean }[] };
 export type LabAfter = 'reset' | 'off' | 'none';
 // GET /api/vlab/kiosk (terminal key): the room and what runs now and next
 // a booking of the room (LAB > 예약) shows in place of the class: reservation_id is set then
