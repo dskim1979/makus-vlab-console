@@ -1,3 +1,4 @@
+import { AccelBookingsAdmin, ArtifactSettingsPage, CiLinksPage } from './pages/BuildFarmPages';
 import { Link, NavLink, Navigate, useParams } from 'react-router-dom';
 import { useFeatures } from '../features';
 import { Icon } from '../components/Icon';
@@ -75,6 +76,9 @@ function pageBody(key: string, subId?: string) {
   if (key === 'users/departments') return <DepartmentsPage />;
   if (key === 'accel/boards') return <BoardsPage />;
   if (key === 'accel/buildfarm') return <BuildFarmPage />;
+  if (key === 'accel/ci') return <CiLinksPage />;
+  if (key === 'accel/artifacts') return <ArtifactSettingsPage />;
+  if (key === 'accel/bookings') return <AccelBookingsAdmin />;
   if (key === 'accel/gpuqueue') return <GpuQueuePage />;
   if (key === 'accel/quotas') return <GpuQuotasPage />;
   if (key === 'accel/gpuusage') return <GpuUsagePage />;

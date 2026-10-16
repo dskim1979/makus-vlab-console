@@ -54,7 +54,7 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
         <nav className="tb-tabs" aria-label={t('nav.menu')}>
           <NavLink to="/" end>{t('nav.home')}</NavLink>
           <NavLink to="/resources">{t('nav.resources')}</NavLink>
-          {on('lab') && <NavLink to="/reserve">{t('nav.reserve')}</NavLink>}
+          {(on('lab') || on('gpuai') || on('fpga')) && <NavLink to="/reserve">{t('nav.reserve')}</NavLink>}
           {on('data') && <NavLink to="/data">{t('nav.data')}</NavLink>}
         </nav>
       )}

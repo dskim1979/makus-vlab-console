@@ -93,12 +93,14 @@ export const MODULES: AdminModule[] = [
         T('inventory', '재고', 'Inventory', 'accel/inventory'), T('vgpu', 'vGPU 프로필', 'vGPU profiles', 'accel/vgpu', ['gpuai']),
         T('mappings', '리소스 매핑', 'Resource mappings', 'accel/mappings'), T('checks', '패스스루 점검', 'Passthrough checks', 'accel/checks')] },
       { id: 'loans', label: { ko: '카드 대여', en: 'Card loans' }, phase: 1, feature: ['gpuai', 'fpga'], tabs: [
-        T('leases', '대여 현황', 'Loans', 'accel/leases'), T('usage', '사용 보고서', 'Usage report', 'accel/usage')] },
+        T('leases', '대여 현황', 'Loans', 'accel/leases'), T('bookings', '예약', 'Bookings', 'accel/bookings'),
+        T('usage', '사용 보고서', 'Usage report', 'accel/usage')] },
       { id: 'gpujobs', label: { ko: 'GPU 작업', en: 'GPU jobs' }, phase: 1, feature: ['gpuai'], tabs: [
         T('queue', '작업 큐', 'Job queue', 'accel/gpuqueue'), T('quotas', '할당량', 'Quotas', 'accel/quotas'),
         T('usage', 'GPU-시간', 'GPU-hours', 'accel/gpuusage'), T('ide', '웹 IDE', 'Web IDE', 'accel/ide')] },
       { id: 'boards', label: { ko: '보드 LAB(JTAG)', en: 'Board lab (JTAG)' }, phase: 1, feature: ['fpga'], render: 'accel/boards' },
-      { id: 'buildfarm', label: { ko: '빌드 팜', en: 'Build farm' }, phase: 1, feature: ['fpga'], render: 'accel/buildfarm' },
+      { id: 'buildfarm', label: { ko: '빌드 팜', en: 'Build farm' }, phase: 1, feature: ['fpga'], tabs: [
+        T('farm', '작업 큐', 'Job queue', 'accel/buildfarm'), T('ci', 'CI 연동', 'CI', 'accel/ci'), T('results', '결과물 보관', 'Results kept', 'accel/artifacts')] },
       { id: 'licenses', label: { ko: '라이선스 서버', en: 'License servers' }, phase: 1, feature: ['fpga'], render: 'accel/licenses' },
     ],
   },

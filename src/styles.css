@@ -1557,3 +1557,17 @@ fieldset.plain:disabled { opacity: .55; }
 .notice-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 4px 16px; }
 .rsv-remind { display: flex; flex-direction: column; gap: 4px; max-width: 420px; }
 .rsv-remind input { width: 110px; }
+
+/* 빌드 팜: CI 출처 · 토큰 · 설정 예시 */
+.ci-src { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 2px; }
+.token-box { user-select: all; word-break: break-all; font-size: 14px; }
+.snippet { max-height: 420px; overflow: auto; font-size: 12px; white-space: pre; }
+/* 포털 예약 › 카드 · 보드 */
+.ab-form { display: flex; flex-direction: column; gap: 12px; }
+.ab-taken { display: flex; flex-direction: column; gap: 6px; }
+.ab-slots { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+/* 대시보드 › 증설 예측 */
+.forecast { margin-top: 16px; }
+.forecast .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.forecast-table .spark-cell { width: 120px; }
+.forecast-table .spark-cell .spark { width: 110px; height: 28px; display: block; }

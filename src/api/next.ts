@@ -74,6 +74,9 @@ export type BuildJob = {
   // GPU jobs (research.ts): what it asked for, the GPUs it got, why it waits
   gpus?: number; gpu_kind?: string; memory_gb?: number; max_minutes?: number; env?: GpuEnv | null; notify?: Notify;
   gpu_index?: number[]; wait_reason?: WaitReason; gpu_job?: boolean;
+  // the result files kept at its end (builds.ts) and where it came from (a CI connection)
+  artifacts?: { path: string; size: number }[]; artifacts_kept?: 'nas' | 'workdir' | '';
+  source?: { kind?: 'gitlab' | 'jenkins' | 'generic'; link?: string; link_name?: string; repo?: string; ref?: string; commit?: string; url?: string; pipeline?: string } | null;
 };
 // pool_id '' with gpus > 0: the queue picks any GPU pool granted to the user
 export type JobInput = { pool_id: string; name: string; command: string; workdir: string; username?: string } & GpuJobFields;
@@ -328,9 +331,17 @@ const jobs: BuildJob[] = [
     desktop_id: 'b4', desktop: 'vivado-build-04', pid: 4242, exit_code: null, output: '', error: '', created_at: iso(48), started_at: iso(47), finished_at: null },
   { id: 'job_2', pool_id: 'p_farm', pool: 'FPGA 빌드 팜', username: 'dave', name: 'vck190 합성', command: 'vivado -mode batch -source synth.tcl', workdir: '/proj/vck190',
     status: 'queued', desktop_id: null, desktop: null, pid: null, exit_code: null, output: '', error: '', created_at: iso(20), started_at: null, finished_at: null },
+  { id: 'job_ci1', pool_id: 'p_farm', pool: 'FPGA 빌드 팜', username: 'alice', name: 'FPGA팀 GitLab main a1b2c3d4', command: 'make -C ~/src/zcu102 bit',
+    workdir: '/nas/scratch/alice/job_ci1', status: 'done', desktop_id: 'b2', desktop: 'vivado-build-02', pid: 4180, exit_code: 0,
+    output: 'write_bitstream completed successfully\nWNS 0.142 ns, TNS 0.000 ns', error: '', created_at: iso(95), started_at: iso(94), finished_at: iso(52),
+    artifacts: [{ path: 'build/zcu102_top.bit', size: 26_543_104 }, { path: 'build/zcu102_top.ltx', size: 412_331 },
+      { path: 'reports/timing_summary.rpt', size: 1_204_210 }, { path: 'vivado.log', size: 3_812_004 }], artifacts_kept: 'nas',
+    source: { kind: 'gitlab', link: 'ci-1', link_name: 'FPGA팀 GitLab', repo: 'fpga/zcu102-top', ref: 'main', commit: 'a1b2c3d4e5f60718', pipeline: '9812',
+      url: 'https://gitlab.lab.example/fpga/zcu102-top/-/pipelines/9812' } },
   { id: 'job_3', pool_id: 'p_farm', pool: 'FPGA 빌드 팜', username: 'alice', name: '시뮬레이션 회귀', command: 'make sim', workdir: '/proj/zcu102', status: 'done',
     desktop_id: 'b5', desktop: 'vivado-build-05', pid: 4100, exit_code: 0, output: 'INFO: 128 tests passed\nsimulation finished in 41m 12s', error: '',
-    created_at: iso(300), started_at: iso(299), finished_at: iso(258) },
+    created_at: iso(300), started_at: iso(299), finished_at: iso(258),
+    artifacts: [{ path: 'sim/regress_summary.rpt', size: 88_120 }, { path: 'sim/xsim.log', size: 2_412_009 }], artifacts_kept: 'workdir' },
   { id: 'job_4', pool_id: 'p_farm', pool: 'FPGA 빌드 팜', username: 'carol', name: 'kv260 타이밍', command: 'make timing', workdir: '/proj/kv260', status: 'failed',
     desktop_id: 'b3', desktop: 'vivado-build-03', pid: 4011, exit_code: 2, output: 'ERROR: [Timing 38-282] The design failed to meet the timing requirements.', error: '',
     created_at: iso(600), started_at: iso(599), finished_at: iso(540) },

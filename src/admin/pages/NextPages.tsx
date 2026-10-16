@@ -1,3 +1,4 @@
+import { artifactUrl, downloadArtifact } from '../../api/builds';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../../api/admin';
@@ -1025,6 +1026,7 @@ export function BuildJobsPanel({ pools, admin = false }: { pools: JobPool[]; adm
   const jobs = useLoad(() => admin ? nextApi.buildJobs().then((r) => r.jobs) : nextApi.myJobs().then((r) => r.jobs), [admin]);
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState<BuildJob | null>(null);
+  const [results, setResults] = useState<BuildJob | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
   const S: Record<JobStatus, string> = { queued: L('대기', 'queued'), running: L('실행 중', 'running'), done: L('완료', 'done'), failed: L('실패', 'failed'), cancelled: L('취소', 'cancelled') };
   async function cancel(j: BuildJob) {
@@ -1062,6 +1064,9 @@ export function BuildJobsPanel({ pools, admin = false }: { pools: JobPool[]; adm
           <tbody>{list.map((j) => (
             <tr key={j.id}>
               <td className="strong">{j.name}<div className="muted small"><code className="code">{j.command}</code></div>
+                {j.source && <div className="muted small ci-src"><span className="chip chip-accent">{ciKindText(j.source.kind)}</span>
+                  {j.source.repo ?? j.source.link_name}{j.source.ref ? ` · ${j.source.ref}` : ''}{j.source.commit ? ` · ${j.source.commit.slice(0, 8)}` : ''}
+                  {j.source.url && <> · <a href={j.source.url} target="_blank" rel="noreferrer">{L('파이프라인', 'pipeline')}</a></>}</div>}
                 {j.env && <div className="muted small">{j.env.kind === 'conda' ? `conda: ${j.env.name}` : `${L('컨테이너', 'container')}: ${j.env.image}`}</div>}</td>
               {admin && <td>{j.username}</td>}
               <td><span className={JOB_TONE[j.status]}>{S[j.status]}{j.exit_code !== null && j.status !== 'done' ? ` · ${j.exit_code}` : ''}</span>
@@ -1072,6 +1077,7 @@ export function BuildJobsPanel({ pools, admin = false }: { pools: JobPool[]; adm
               <td className="muted small">{when(j.created_at)}</td>
               <td className="muted small">{when(j.finished_at)}</td>
               <td className="actions">
+                {(j.artifacts?.length ?? 0) > 0 && <button type="button" className="btn-ghost small-btn" onClick={() => setResults(j)}>{L(`결과물 ${j.artifacts!.length}`, `Results ${j.artifacts!.length}`)}</button>}
                 {(j.output || j.error) && <button type="button" className="btn-ghost small-btn" onClick={() => setOpen(j)}>{L('출력', 'Output')}</button>}
                 {j.status === 'queued' && <button type="button" className="btn-ghost small-btn danger" onClick={() => cancel(j)}>{L('취소', 'Cancel')}</button>}
                 {j.status === 'running' && <button type="button" className="btn-ghost small-btn danger" onClick={() => stop(j)}>{L('멈추기', 'Stop')}</button>}
@@ -1082,6 +1088,7 @@ export function BuildJobsPanel({ pools, admin = false }: { pools: JobPool[]; adm
       {adding && <JobDialog pools={pools} admin={admin} onClose={() => setAdding(false)} onDone={(j) => { setAdding(false); jobs.reload();
         setNotice({ kind: 'info', text: j.status === 'running' ? L(`${j.desktop}에서 시작했습니다.`, `Started on ${j.desktop}.`)
           : j.gpus ? L('큐에 넣었습니다. 맞는 GPU가 비면 시작합니다.', 'Queued; it starts when matching GPUs are free.') : L('큐에 넣었습니다. 빈 빌드 VM이 생기면 시작합니다.', 'Queued; it starts on the next free build VM.') }); }} />}
+      {results && <ResultsDialog job={results} admin={admin} onClose={() => setResults(null)} />}
       {open && (
         <Dialog open title={L(`${open.name} 출력`, `${open.name}: output`)} onClose={() => setOpen(null)}>
           <p className="muted small">{open.desktop} · {L('종료 코드', 'exit code')} {open.exit_code ?? '-'}{open.workdir ? ` · ${L('결과 폴더', 'results')} ${open.workdir}` : ''}</p>
@@ -1089,6 +1096,43 @@ export function BuildJobsPanel({ pools, admin = false }: { pools: JobPool[]; adm
         </Dialog>
       )}
     </section>
+  );
+}
+
+export function ciKindText(k?: string) {
+  return k === 'gitlab' ? 'GitLab CI' : k === 'jenkins' ? 'Jenkins' : 'CI';
+}
+
+const sizeText = (n: number) => (n >= 1 << 30 ? `${(n / (1 << 30)).toFixed(1)} GB` : n >= 1 << 20 ? `${(n / (1 << 20)).toFixed(1)} MB` : n >= 1024 ? `${Math.round(n / 1024)} KB` : `${n} B`);
+
+// 결과물: the files the job left (kept on the NAS, or listed in its work folder while it lasts).
+function ResultsDialog({ job, admin, onClose }: { job: BuildJob; admin: boolean; onClose: () => void }) {
+  const { L } = useL();
+  const [err, setErr] = useState<string | null>(null);
+  const why = (e: unknown) => {
+    const c = (e as { message?: string }).message ?? '';
+    return c === 'APPROVAL_REQUIRED' ? L('반출 승인이 필요한 풀입니다. 포털 › 데이터 › 내 폴더에서 반출 요청을 보내세요.', 'This pool needs approval for downloads: send an export request from Data.')
+      : c === 'EXPORT_DENIED' ? L('이 풀에서는 내려받기가 막혀 있습니다(반출 통제).', 'Downloads from this pool are not allowed (export control).')
+        : c === 'TOO_BIG' ? L('파일이 커서 여기서는 받을 수 없습니다. 포털 › 데이터 › 내 폴더나 SFTP로 받으세요.', 'Too large here: use Data › my folders or SFTP.')
+          : c === 'NO_ROUTE' ? L('파일이 있는 빌드 VM에 닿지 않습니다.', 'The build VM holding it is not reachable.') : c;
+  };
+  async function get(i: number) {
+    setErr(null);
+    try { await downloadArtifact(artifactUrl(job.id, i, admin)); } catch (e) { setErr(why(e)); }
+  }
+  return (
+    <Dialog open wide title={L(`${job.name} 결과물`, `${job.name}: results`)} onClose={onClose}>
+      <p className="muted small">{job.artifacts_kept === 'nas'
+        ? L('작업이 끝날 때 NAS의 결과물 보관함(artifacts/사용자/작업 ID)에 복사해 두었습니다. 보관 기간이 지나면 지워집니다.', 'Copied to the NAS results store (artifacts/<user>/<job>) at the end; removed after the keep period.')
+        : L('작업 폴더에 있는 파일입니다. 스크래치 보관 기간이 지나면 지워질 수 있으니 필요한 것은 받아 두세요.', 'In the work folder: take what you need before the scratch keep period ends.')}</p>
+      {err && <div className="alert small error" role="alert">{err}</div>}
+      <div className="table-scroll"><table className="table compact-head">
+        <thead><tr><th>{L('파일', 'File')}</th><th className="num">{L('크기', 'Size')}</th><th className="actions" /></tr></thead>
+        <tbody>{(job.artifacts ?? []).map((f, i) => (
+          <tr key={f.path}><td><code className="code">{f.path}</code></td><td className="num muted small">{sizeText(f.size)}</td>
+            <td className="actions"><button type="button" className="btn-ghost small-btn" onClick={() => get(i)}><Icon name="download" size={14} />{L('받기', 'Download')}</button></td></tr>))}</tbody>
+      </table></div>
+    </Dialog>
   );
 }
 

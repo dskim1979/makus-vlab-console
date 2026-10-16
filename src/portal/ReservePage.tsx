@@ -7,6 +7,8 @@ import { Icon } from '../components/Icon';
 import { LoadState } from '../components/LoadState';
 import { ReserveForm, StatusChip, WeekCalendar, blockTitle, useL, weekRange, whenText } from '../components/ReserveParts';
 import { useLoad } from '../components/useLoad';
+import { useFeatures } from '../features';
+import { AccelBookingsTab } from './AccelBookings';
 
 const ConsoleWindow = lazy(() => import('./ConsoleWindow'));
 
@@ -14,9 +16,14 @@ const ConsoleWindow = lazy(() => import('./ConsoleWindow'));
 // (classes and other bookings). An approved booking opens a desktop to its participants in its time.
 export function ReservePage() {
   const { L } = useL();
-  const [tab, setTab] = useState<'mine' | 'new' | 'calendar'>('mine');
-  const options = useLoad(reservationsApi.options);
-  const mine = useLoad(reservationsApi.mine);
+  const { on } = useFeatures();
+  const lab = on('lab');
+  const accel = on('gpuai') || on('fpga');
+  const [picked, setTab] = useState<'mine' | 'new' | 'calendar' | 'cards'>(lab ? 'mine' : 'cards');
+  // the features answer after the first paint: without LAB only the card tab is there
+  const tab = !lab ? 'cards' : !accel && picked === 'cards' ? 'mine' : picked;
+  const options = useLoad(lab ? reservationsApi.options : () => new Promise<never>(() => {}));
+  const mine = useLoad(lab ? reservationsApi.mine : () => new Promise<never>(() => {}));
   const [note, setNote] = useState<string | null>(null);
   const [editing, setEditing] = useState<Reservation | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -34,12 +41,14 @@ export function ReservePage() {
       <div className="page-head">
         <div>
           <h1>{L('예약', 'Bookings')}</h1>
-          <p className="muted">{L('실습실 전체 · 좌석 · 데스크톱을 미리 잡아 둡니다. 예약 시간에는 참가자에게만 데스크톱이 열립니다.',
-            'Book a room, seats or desktops ahead. In its time only the participants get a desktop.')}</p>
+          <p className="muted">{lab ? L('실습실 전체 · 좌석 · 데스크톱, 그리고 GPU · NPU · FPGA 카드와 보드를 미리 잡아 둡니다. 예약 시간에는 참가자에게만 데스크톱이 열립니다.',
+            'Book a room, seats or desktops - and cards and boards - ahead. In its time only the participants get a desktop.')
+            : L('GPU · NPU · FPGA 카드와 보드(JTAG)를 내 데스크톱에 쓸 시간을 미리 잡아 둡니다.', 'Book a GPU, NPU or FPGA card or a board for your desktop ahead.')}</p>
         </div>
         <div className="page-tools">
           <div className="segmented" role="tablist">
-            {([['mine', L('내 예약', 'Mine')], ['new', L('새 예약', 'New')], ['calendar', L('달력 · 빈 시간', 'Calendar')]] as const).map(([k, label]) => (
+            {([...(lab ? [['mine', L('내 예약', 'Mine')], ['new', L('새 예약', 'New')], ['calendar', L('달력 · 빈 시간', 'Calendar')]] as const : []),
+              ...(accel ? [['cards', L('카드 · 보드', 'Cards and boards')]] as const : [])]).map(([k, label]) => (
               <button key={k} type="button" role="tab" className={tab === k ? 'on' : ''} aria-selected={tab === k} onClick={() => { setTab(k); setNote(null); }}>{label}</button>
             ))}
           </div>
@@ -47,7 +56,8 @@ export function ReservePage() {
       </div>
       {note && <div className="alert small info" role="status">{note}</div>}
       {error && <div className="alert small error" role="alert">{error}</div>}
-      <ReservationsNow />
+      {lab && <ReservationsNow />}
+      {tab === 'cards' && <AccelBookingsTab />}
       {tab === 'mine' && (
         <LoadState value={mine} retry={mine.reload}>
           {(list) => list.length === 0 ? (

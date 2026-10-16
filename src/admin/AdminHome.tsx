@@ -5,6 +5,7 @@ import { Icon, type IconName } from '../components/Icon';
 import { LoadState } from '../components/LoadState';
 import { useLoad } from '../components/useLoad';
 import { useI18n } from '../i18n';
+import { ForecastPanel } from './ForecastPanel';
 import { InfraBoard } from './InfraBoard';
 import { visibleModules } from './modules';
 import { useFeatures } from '../features';
@@ -32,6 +33,7 @@ export function AdminHome() {
         {(s) => (
           <>
             <InfraBoard s={s} onRefresh={summary.reload} />
+            <ForecastPanel />
             <div className="dash-lower">
             <div className="dash-grid dash-below">
               <Health s={s} />
