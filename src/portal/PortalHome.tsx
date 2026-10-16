@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { api } from '../api/client';
+import { storageCodeText } from '../api/storage';
 import type { ClientConfig, Clipboard, Desktop, PowerAction } from '../api/types';
 import { BRAND } from '../brand';
 import { Icon } from '../components/Icon';
@@ -23,7 +24,7 @@ function savedView(): 'grid' | 'list' {
 
 // User portal home: quick actions, greeting, the user's desktops as cards or a list.
 export function PortalHome() {
-  const { t, lang } = useI18n();
+  const { t, lang, pick } = useI18n();
   const { user } = useAuth();
   const desktops = useLoad(api.myDesktops);
   const [view, setView] = useState<'grid' | 'list'>(savedView);
@@ -44,6 +45,10 @@ export function PortalHome() {
     setBusy(d.id); setError(null); setHint(null);
     try {
       const c = await api.connect(d.id, protocol);
+      // 공유 저장소: the build folder could not be prepared - say so, the session still opens
+      if (c.storage && c.storage.ok === false) {
+        setError({ id: d.id, text: `${pick({ ko: '내 빌드 폴더를 준비하지 못했습니다', en: 'Your build folder is not ready' })}: ${storageCodeText(c.storage.code, (ko, en) => pick({ ko, en }))}` });
+      }
       if (c.type === 'vnc') {
         setOpen({ title: d.name, wsPath: c.ws_path, password: c.password, sessionId: c.session_id, clipboard: c.clipboard ?? 'both' });
       } else if (c.type === 'guac') {

@@ -1317,3 +1317,14 @@ dialog.dialog { white-space: normal; text-align: start; }
 .checks-items li > .chip { flex: none; margin-top: .1rem; }
 .checks-items p { margin: 0 0 .2rem; line-height: 1.5; }
 .checks-tips { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .3rem; }
+
+/* 공유 저장소 (pool policy step, pool page, portal build folder) */
+fieldset.plain { border: 0; padding: 0; margin: 0; min-width: 0; display: flex; flex-direction: column; gap: .75rem; }
+fieldset.plain:disabled { opacity: .55; }
+.dtile-folder { display: flex; align-items: center; gap: .4rem; font-size: .8rem; min-width: 0; }
+.dtile-folder code { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.folder-list { display: flex; flex-direction: column; gap: .5rem; margin-bottom: 1rem; }
+.folder-item { display: grid; grid-template-columns: auto 1fr auto; gap: .25rem .75rem; align-items: center; }
+.folder-item .folder-paths { display: flex; flex-wrap: wrap; gap: .35rem .9rem; min-width: 0; }
+.folder-item code { word-break: break-all; }
+.storage-panel td.storage-result { min-width: 18rem; }

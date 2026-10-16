@@ -6,17 +6,24 @@ import { Icon } from '../../components/Icon';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
+import { storageApi } from '../../api/storage';
+import type { PoolStorage } from '../../api/storage';
+import { draftOf, StorageStep, storageSummary } from './PoolStorage';
+import type { StorageDraft } from './PoolStorage';
+import { useL } from './OpsPages';
 
 // 데스크톱 풀 > (풀) > 정책: how the pool's desktops are reached and kept - a summary on the
-// pool page and a wizard in five steps plus review. The engine applies it (pegaprox/vlab/policy.py).
+// pool page and a wizard in six steps plus review. The engine applies it (pegaprox/vlab/policy.py; the
+// shared storage step has a setting of its own, pegaprox/vlab/nas.py, saved with the policy).
 
-const STEPS = ['conn', 'clip', 'usb', 'power', 'account', 'review'] as const;
+const STEPS = ['conn', 'clip', 'usb', 'power', 'account', 'storage', 'review'] as const;
 type Step = typeof STEPS[number];
 const CLIPS: Clipboard[] = ['both', 'to_desktop', 'from_desktop', 'off'];
 
 export function PoolPolicyPanel({ pool, onChanged }: { pool: Pool; onChanged: () => void }) {
   const { t } = useI18n();
   const policy = useLoad(useCallback(() => adminApi.poolPolicy(pool.id), [pool.id]), [pool.id]);
+  const storage = useLoad(useCallback(() => storageApi.pool(pool.id).then((r) => r.storage), [pool.id]), [pool.id]);
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
   return (
@@ -25,24 +32,25 @@ export function PoolPolicyPanel({ pool, onChanged }: { pool: Pool; onChanged: ()
         <span className="stat-icon"><Icon name="shield" size={18} /></span>
         <div>
           <h2 className="section-title">{t('pol.title')}</h2>
-          {policy.state === 'ok' && <Summary p={policy.data.policy} />}
+          {policy.state === 'ok' && <Summary p={policy.data.policy} storage={storage.state === 'ok' ? storage.data : null} />}
         </div>
         <div className="panel-actions">
-          <button type="button" className="btn" disabled={policy.state !== 'ok'} onClick={() => setEditing(true)}>{t('pol.edit')}</button>
+          <button type="button" className="btn" disabled={policy.state !== 'ok' || storage.state !== 'ok'} onClick={() => setEditing(true)}>{t('pol.edit')}</button>
         </div>
       </div>
       {saved && <div className="alert info small" role="status">{t('pol.saved')}</div>}
-      {editing && policy.state === 'ok' && (
-        <PolicyWizard pool={pool} initial={policy.data.policy} resetAllowed={policy.data.reset_allowed}
+      {editing && policy.state === 'ok' && storage.state === 'ok' && (
+        <PolicyWizard pool={pool} initial={policy.data.policy} resetAllowed={policy.data.reset_allowed} storage={storage.data}
           onClose={() => setEditing(false)}
-          onSaved={() => { setEditing(false); setSaved(true); policy.reload(); onChanged(); }} />
+          onSaved={() => { setEditing(false); setSaved(true); policy.reload(); storage.reload(); onChanged(); }} />
       )}
     </section>
   );
 }
 
-function Summary({ p }: { p: PoolPolicy }) {
+function Summary({ p, storage }: { p: PoolPolicy; storage: PoolStorage | null }) {
   const { t } = useI18n();
+  const { L } = useL();
   const chips: string[] = [
     p.protocols.map((x) => (x === 'vnc' ? 'noVNC' : 'SPICE')).join(' · '),
     `${t('pol.s.clip')}: ${t(`pol.clip.${p.clipboard}` as MessageKey)}`,
@@ -53,14 +61,18 @@ function Summary({ p }: { p: PoolPolicy }) {
   if (p.reset_on_logout) chips.push(t('pol.resetOnLogout'));
   if (!p.allow_power) chips.push(`${t('pol.s.power')}: ${t('pol.offShort')}`);
   if (p.max_session_hours) chips.push(`${t('pol.maxSession')} ${p.max_session_hours}${t('pol.hours')}`);
+  if (storage?.enabled) chips.push(`${L('공유 저장소', 'Shared storage')}: ${storage.kind.toUpperCase()} ${storage.server}`);
   return <div className="policy-chips">{chips.map((c) => <span key={c} className="chip">{c}</span>)}</div>;
 }
 
-function PolicyWizard({ pool, initial, resetAllowed, onClose, onSaved }: {
-  pool: Pool; initial: PoolPolicy; resetAllowed: boolean; onClose: () => void; onSaved: () => void;
+function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }: {
+  pool: Pool; initial: PoolPolicy; resetAllowed: boolean; storage: PoolStorage; onClose: () => void; onSaved: () => void;
 }) {
   const { t } = useI18n();
+  const { L } = useL();
   const [p, setP] = useState<PoolPolicy>(initial);
+  const [st, setSt] = useState<StorageDraft>(draftOf(storage));
+  const setStorage = <K extends keyof StorageDraft>(k: K, v: StorageDraft[K]) => setSt((o) => ({ ...o, [k]: v }));
   const [step, setStep] = useState<Step>('conn');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,9 +84,15 @@ function PolicyWizard({ pool, initial, resetAllowed, onClose, onSaved }: {
   async function next() {
     setError(null);
     if (step === 'conn' && p.protocols.length === 0) { setError(t('pol.protocols')); return; }
+    if (step === 'storage' && st.enabled && (!st.server || !st.share)) { setError(L('NAS 서버와 공유 경로를 넣으세요.', 'Enter the NAS server and the share.')); return; }
+    if (step === 'storage' && st.enabled && !st.folder_rule.includes('{username}')) { setError(L('사용자 폴더 규칙에 {username} 이 들어가야 합니다.', 'The folder rule must contain {username}.')); return; }
+    if (step === 'storage' && st.enabled && st.kind === 'smb' && st.smb_auth === 'service' && (!st.smb_user || !(st.smb_password || storage.has_password))) {
+      setError(L('서비스 계정의 이름과 비밀번호를 넣으세요.', 'Enter the service account and its password.')); return;
+    }
     if (!last) { setStep(STEPS[i + 1]); return; }
     setBusy(true);
-    try { await adminApi.savePoolPolicy(pool.id, p); onSaved(); }
+    // the storage first: its checks are the stricter ones, so a refusal leaves both as they were
+    try { await storageApi.save(pool.id, st); await adminApi.savePoolPolicy(pool.id, p); onSaved(); }
     catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   }
@@ -90,7 +108,7 @@ function PolicyWizard({ pool, initial, resetAllowed, onClose, onSaved }: {
         {STEPS.map((s, k) => (
           <li key={s} className={k < i ? 'done' : k === i ? 'on' : ''}>
             <button type="button" onClick={() => setStep(s)} aria-current={k === i ? 'step' : undefined}>
-              <span className="stepper-n">{k < i ? '✓' : k + 1}</span>{t(`pol.s.${s}` as MessageKey)}
+              <span className="stepper-n">{k < i ? '✓' : k + 1}</span>{s === 'storage' ? L('공유 저장소', 'Shared storage') : t(`pol.s.${s}` as MessageKey)}
             </button>
           </li>
         ))}
@@ -175,6 +193,8 @@ function PolicyWizard({ pool, initial, resetAllowed, onClose, onSaved }: {
         </div>
       )}
 
+      {step === 'storage' && <StorageStep s={st} set={setStorage} hasPassword={storage.has_password} />}
+
       {step === 'review' && (
         <div className="wiz-body">
           <dl className="review-list">
@@ -186,6 +206,8 @@ function PolicyWizard({ pool, initial, resetAllowed, onClose, onSaved }: {
               p.reset_on_logout && t('pol.resetOnLogout')].filter(Boolean).join(' · ') || t('pol.none')}</dd>
             <dt>{t('pol.s.account')}</dt><dd>{p.allow_power ? t('pol.allowPower') : `${t('pol.s.power')}: ${t('pol.offShort')}`}
               {p.max_session_hours ? ` · ${t('pol.maxSession')} ${p.max_session_hours}${t('pol.hours')}` : ''}</dd>
+            <dt>{L('공유 저장소', 'Shared storage')}</dt><dd>{storageSummary({ ...st, has_password: storage.has_password }, L)}
+              {st.enabled ? ` · ${st.private ? L('본인만 읽기 · 쓰기', 'owner only') : L('공유 권한', 'shared rights')}` : ''}</dd>
           </dl>
         </div>
       )}

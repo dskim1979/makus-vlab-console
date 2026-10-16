@@ -42,6 +42,15 @@ export type Desktop = {
   last_connected?: string | null;
   gpu?: { mode: 'passthrough' | 'vgpu'; label: string };
   policy?: { clipboard: Clipboard; allow_power: boolean; start_on_connect: boolean };
+  // 공유 저장소: the user's build folder on the pool's NAS, and how its last mount went
+  storage?: StoragePaths & { ok: boolean | null; code: string };
+};
+
+// --- shared storage (공유 저장소, makus-vlab pegaprox/vlab/nas.py) ----------------------
+export type StoragePaths = { linux: string; windows: string | null; nas: string; folder: string; kind: 'nfs' | 'smb' };
+export type StorageResult = {
+  ok: boolean | null; code: string; detail: string; path: string; os: string; at: string; changed: boolean;
+  paths?: StoragePaths;
 };
 
 export type Branding = {
@@ -183,11 +192,12 @@ export type UserAccess = {
 
 // --- connecting (/api/vlab/desktops/<id>/connect) ----------------------------------
 
-export type ConnectInfo =
+export type ConnectInfo = (
   | { type: 'vnc'; ws_path: string; password: string; session_id: string; clipboard?: Clipboard }
   | { type: 'spice'; vv: string; filename: string; session_id: string }
   | { type: 'rdp'; rdp: string; filename: string; session_id: string }
-  | { type: 'guac'; url: string; session_id: string };
+  | { type: 'guac'; url: string; session_id: string }
+) & { storage?: StorageResult };
 export type ConnectProtocol = 'vnc' | 'spice' | 'rdp' | 'guac';
 
 export type PowerAction = 'start' | 'shutdown' | 'reboot' | 'stop';

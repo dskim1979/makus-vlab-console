@@ -3,6 +3,7 @@ import type { Desktop, PowerAction } from '../api/types';
 import { Icon } from '../components/Icon';
 import { useI18n } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
+import { storageCodeText } from '../api/storage';
 
 export type OsFamily = 'windows' | 'linux' | 'other';
 
@@ -63,7 +64,7 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
   d: Desktop; busy: boolean; fav: boolean; onFav: () => void;
   onConnect: (p: 'vnc' | 'spice' | 'rdp' | 'guac') => void; onPower: (a: PowerAction) => void; error?: string; hint?: string;
 }) {
-  const { t, lang } = useI18n();
+  const { t, lang, pick } = useI18n();
   const family = osFamily(d);
   const [menu, setMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -150,6 +151,15 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
           <span key={r.name} className="spec-accel"><Icon name={r.kind === 'card' ? 'fpga' : 'usb'} size={14} />{r.name}</span>
         ))}
       </div>
+
+      {d.storage && (
+        <div className="dtile-folder" title={`${d.storage.nas}${d.storage.ok === false ? ` · ${storageCodeText(d.storage.code, (ko, en) => pick({ ko, en }))}` : ''}`}>
+          <Icon name="layers" size={14} />
+          <span className="muted">{pick({ ko: '내 빌드 폴더', en: 'My build folder' })}</span>
+          <code className="code">{family === 'windows' && d.storage.windows ? d.storage.windows : d.storage.linux}</code>
+          {d.storage.ok === false && <span className="chip chip-warn">{pick({ ko: '확인 필요', en: 'Check' })}</span>}
+        </div>
+      )}
 
       {error && <div className="alert error small" role="alert">{error}</div>}
       {hint && <div className="alert info small">{hint}</div>}
