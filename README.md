@@ -107,9 +107,9 @@ nginx 는 `proxy_set_header Host $http_host;` 로 둡니다.
 |---|---|
 | `src/brand.ts` | 제품명·회사·엔진 고지 정보 |
 | `src/i18n/` | 한/영 문구 (키마다 `ko`·`en`) |
-| `src/api/` | 엔진 API(`client.ts`, `admin.ts`, `next.ts`), 모의 엔진(`mock.ts`, `mockAdmin.ts`, `next.ts` 안의 모의), 타입 |
+| `src/api/` | 엔진 API(`client.ts`, `admin.ts`, `next.ts`, ISO·VM 만들기 `build.ts`), 모의 엔진(`mock.ts`, `mockAdmin.ts`, `next.ts`·`build.ts` 안의 모의), 타입 |
 | `src/auth/` | 세션, 로그인(비밀번호 → 필요 시 TOTP, OIDC, LDAP 안내), 첫 설정 |
-| `src/admin/` | 모듈·페이지 정의(`modules.ts`), 대시보드, 모듈 화면(골든 이미지 · 게이트웨이 · 보드 · 빌드 팜 · 라이선스 등은 `pages/NextPages.tsx`, 풀 권한은 `pages/PoolGrants.tsx`) |
+| `src/admin/` | 모듈·페이지 정의(`modules.ts`), 대시보드, 모듈 화면(골든 이미지 · 게이트웨이 · 보드 · 빌드 팜 · 라이선스 등은 `pages/NextPages.tsx`, 풀 권한은 `pages/PoolGrants.tsx`, ISO · 이미지 관리와 VM 만들기는 `pages/BuildPages.tsx`) |
 | `src/portal/` | 작업 공간(데스크톱 타일·목록), 받을 수 있는 데스크톱(`MyPools.tsx`), 외부 데스크톱, 내 자원 · 빌드 작업, 브라우저 콘솔 |
 | `src/components/` | 상단 막대, 왼쪽 메뉴, 화면 틀, 고지, 대화 상자, 아이콘 |
 | `deploy/` | Dockerfile·nginx·docker compose 설치 묶음 (vlab-proxy · vlab-engine · guacd · guacamole) |

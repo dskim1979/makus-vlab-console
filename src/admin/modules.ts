@@ -27,9 +27,11 @@ export const MODULES: AdminModule[] = [
   {
     id: 'vms', icon: 'vm', tone: 'blue',
     label: { ko: '가상머신', en: 'Virtual machines' },
-    summary: { ko: '데스크톱 VM, 템플릿, 골든 이미지(버전·배포)', en: 'Desktop VMs, templates, golden images' },
+    summary: { ko: '데스크톱 VM, ISO로 VM 만들기, 템플릿, 골든 이미지(버전·배포)', en: 'Desktop VMs, VMs from an ISO, templates, golden images' },
     pages: [
       { id: 'desktops', label: { ko: '데스크톱(VM) 관리', en: 'Desktop VMs' }, phase: 1 },
+      { id: 'create', label: { ko: 'VM 만들기', en: 'Make a VM' }, phase: 1 },
+      { id: 'isos', label: { ko: 'ISO · 이미지 관리', en: 'ISO library' }, phase: 1 },
       { id: 'templates', label: { ko: '템플릿 관리', en: 'Templates' }, phase: 1 },
       { id: 'golden', label: { ko: '골든 이미지 관리', en: 'Golden images' }, phase: 1 },
     ],
