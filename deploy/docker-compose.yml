@@ -3,6 +3,12 @@
 #   vlab-proxy   console + HTTPS (443), passes /api to the engine   <- makus-vlab-console (this repo)
 #   vlab-engine  vLAB engine, API only, no web UI (WEB_UI=0)          <- makus-vlab
 #
+# Optional, profile "guacamole" (browser RDP): docker compose --profile guacamole up -d
+#   guacd        Apache Guacamole proxy daemon (speaks RDP to the desktops)
+#   guacamole    Guacamole web app with guacamole-auth-json, served by vlab-proxy at /guacamole/
+#                (same 443). Key: VLAB_GUAC_KEY in .env, the same 32 hex digits as the gateway's
+#                key in the console (게이트웨이 > Guacamole, address = this host, port = 443).
+#
 # Built from the two repositories checked out side by side:
 #   <dir>/makus-vlab            (engine)
 #   <dir>/makus-vlab-console    (this repo; run compose from deploy/)
@@ -45,6 +51,29 @@ services:
       - "${VLAB_HTTP_PORT:-80}:80"
     volumes:
       - vlab-tls:/etc/vlab/tls              # tls.crt + tls.key; replace with your own certificate
+    networks: [vlab]
+
+  guacd:
+    image: guacamole/guacd:${VLAB_GUAC_VERSION:-1.6.0}
+    profiles: [guacamole]
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Seoul}
+    networks: [vlab]                        # needs to reach the desktops' RDP port (3389)
+
+  guacamole:
+    image: guacamole/guacamole:${VLAB_GUAC_VERSION:-1.6.0}
+    profiles: [guacamole]
+    restart: unless-stopped
+    depends_on: [guacd]
+    environment:
+      GUACD_HOSTNAME: guacd
+      JSON_ENABLED: "true"                  # guacamole-auth-json, the only login: links signed by the engine
+      JSON_SECRET_KEY: ${VLAB_GUAC_KEY:-}   # 32 hex digits; empty -> guacamole refuses to start
+      REMOTE_IP_VALVE_ENABLED: "true"       # client address from vlab-proxy's X-Forwarded-For
+      TZ: ${TZ:-Asia/Seoul}
+    expose:
+      - "8080"                              # not published: reached through vlab-proxy /guacamole/
     networks: [vlab]
 
 networks:
