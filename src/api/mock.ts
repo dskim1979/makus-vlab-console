@@ -41,6 +41,27 @@ const desktops: Desktop[] = [
       home: { linux: '/nas/home/alice', windows: 'H:\\', nas: '\\\\nas01.lab.local\\lab\\home\\alice', folder: 'home/alice', quota_gb: 20 } } } },
 ];
 
+// A sample "screen" for the card (the engine sends a PNG of the VM's console). A Windows
+// desktop shows its lock screen, as one used over RDP does on the real console.
+function mockScreen(d: Desktop): string {
+  const time = new Date().toTimeString().slice(0, 5);
+  if (/win/i.test(d.os ?? '')) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#0f3d6e"/><stop offset=".6" stop-color="#1f6fb2"/><stop offset="1" stop-color="#7cc4e8"/></linearGradient></defs>
+<rect width="480" height="270" fill="url(#g)"/><path d="M0 210 C120 170 260 240 480 190 V270 H0Z" fill="#0b2a4a" opacity=".55"/>
+<text x="240" y="118" font-family="Segoe UI, sans-serif" font-size="58" font-weight="300" fill="#fff" text-anchor="middle">${time}</text>
+<text x="240" y="146" font-family="Segoe UI, sans-serif" font-size="14" fill="#e6f0ff" text-anchor="middle">${d.name}</text></svg>`;
+  }
+  const lines = ['$ source /tools/Xilinx/Vivado/2024.2/settings64.sh', '$ vivado -mode batch -source build.tcl',
+    'INFO: [Synth 8-7079] Multithreading enabled', 'INFO: [Place 30-611] Placer completed', 'Phase 4 Router  | Checksum: 7f3a91c2', '$ _'];
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270"><rect width="480" height="270" fill="#2c3e50"/>
+<rect width="480" height="18" fill="#1b2631"/><text x="10" y="13" font-family="sans-serif" font-size="10" fill="#cfd8e3">Activities</text>
+<text x="470" y="13" font-family="sans-serif" font-size="10" fill="#cfd8e3" text-anchor="end">${time}</text>
+<rect x="40" y="40" width="400" height="200" rx="6" fill="#111820"/><rect x="40" y="40" width="400" height="20" rx="6" fill="#3a4654"/>
+<text x="240" y="54" font-family="sans-serif" font-size="10" fill="#e8edf2" text-anchor="middle">${d.name} — Terminal</text>
+${lines.map((l, i) => `<text x="52" y="${84 + i * 22}" font-family="monospace" font-size="11" fill="${l.startsWith('$') ? '#8fe388' : '#c9d4df'}">${l}</text>`).join('')}</svg>`;
+}
+
 const leases: Lease[] = [
   { id: 'l1', kind: 'card', name: 'Alveo U250 #2', ends_at: '2026-10-31T18:00:00+09:00' },
   { id: 'l2', kind: 'usb', name: 'JTAG ZCU102 #1', ends_at: '2026-10-20T18:00:00+09:00' },
@@ -158,6 +179,12 @@ export const mockApi: Api = {
     const storage = st ? { ok: st.ok, code: st.code, path: st.folders.home?.linux ?? '', os: 'linux', at: new Date().toISOString(), changed: false,
       warnings: st.warnings, usage: {}, detail: st.ok === false ? 'home/alice: alice may not make it (the top folder needs mode 1777)' : '' } : undefined;
     return delay({ type: 'vnc' as const, ws_path: '/api/mock/vncwebsocket', password: 'mock', session_id: 'mock-sess', clipboard: d.policy?.clipboard ?? 'both', storage });
+  },
+  async screenshot(desktopId) {
+    const d = desktops.find((x) => x.id === desktopId);
+    if (!d || (d.state !== 'ready' && d.state !== 'in_use') || d.policy?.screen_thumbnail === false) return delay(null);
+    if (d.id === 'd1') return delay('off' as const);   // a build server whose display went to sleep
+    return delay(new Blob([mockScreen(d)], { type: 'image/svg+xml' }));
   },
   async endSession() { /* nothing to close */ },
   async power(desktopId, action) {

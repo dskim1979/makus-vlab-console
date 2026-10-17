@@ -62,6 +62,7 @@ function Summary({ p, storage }: { p: PoolPolicy; storage: PoolStorage | null })
   if (p.idle_shutdown_min) chips.push(`${t('pol.idle')} ${p.idle_shutdown_min}${t('pol.min')}`);
   if (p.reset_on_logout) chips.push(t('pol.resetOnLogout'));
   if (!p.allow_power) chips.push(`${t('pol.s.power')}: ${t('pol.offShort')}`);
+  if (p.screen_thumbnail === false) chips.push(`${L('화면 미리보기', 'Screen preview')}: ${t('pol.offShort')}`);
   if (p.max_session_hours) chips.push(`${t('pol.maxSession')} ${p.max_session_hours}${t('pol.hours')}`);
   if (p.defer_when_busy) chips.push(L(`작업 중이면 미루기 (최대 ${p.defer_max_hours}시간)`, `Wait while working (up to ${p.defer_max_hours} h)`));
   if (p.web_ide?.length) chips.push(`${L('웹 IDE', 'Web IDE')}: ${p.web_ide.map((k) => (k === 'jupyter' ? 'JupyterLab' : 'VS Code')).join(' · ')}`);
@@ -244,6 +245,9 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
         <div className="wiz-body">
           <label className="check"><input type="checkbox" checked={p.allow_power} onChange={(e) => set('allow_power', e.target.checked)} />
             <span>{t('pol.allowPower')}</span></label>
+          <label className="check"><input type="checkbox" checked={p.screen_thumbnail !== false} onChange={(e) => set('screen_thumbnail', e.target.checked)} />
+            <span>{L('포털 카드에 화면 미리보기', 'Screen preview on the portal card')}</span></label>
+          <small className="muted hint-indent">{L('VM 콘솔 화면입니다 — RDP로 쓰는 Windows는 잠금 화면이 보입니다.', "The VM's console - a Windows desktop used over RDP shows its lock screen.")}</small>
           <label>
             <span>{t('pol.maxSession')}</span>
             <span className="with-unit">
@@ -274,7 +278,8 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
                 `Wait while working · GPU/NPU ${p.busy_gpu_pct}%+${p.busy_cpu_pct ? ` or CPU ${p.busy_cpu_pct}%+` : ''} · up to ${p.defer_max_hours} h`)
               : L('끔 — 정해진 때 바로 끄거나 초기화', 'Off - shut down or reset on time')}</dd>
             <dt>{t('pol.s.account')}</dt><dd>{p.allow_power ? t('pol.allowPower') : `${t('pol.s.power')}: ${t('pol.offShort')}`}
-              {p.max_session_hours ? ` · ${t('pol.maxSession')} ${p.max_session_hours}${t('pol.hours')}` : ''}</dd>
+              {p.max_session_hours ? ` · ${t('pol.maxSession')} ${p.max_session_hours}${t('pol.hours')}` : ''}
+              {` · ${L('화면 미리보기', 'Screen preview')} ${p.screen_thumbnail !== false ? t('pol.on') : t('pol.offShort')}`}</dd>
             <dt>{L('공유 저장소', 'Shared storage')}</dt><dd>{storageSummary({ ...st, has_password: storage.has_password }, L)}
               {st.enabled ? ` · ${st.kind === 'smb' || st.create_by === 'user' ? L('폴더는 사용자 본인이 만듦', 'folders made by the user') : L('폴더는 엔진이 만듦', 'folders made by the engine')}` : ''}</dd>
           </dl>

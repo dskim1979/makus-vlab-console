@@ -41,8 +41,8 @@ export function ReservePage() {
       <div className="page-head">
         <div>
           <h1>{L('예약', 'Bookings')}</h1>
-          <p className="muted">{lab ? L('실습실 전체 · 좌석 · 데스크톱, 그리고 GPU · NPU · FPGA 카드와 보드를 미리 잡아 둡니다. 예약 시간에는 참가자에게만 데스크톱이 열립니다.',
-            'Book a room, seats or desktops - and cards and boards - ahead. In its time only the participants get a desktop.')
+          <p className="muted">{lab ? L('실습실 · 데스크톱 · 카드 · 보드를 미리 잡아 둡니다.',
+            'Book rooms, desktops, cards and boards ahead.')
             : L('GPU · NPU · FPGA 카드와 보드(JTAG)를 내 데스크톱에 쓸 시간을 미리 잡아 둡니다.', 'Book a GPU, NPU or FPGA card or a board for your desktop ahead.')}</p>
         </div>
         <div className="page-tools">
@@ -135,8 +135,8 @@ function FreeTimes({ onNew }: { onNew: () => void }) {
       <LoadState value={blocks} retry={blocks.reload}>
         {(list) => <WeekCalendar monday={monday} blocks={list} showLab={!labId} onPick={setPicked} />}
       </LoadState>
-      <p className="muted small">{L('빈 칸이 예약할 수 있는 시간입니다. 실습실의 예약 가능 시간대 · 최대 길이는 새 예약 화면에 나옵니다.',
-        'Empty space is free. The room\'s bookable hours and longest booking show on the new-booking screen.')}</p>
+      <p className="muted small">{L('빈 칸이 예약할 수 있는 시간입니다.',
+        'Empty space is free.')}</p>
       {picked && (
         <Dialog open title={blockTitle(picked, L)} onClose={() => setPicked(null)}>
           <dl className="kv">

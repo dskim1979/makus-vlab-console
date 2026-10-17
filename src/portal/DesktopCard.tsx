@@ -6,6 +6,7 @@ import type { MessageKey } from '../i18n/messages';
 import { storageCodeText } from '../api/storage';
 import { WorkStrip } from '../components/WorkParts';
 import { OsLogo, osLogoKey, osLogoName } from '../components/OsLogo';
+import { api } from '../api/client';
 
 export type OsFamily = 'windows' | 'linux' | 'other';
 
@@ -42,17 +43,71 @@ export function OsGlyph({ family, size = 22 }: { family: OsFamily; size?: number
   return <Icon name="vm" size={size} />;
 }
 
-// The "screen" of a tile: a small drawing of the desktop (our own artwork, no vendor imagery).
+const SHOT_EVERY_MS = 20_000;   // the engine keeps a card's picture fresh for 20 s
+
+// The running desktop's real screen (a PNG of its console): asked for as soon as the card shows
+// a running desktop, then every 20 s while the tab is visible. null while there is none (the
+// tile keeps its drawing), 'off' when the display is there but black.
+function useScreenshot(id: string, on: boolean): string | 'off' | null {
+  const [url, setUrl] = useState<string | 'off' | null>(null);
+  useEffect(() => {
+    if (!on) { setUrl(null); return; }
+    let alive = true;
+    let timer: number | undefined;
+    let shown: string | null = null;
+    const load = async () => {
+      const got = await api.screenshot(id);
+      if (!alive) return;
+      const next = got instanceof Blob ? URL.createObjectURL(got) : null;
+      if (shown) URL.revokeObjectURL(shown);
+      shown = next;
+      setUrl(next ?? (got === 'off' ? 'off' : null));
+    };
+    const start = () => {
+      window.clearInterval(timer);
+      timer = undefined;
+      if (document.visibilityState !== 'visible') return;
+      void load();
+      timer = window.setInterval(() => void load(), SHOT_EVERY_MS);
+    };
+    start();
+    document.addEventListener('visibilitychange', start);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', start);
+      if (shown) URL.revokeObjectURL(shown);
+    };
+  }, [id, on]);
+  return url;
+}
+
+// The "screen" of a tile: the desktop's own screen when the engine gives one, else a small
+// drawing of it (our own artwork, no vendor imagery).
 function Screen({ d, family }: { d: Desktop; family: OsFamily }) {
-  const { t } = useI18n();
+  const { t, pick } = useI18n();
   const on = d.state === 'ready' || d.state === 'in_use';
+  const shot = useScreenshot(d.id, on && d.policy?.screen_thumbnail !== false);
+  const [broken, setBroken] = useState<string | null>(null);
+  const off = shot === 'off';
+  const real = shot && !off && broken !== shot ? shot : null;
   return (
-    <div className={`td-screen os-${family}${on ? ' on' : ''}`} aria-hidden="true">
+    <div className={`td-screen os-${family}${on ? ' on' : ''}`} aria-hidden={real ? undefined : true}>
       {on ? (
         <>
-          <span className="scr-wall" />
-          {family === 'linux' ? <span className="scr-panel" /> : <span className="scr-taskbar"><i /><i /><i /><i /></span>}
-          <span className="scr-win" />
+          {real ? (
+            <img className="scr-shot" src={real} alt={pick({ ko: `${d.name} 화면`, en: `${d.name} screen` })}
+              title={pick({ ko: '20초마다 갱신 · RDP로 쓰는 중이면 잠금 화면이 보입니다', en: 'Updated every 20 s · shows the lock screen while in use over RDP' })}
+              onError={() => setBroken(real)} />
+          ) : off ? (
+            <span className="scr-off scr-dark">{pick({ ko: '화면 꺼짐', en: 'Display off' })}</span>
+          ) : (
+            <>
+              <span className="scr-wall" />
+              {family === 'linux' ? <span className="scr-panel" /> : <span className="scr-taskbar"><i /><i /><i /><i /></span>}
+              <span className="scr-win" />
+            </>
+          )}
           {d.state === 'in_use' && <span className="scr-live"><span className="dot" />{t('portal.state.in_use')}</span>}
         </>
       ) : (

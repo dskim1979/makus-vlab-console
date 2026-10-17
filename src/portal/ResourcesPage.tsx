@@ -62,8 +62,8 @@ export function ResourcesPage() {
             <span className="stat-icon tone-blue"><Icon name="layers" size={18} /></span>
             <div>
               <h2 className="section-title">{L('내 폴더 (공유 NAS)', 'My folders (shared NAS)')}</h2>
-              <p className="muted small" style={{ margin: 0 }}>{L('데스크톱 · 빌드 VM 어디서 접속해도 같은 폴더입니다. 홈은 매일 백업되고, 스크래치는 백업되지 않으며 빌드 작업 폴더는 보관 기간 뒤 지워집니다.',
-                'The same folders from every desktop and build VM. Home is backed up daily; scratch is not, and build job folders go after the retention.')}</p>
+              <p className="muted small" style={{ margin: 0 }}>{L('어느 데스크톱에서나 같은 폴더입니다. 홈만 백업됩니다.',
+                'The same folders on every desktop. Only home is backed up.')}</p>
             </div>
           </div>
           {folders.data.map((f) => (

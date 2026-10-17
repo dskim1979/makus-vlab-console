@@ -100,6 +100,17 @@ const realApi = {
     if (status !== 200) throw new ApiError(status, data?.error || `HTTP ${status}`, data);
   },
 
+  // the portal card's picture of a running desktop: 'off' when its display is black, null when
+  // there is none (stopped, turned off for the pool, the grab failed)
+  async screenshot(desktopId: string): Promise<Blob | 'off' | null> {
+    try {
+      const res = await fetch(`/api/vlab/desktops/${encodeURIComponent(desktopId)}/screenshot`, {
+        credentials: 'same-origin', cache: 'no-store', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      if (res.status === 200) return await res.blob();
+      return res.headers.get('X-Screen') === 'off' ? 'off' : null;
+    } catch { return null; }
+  },
+
   async endSession(sessionId: string): Promise<void> {
     try { await request('POST', `/api/vlab/sessions/${encodeURIComponent(sessionId)}/end`); } catch { /* best effort */ }
   },

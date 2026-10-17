@@ -39,8 +39,8 @@ export function MyPools({ onOpen }: { onOpen: (desktopId: string) => void }) {
   return (
     <section className="ext-section">
       <h2 className="section-title">{L('받을 수 있는 데스크톱', 'Desktops you can get')}</h2>
-      <p className="muted small">{L('내 계정·부서·그룹에 열린 풀입니다. 전용 풀은 내 데스크톱을 하나 받고, 공유 풀은 덜 붐비는 데스크톱으로 연결합니다.',
-        'Pools open to you, your department or your group. A dedicated pool gives you a desktop of your own; a shared pool puts you on the least busy one.')}</p>
+      <p className="muted small">{L('나에게 열린 풀입니다. 전용 풀은 [받기], 공유 풀은 [연결].',
+        'Pools open to you. Dedicated: Get. Shared: Connect.')}</p>
       <div className="ext-list">
         {pools.map((p) => (
           <article key={p.id} className="ext-card">
