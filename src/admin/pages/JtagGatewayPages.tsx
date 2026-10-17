@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { adminApi } from '../../api/admin';
-import { jtagApi } from '../../api/jtag';
+import { cableReadText, errorCode, jtagApi } from '../../api/jtag';
 import type { GatewayCable, GatewayState, JtagGateway } from '../../api/jtag';
 import { Dialog } from '../../components/Dialog';
 import { Icon } from '../../components/Icon';
@@ -35,9 +35,12 @@ export function JtagGatewaysPage() {
   const gws = useLoad(jtagApi.list);
   const [editing, setEditing] = useState<JtagGateway | 'new' | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
-  const act = async (fn: () => Promise<unknown>, ok?: string) => {
+  // errText: how a failure reads (the cable read maps the engine's code); the list reloads either way,
+  // so a failed cable read shows its reason on the gateway card as well
+  const act = async (fn: () => Promise<unknown>, ok?: string, errorText: (e: unknown) => string = errText) => {
     setNotice(null);
-    try { await fn(); if (ok) setNotice({ kind: 'info', text: ok }); gws.reload(); } catch (e) { setNotice({ kind: 'error', text: errText(e) }); }
+    try { await fn(); if (ok) setNotice({ kind: 'info', text: ok }); } catch (e) { setNotice({ kind: 'error', text: errorText(e) }); }
+    gws.reload();
   };
   return (
     <LoadState value={gws} retry={gws.reload}>
@@ -68,9 +71,11 @@ export function JtagGatewaysPage() {
 }
 
 function GatewayCard({ g, when, act, onEdit }: { g: JtagGateway; when: (s: string | null) => string;
-  act: (fn: () => Promise<unknown>, ok?: string) => Promise<void>; onEdit: () => void }) {
+  act: (fn: () => Promise<unknown>, ok?: string, errorText?: (e: unknown) => string) => Promise<void>; onEdit: () => void }) {
   const { L } = useL();
   const [adding, setAdding] = useState(false);
+  // the last read failed after the list we have (or there is no list)
+  const failed = !!g.cables_error_code && !!g.cables_error_at && (!g.cables_at || g.cables_error_at >= g.cables_at);
   const down = (g.last_detail.ports ?? []).filter((p) => !p.ok).map((p) => p.port);
   return (
     <section className="panel">
@@ -89,7 +94,8 @@ function GatewayCard({ g, when, act, onEdit }: { g: JtagGateway; when: (s: strin
         </div>
         <div className="page-tools">
           <button type="button" className="btn small-btn" onClick={() => act(() => jtagApi.check(g.id))}>{L('지금 점검', 'Check now')}</button>
-          <button type="button" className="btn small-btn" disabled={!g.vmid} onClick={() => act(() => jtagApi.discover(g.id), L('케이블 목록을 읽었습니다.', 'Cables read.'))}>{L('케이블 찾기', 'Find cables')}</button>
+          <button type="button" className="btn small-btn" disabled={!g.vmid} onClick={() => act(() => jtagApi.discover(g.id), L('케이블 목록을 읽었습니다.', 'Cables read.'),
+            (e) => `${g.name}: ${cableReadText(errorCode(e), errText(e), L)}`)}>{L('케이블 찾기', 'Find cables')}</button>
           <button type="button" className="btn-ghost small-btn" onClick={onEdit}>{L('편집', 'Edit')}</button>
           <button type="button" className="btn-ghost small-btn danger" disabled={g.boards.length > 0} title={g.boards.length ? L('보드를 먼저 옮기거나 지우세요.', 'Move or delete its boards first.') : undefined}
             onClick={() => { if (confirm(L(`'${g.name}'을(를) 지울까요? VM과 패스스루는 그대로 둡니다.`, `Delete '${g.name}'? The VM and its passthrough stay as they are.`))) void act(() => jtagApi.remove(g.id)); }}>{L('삭제', 'Delete')}</button>
@@ -108,8 +114,13 @@ function GatewayCard({ g, when, act, onEdit }: { g: JtagGateway; when: (s: strin
         <button type="button" className="btn-ghost small-btn" disabled={!g.vmid} onClick={() => setAdding(true)}><Icon name="plus" size={14} />{L('넘기기', 'Pass through')}</button>
       </div>
 
-      <h3 className="small strong">{L('게이트웨이가 보는 케이블', 'Cables the gateway sees')} <span className="muted small">{g.cables_at ? when(g.cables_at) : L('(케이블 찾기를 누르세요 — 게스트 에이전트 필요)', '(press Find cables - needs the guest agent)')}</span></h3>
-      {g.cables.length > 0 && <CableTable cables={g.cables} />}
+      <h3 className="small strong">{L('게이트웨이가 보는 케이블', 'Cables the gateway sees')} <span className="muted small">{g.cables_at
+        ? (failed ? L(`${when(g.cables_at)}에 읽은 목록 (오래됨)`, `read ${when(g.cables_at)} (stale)`) : when(g.cables_at))
+        : failed ? L('(아직 읽은 적 없음)', '(never read)') : L('(케이블 찾기를 누르세요 — 게스트 에이전트 필요)', '(press Find cables - needs the guest agent)')}</span></h3>
+      {failed && <div className="alert small error" role="alert">
+        {L(`${when(g.cables_error_at ?? null)} 케이블 찾기 실패: `, `Cable read failed ${when(g.cables_error_at ?? null)}: `)}{cableReadText(g.cables_error_code || undefined, g.cables_error ?? '', L)}
+        {g.cables.length > 0 && L(' 아래 목록은 그 전에 읽은 것이라 지금과 다를 수 있습니다.', ' The list below was read before and may be out of date.')}</div>}
+      {g.cables.length > 0 && <div style={failed ? { opacity: 0.6 } : undefined}><CableTable cables={g.cables} /></div>}
       <p className="muted small">{L(`이 게이트웨이의 보드 ${g.boards.length}개`, `${g.boards.length} boards on this gateway`)}{g.boards.length ? `: ${g.boards.map((b) => `${b.name}${b.cable_serial ? ` (${b.cable_serial})` : ''}${b.lent ? L(' · 대여 중', ' · lent') : ''}`).join(', ')}` : ''}.
         {' '}{L('보드는 보드 탭에서 이 게이트웨이와 케이블 시리얼로 등록합니다.', 'Register boards on the Boards tab with this gateway and the cable serial.')}</p>
       {adding && <PassthroughDialog g={g} onClose={() => setAdding(false)} onDone={(restart) => {

@@ -11,10 +11,25 @@ export type GatewayPortCheck = { port: number; ok: boolean; ms: number; error: s
 export type JtagGateway = {
   id: string; name: string; cluster_id: string; vmid: number | null; host: string; hw_port: number; jtagd_port: number; notes: string;
   passthrough: GatewayPassthrough[]; cables: GatewayCable[]; cables_at: string | null;
+  // the last cable read that failed (the cables above are then from cables_at, stale)
+  cables_error?: string; cables_error_code?: CableReadCode | ''; cables_error_at?: string | null;
   last_check: string | null; last_ok: number | null; last_detail: { vm?: string | null; ports?: GatewayPortCheck[] };
   state: GatewayState; vm: { status: string; node: string } | null;
   boards: { id: string; name: string; cable_serial: string; protocol: string; lent: boolean }[];
 };
+// why the engine could not read a gateway's cables (POST .../discover answers {error, code})
+export type CableReadCode = 'VM_STOPPED' | 'AGENT' | 'READ_FAILED' | 'NO_VMID' | 'CLUSTER' | 'VM_MISSING' | 'NOT_QEMU' | 'CONFIG';
+export function cableReadText(code: string | undefined, message: string, L: (ko: string, en: string) => string) {
+  switch (code) {
+    case 'VM_STOPPED': return L('게이트웨이 VM이 꺼져 있어 케이블을 찾을 수 없습니다. VM을 켜세요.', 'The gateway VM is off, so its cables cannot be read. Start the VM.');
+    case 'AGENT': return L('게스트 에이전트가 응답하지 않습니다(게이트웨이에 qemu-guest-agent 설치 · VM 옵션 agent: 1).', 'The guest agent does not answer (install qemu-guest-agent in the gateway and set agent: 1).');
+    case 'NO_VMID': return L('게이트웨이에 VM ID가 없습니다. 편집에서 VM ID를 적으세요.', 'The gateway has no VM id. Add it under Edit.');
+    case 'VM_MISSING': return L('클러스터에서 게이트웨이 VM을 찾지 못했습니다. VM ID를 확인하세요.', 'The gateway VM is not on the cluster. Check the VM id.');
+    case 'CLUSTER': return L('클러스터에 연결되어 있지 않습니다.', 'The cluster is not connected.');
+    default: return L(`케이블을 읽지 못했습니다: ${message}`, `Could not read the cables: ${message}`);
+  }
+}
+export const errorCode = (e: unknown) => ((e as { body?: { code?: string } })?.body?.code ?? undefined);
 export type JtagGatewayInput = { name: string; cluster_id: string; vmid: number | null; host: string; hw_port: number; jtagd_port: number; notes: string };
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -41,7 +56,7 @@ export type JtagApi = typeof realJtagApi;
 
 // --- mock -----------------------------------------------------------------------------------
 const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 120));
-const fail = (status: number, msg: string) => Promise.reject(new ApiError(status, msg));
+const fail = (status: number, msg: string, code?: string) => Promise.reject(new ApiError(status, msg, code ? { error: msg, code } : undefined));
 const ago = (min: number) => new Date(Date.now() - min * 60000).toISOString().slice(0, 19);
 let seq = 0;
 
@@ -61,7 +76,12 @@ export const mockGateways: JtagGateway[] = [
     state: 'up', vm: { status: 'running', node: 'pve1' }, boards: [] },
   { id: 'jgw_2', name: 'jtag-gw-02', cluster_id: 'lab-cluster', vmid: 951, host: 'jtag-gw-02.lab.local', hw_port: 3121, jtagd_port: 1309,
     notes: '랙 C · 케이블별 USB 패스스루', passthrough: [{ slot: 'usb0', kind: 'usb', value: '1-4.2' }, { slot: 'usb1', kind: 'usb', value: '1-4.3' }],
-    cables: [], cables_at: null, last_check: ago(1), last_ok: 0,
+    // read two days ago, before the VM went down: shown as stale
+    cables: [
+      { vidpid: '0403:6010', serial: '210308FF0001', manufacturer: 'Digilent', product: 'Digilent USB Device', port: '1-4.2', jtag: true },
+      { vidpid: '0403:6010', serial: '210308FF0002', manufacturer: 'Digilent', product: 'Digilent USB Device', port: '1-4.3', jtag: true },
+    ],
+    cables_at: ago(2 * 1440), last_check: ago(1), last_ok: 0,
     last_detail: { vm: 'stopped', ports: [{ port: 3121, ok: false, ms: 2000, error: 'timed out' }] },
     state: 'down', vm: { status: 'stopped', node: 'pve2' }, boards: [] },
 ];
@@ -104,8 +124,12 @@ const mockJtagApi: JtagApi = {
   },
   discover: (id) => {
     const g = find(id)!;
-    if (g.state === 'down') return fail(502, "The gateway's guest agent did not answer (VM not running) - install qemu-guest-agent in it");
-    g.cables_at = ago(0); return delay(view(g));
+    if (g.vm && g.vm.status !== 'running') {
+      const msg = `The gateway VM ${g.vmid} is ${g.vm.status} - start it to read its cables`;
+      Object.assign(g, { cables_error: msg, cables_error_code: 'VM_STOPPED', cables_error_at: ago(0) });
+      return fail(409, msg, 'VM_STOPPED');
+    }
+    Object.assign(g, { cables_at: ago(0), cables_error: '', cables_error_code: '', cables_error_at: null }); return delay(view(g));
   },
   check: (id) => { const g = find(id)!; g.last_check = ago(0); return delay(view(g)); },
 };
