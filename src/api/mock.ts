@@ -186,6 +186,7 @@ export const mockApi: Api = {
   async screenshot(desktopId) {
     const d = desktops.find((x) => x.id === desktopId);
     if (!d || (d.state !== 'ready' && d.state !== 'in_use') || d.policy?.screen_thumbnail === false) return delay(null);
+    if (d.id === 'd1') return delay('off' as const);   // a build server whose display went to sleep
     return delay(new Blob([mockScreen(d)], { type: 'image/svg+xml' }));
   },
   async endSession() { /* nothing to close */ },

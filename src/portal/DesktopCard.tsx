@@ -43,24 +43,25 @@ export function OsGlyph({ family, size = 22 }: { family: OsFamily; size?: number
   return <Icon name="vm" size={size} />;
 }
 
-const SHOT_EVERY_MS = 60_000;   // the engine caches a grab for 60 s
+const SHOT_EVERY_MS = 20_000;   // the engine keeps a card's picture fresh for 20 s
 
-// The running desktop's real screen (a PNG of its console), refreshed every minute while the
-// tab is visible. null while there is none: the tile keeps its drawing.
-function useScreenshot(id: string, on: boolean): string | null {
-  const [url, setUrl] = useState<string | null>(null);
+// The running desktop's real screen (a PNG of its console): asked for as soon as the card shows
+// a running desktop, then every 20 s while the tab is visible. null while there is none (the
+// tile keeps its drawing), 'off' when the display is there but black.
+function useScreenshot(id: string, on: boolean): string | 'off' | null {
+  const [url, setUrl] = useState<string | 'off' | null>(null);
   useEffect(() => {
     if (!on) { setUrl(null); return; }
     let alive = true;
     let timer: number | undefined;
     let shown: string | null = null;
     const load = async () => {
-      const blob = await api.screenshot(id);
+      const got = await api.screenshot(id);
       if (!alive) return;
-      const next = blob ? URL.createObjectURL(blob) : null;
+      const next = got instanceof Blob ? URL.createObjectURL(got) : null;
       if (shown) URL.revokeObjectURL(shown);
       shown = next;
-      setUrl(next);
+      setUrl(next ?? (got === 'off' ? 'off' : null));
     };
     const start = () => {
       window.clearInterval(timer);
@@ -88,15 +89,18 @@ function Screen({ d, family }: { d: Desktop; family: OsFamily }) {
   const on = d.state === 'ready' || d.state === 'in_use';
   const shot = useScreenshot(d.id, on && d.policy?.screen_thumbnail !== false);
   const [broken, setBroken] = useState<string | null>(null);
-  const real = shot && broken !== shot ? shot : null;
+  const off = shot === 'off';
+  const real = shot && !off && broken !== shot ? shot : null;
   return (
     <div className={`td-screen os-${family}${on ? ' on' : ''}`} aria-hidden={real ? undefined : true}>
       {on ? (
         <>
           {real ? (
             <img className="scr-shot" src={real} alt={pick({ ko: `${d.name} 화면`, en: `${d.name} screen` })}
-              title={pick({ ko: '1분마다 갱신 · RDP로 쓰는 중이면 잠금 화면이 보입니다', en: 'Updated every minute · shows the lock screen while in use over RDP' })}
+              title={pick({ ko: '20초마다 갱신 · RDP로 쓰는 중이면 잠금 화면이 보입니다', en: 'Updated every 20 s · shows the lock screen while in use over RDP' })}
               onError={() => setBroken(real)} />
+          ) : off ? (
+            <span className="scr-off scr-dark">{pick({ ko: '화면 꺼짐', en: 'Display off' })}</span>
           ) : (
             <>
               <span className="scr-wall" />
