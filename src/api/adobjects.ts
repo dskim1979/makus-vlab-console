@@ -135,6 +135,14 @@ const mock: typeof real = {
   createUser: (_s, u) => run(() => {
     if (key(u.parent_dn) === key(`OU=Users,${M}`)) fail(409, 'portal accounts are made under 사용자 in the console', 'MANAGED');
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,19}$/.test(u.sam)) fail(400, 'sAMAccountName: 1-20 letters, digits, ".", "_" or "-"', 'BAD_NAME');
+    if (u.password) {
+      // what the engine answers for the bundled DC: the portal's rule and AD's complexity
+      const kinds = [/[A-Z]/, /[a-z]/, /[0-9]/, /[^A-Za-z0-9]/].filter((r) => r.test(u.password!)).length;
+      const named = [u.sam, u.display_name ?? ''].some((n) => n.length >= 3 && u.password!.toLowerCase().includes(n.toLowerCase()));
+      if (u.password.length < 8 || kinds < 3 || named) {
+        fail(400, "Password must contain: at least 8 characters; three of: upper-case, lower-case, digits, signs (the directory's rule)", 'PASSWORD_POLICY');
+      }
+    }
     const name = u.display_name || u.sam;
     return view(one(put(u.parent_dn, { rdn: `CN=${name}`, name, kind: 'user', description: u.description ?? '', managed: false, sam: u.sam,
       upn: `${u.sam}@moavi.lan`, display_name: u.display_name, given_name: u.given_name, surname: u.surname, mail: u.mail,
@@ -178,6 +186,8 @@ export function adErrorText(code: string | undefined, msg: string, L: (ko: strin
     DENIED: ['바인드 계정에 이 권한이 없습니다 — 디렉터리에서 권한을 위임하세요', 'The bind account lacks this right - delegate it in the directory'],
     UNREACHABLE: ['디렉터리에 연결할 수 없습니다', 'The directory cannot be reached'], OUTSIDE: ['기준 DN 밖입니다', 'Outside the base DN'],
     EXISTS: ['같은 이름이 이미 있습니다', 'That name is taken'],
+    PASSWORD_POLICY: ['비밀번호 규칙에 맞지 않습니다', 'The password does not fit the rule'],
+    PASSWORD_REFUSED: ['디렉터리가 이 비밀번호를 받지 않았습니다', 'The directory refused this password'],
   };
   const v = code ? m[code] : undefined;
   return v ? `${L(v[0], v[1])} (${msg})` : msg;

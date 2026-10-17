@@ -4,6 +4,8 @@ import type { AdKind, AdListKind, AdNode, AdObject, AdSource, NewGroup } from '.
 import { ApiError } from '../../api/client';
 import { Dialog } from '../../components/Dialog';
 import { Icon } from '../../components/Icon';
+import { PasswordRules, policyProblems, usePasswordPolicy } from '../../components/PasswordRules';
+import type { PasswordPolicy } from '../../api/accounts';
 import { useL } from './OpsPages';
 import { PasswordInput } from './UsersPage';
 
@@ -21,6 +23,14 @@ const errText = (e: unknown, L: Lf) => {
   const code = err?.body && typeof err.body === 'object' ? (err.body as { code?: string }).code : undefined;
   return adErrorText(code, err?.message ?? String(e), L);
 };
+// The rule a password set here must meet: on the bundled DC the portal's and the DC's together
+// (complexity: no account name in it); on the site's own AD the portal's - that AD checks its own.
+// Not the portal "one password" note: these are directory accounts, not portal accounts.
+function useSourcePolicy(source: string): PasswordPolicy | null {
+  const p = usePasswordPolicy();
+  if (!p) return null;
+  return source === 'bundled' ? { ...p, unified: false } : { ...p, complexity: false, unified: false };
+}
 const rdn = (dn: string) => dn.split(/(?<!\\),/)[0]?.replace(/^[A-Za-z]+=/, '') ?? dn;
 
 export function AdDirectoryPage() {
@@ -106,10 +116,10 @@ export function AdDirectoryPage() {
                 <tr key={o.dn} className="clickable" onClick={() => (o.kind === 'ou' || o.kind === 'container' ? setAt(o.dn) : setOpen(o.dn))}>
                   <td><span className="ad-name">{o.name}</span>{o.sam && o.sam !== o.name && <span className="muted small"> ({o.sam})</span>}
                     {o.managed && <span className="chip small-chip" title={L('포털이 관리', 'Kept by the portal')}>{L('포털', 'Portal')}</span>}</td>
-                  <td>{kindText(o.kind, L)}</td>
-                  <td>{o.kind === 'user' || o.kind === 'computer' ? <span className={o.enabled ? 'chip chip-ok' : 'chip chip-warn'}>{o.enabled ? L('사용', 'Enabled') : L('사용 중지', 'Disabled')}</span>
+                  <td className="nowrap">{kindText(o.kind, L)}</td>
+                  <td className="nowrap">{o.kind === 'user' || o.kind === 'computer' ? <span className={o.enabled ? 'chip chip-ok' : 'chip chip-warn'}>{o.enabled ? L('사용', 'Enabled') : L('사용 중지', 'Disabled')}</span>
                     : o.kind === 'group' ? `${o.type === 'security' ? L('보안', 'Security') : L('메일', 'Distribution')} · ${scopeText(o.scope, L)}` : '-'}</td>
-                  <td className="muted small">{o.description || '-'}</td>
+                  <td className="muted small ad-desc">{o.description || '-'}</td>
                 </tr>))}</tbody>
             </table></div>)}
         </section>
@@ -150,6 +160,7 @@ function ObjectDialog({ source, dn, onClose, onChanged, onDeleted }: { source: s
   const [found, setFound] = useState<AdObject[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const pol = useSourcePolicy(source);
   const reload = useCallback(() => adApi.get(source, dn).then((v) => {
     setO(v);
     setF({ displayName: v.display_name ?? '', givenName: v.given_name ?? '', sn: v.surname ?? '', mail: v.mail ?? '', description: v.description ?? '',
@@ -205,10 +216,12 @@ function ObjectDialog({ source, dn, onClose, onChanged, onDeleted }: { source: s
                 {o.enabled ? L('사용 중지', 'Disable') : L('사용', 'Enable')}</button>
               {o.kind === 'user' && <>
                 <PasswordInput id="ad-pw" value={pw} onChange={setPw} generate />
-                <button type="button" className="btn" disabled={busy || !pw} onClick={() => act(async () => { await adApi.setPassword(source, dn, pw); setPw(''); },
+                <button type="button" className="btn" disabled={busy || !pw || (!!pol && policyProblems(pw, pol, L, [o.sam ?? '', o.display_name ?? o.name]).length > 0)}
+                  onClick={() => act(async () => { await adApi.setPassword(source, dn, pw); setPw(''); },
                   L(`${o.name} 의 비밀번호를 정했습니다(저장하지 않음).`, `Password of ${o.name} set (not kept).`))}>{L('비밀번호 정하기', 'Set password')}</button>
               </>}
             </div>)}
+          {o.kind === 'user' && !o.managed && pw && <PasswordRules policy={pol} pw={pw} names={[o.sam ?? '', o.display_name ?? o.name]} />}
           {o.member_of && o.member_of.length > 0 && <p className="small"><span className="muted">{L('소속 그룹', 'Member of')}: </span>{o.member_of.map(rdn).join(', ')}</p>}
           {o.kind === 'group' && (
             <section className="acct-section">
@@ -242,7 +255,11 @@ function MakeDialog({ source, parent, what, onClose, onMade }: { source: string;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
+  const pol = useSourcePolicy(source);
+  const names = [f.sam, f.display_name, f.given_name, f.surname];
   async function save() {
+    const missing = what === 'user' && f.password && pol ? policyProblems(f.password, pol, L, names) : [];
+    if (missing.length) { setError(L(`비밀번호 규칙: ${missing.join(', ')}`, `Password rule: ${missing.join(', ')}`)); return; }
     setBusy(true); setError(null);
     try {
       const o = what === 'ou' ? await adApi.createOu(source, parent, f.name.trim(), f.description)
@@ -268,6 +285,7 @@ function MakeDialog({ source, parent, what, onClose, onMade }: { source: string;
           </div>
           <label><span>{L('첫 비밀번호 (비우면 사용 중지로 만듦 · 저장하지 않음)', 'First password (empty: made disabled · never kept)')}</span>
             <PasswordInput id="ad-new-pw" value={f.password} onChange={(v) => setF({ ...f, password: v })} generate /></label>
+          {f.password && <PasswordRules policy={pol} pw={f.password} names={names} />}
         </>
       ) : (
         <>

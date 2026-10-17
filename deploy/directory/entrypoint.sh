@@ -71,8 +71,9 @@ ou_add() { samba-tool ou add "$1" >/dev/null 2>&1 || samba-tool ou create "$1" >
 
 setup_primary() {   # once, after the domain is made; each step may be run again
     log "setting up OU=MOAVI, the service accounts and the domain password rules"
-    # the portal's own password policy decides; the domain only refuses nothing the portal allowed
-    samba-tool domain passwordsettings set --complexity=off --history-length=0 --min-pwd-length=8 \
+    # complexity stays on (AD's default: three kinds, no account name); the engine reads it and the
+    # portal shows and checks the same rule. No expiry, history or lockout here: the portal has its own.
+    samba-tool domain passwordsettings set --complexity=on --history-length=0 --min-pwd-length=8 \
         --min-pwd-age=0 --max-pwd-age=0 --account-lockout-threshold=0 >/dev/null
     for ou in "$MOAVI" "OU=Users,$MOAVI" "OU=Groups,$MOAVI" "OU=Desktops,$MOAVI" "OU=Service,$MOAVI"; do ou_add "$ou"; done
     samba-tool group add moavi-users --groupou="OU=Groups,OU=MOAVI" \

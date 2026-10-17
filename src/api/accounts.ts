@@ -94,7 +94,8 @@ const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 120));
 const fail = (status: number, msg: string, code?: string) => Promise.reject(new ApiError(status, msg, code ? { error: msg, code } : undefined));
 const now = () => new Date().toISOString().slice(0, 19);
 // the mock site runs the bundled directory: one password for the portal and the desktops
-const policy: PasswordPolicy = { min_length: 8, uppercase: true, lowercase: true, numbers: true, special: false, complexity: false, unified: true, domain: 'MOAVI' };
+// Samba AD keeps its default complexity on (three kinds, no account name), as the bundled DC does
+const policy: PasswordPolicy = { min_length: 8, uppercase: true, lowercase: true, numbers: true, special: false, complexity: true, unified: true, domain: 'MOAVI' };
 const weak = (pw: string) => pw.length < 8 || !/[A-Z]/.test(pw) || !/[a-z]/.test(pw) || !/[0-9]/.test(pw)
   ? 'Password must contain: at least 8 characters, an upper and a lower case letter and a number' : null;
 
