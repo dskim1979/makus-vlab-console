@@ -22,6 +22,7 @@ export type SignupSettings = {
 export type SignupConfig = {
   enabled: boolean; departments: { id: string; name: string; parent_id: string | null }[];
   verify_email?: VerifyMode; auto_domains?: string[]; terms?: { enabled: boolean; version: string };
+  password_policy?: import('./accounts').PasswordPolicy;
 };
 export type SignupInput = { username: string; password: string; display_name: string; email: string; department_id: string | null; note: string; terms_version?: string };
 export type SignupAnswer = { request: { id: string; status: string; verify?: 'sent' | 'failed' | 'none'; auto?: boolean } };

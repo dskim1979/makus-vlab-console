@@ -4,6 +4,7 @@ import { accountsApi, type ResetCheck } from '../api/accounts';
 import { isMock } from '../api/client';
 import { BrandLockup } from '../components/Brand';
 import { CompanyNotice } from '../components/CompanyNotice';
+import { accountErrorText, PasswordRules, policyProblems, policyText as rulesText } from '../components/PasswordRules';
 import { useI18n } from '../i18n';
 
 // /forgot-password: a username or a mail address -> a one-time link by mail (30 minutes). The
@@ -67,12 +68,7 @@ export function ForgotPasswordPage() {
 }
 
 export function policyText(p: ResetCheck['policy'], L: (ko: string, en: string) => string) {
-  const parts = [L(`${p.min_length}자 이상`, `${p.min_length}+ characters`)];
-  if (p.uppercase) parts.push(L('대문자', 'upper case'));
-  if (p.lowercase) parts.push(L('소문자', 'lower case'));
-  if (p.numbers) parts.push(L('숫자', 'a digit'));
-  if (p.special) parts.push(L('특수 문자', 'a symbol'));
-  return parts.join(' · ');
+  return rulesText(p, L);
 }
 
 export function ResetPasswordPage() {
@@ -95,9 +91,11 @@ export function ResetPasswordPage() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (pw !== pw2) { setError(L('비밀번호가 서로 다릅니다.', 'The passwords differ.')); return; }
+    const missing = check ? policyProblems(pw, check.policy, L, [check.username ?? '']) : [];
+    if (missing.length) { setError(L(`비밀번호 규칙: ${missing.join(', ')}`, `Password rule: ${missing.join(', ')}`)); return; }
     setBusy(true); setError(null);
     try { const r = await accountsApi.confirmReset(token, pw); setDone(r.username); }
-    catch (err) { setError((err as Error).message); } finally { setBusy(false); }
+    catch (err) { setError(accountErrorText(err, L)); } finally { setBusy(false); }
   }
 
   return (
@@ -105,7 +103,8 @@ export function ResetPasswordPage() {
       {done ? (
         <>
           <div className="alert info" role="status">{L(`${done} 계정의 비밀번호를 바꿨습니다. 다른 곳에 열려 있던 로그인은 모두 끝났습니다.`,
-            `The password of ${done} is changed. Every other sign-in has ended.`)}</div>
+            `The password of ${done} is changed. Every other sign-in has ended.`)}
+            {check?.policy.unified && L(' 데스크톱에도 새 비밀번호로 로그인합니다.', ' Use the new password on the desktops too.')}</div>
           <button type="button" className="btn primary block" onClick={() => navigate('/login', { replace: true })}>{L('로그인', 'Sign in')}</button>
         </>
       ) : !check ? (
@@ -120,7 +119,7 @@ export function ResetPasswordPage() {
           <p className="muted small">{L(`계정: ${check.username}`, `Account: ${check.username}`)}</p>
           <label><span>{L('새 비밀번호', 'New password')}</span>
             <input id="rp-pass" type="password" autoFocus autoComplete="new-password" value={pw} onChange={(e) => setPw(e.target.value)} required />
-            <small className="muted">{policyText(check.policy, L)}</small></label>
+            <PasswordRules policy={check.policy} pw={pw} names={[check.username ?? '']} /></label>
           <label><span>{L('비밀번호 확인', 'Again')}</span>
             <input id="rp-pass2" type="password" autoComplete="new-password" value={pw2} onChange={(e) => setPw2(e.target.value)} required /></label>
           {error && <div className="alert error" role="alert">{error}</div>}

@@ -6,7 +6,10 @@ import { mockWhoAmI } from './mock';
 import { mockDisabledUsers, mockUsers } from './mockAdmin';
 import { mockExpiry, mockMemberOf, mockNextDeps, mockSignupState } from './next';
 
-export type PasswordPolicy = { min_length: number; uppercase: boolean; lowercase: boolean; numbers: boolean; special: boolean };
+// complexity: the directory's (three kinds, no username); unified: one password for the portal and
+// the desktops (the bundled directory), domain its NetBIOS name
+export type PasswordPolicy = { min_length: number; uppercase: boolean; lowercase: boolean; numbers: boolean; special: boolean;
+  complexity?: boolean; unified?: boolean; domain?: string };
 export type ResetCheck = { valid: boolean; username?: string; expires_at?: string; policy: PasswordPolicy };
 export type Terms = { enabled: boolean; version: string; terms: string; privacy: string; updated_at: string | null; updated_by?: string };
 export type MyTerms = { required: boolean; enabled: boolean; version?: string; terms?: string; privacy?: string; updated_at?: string | null; agreed_version?: string | null };
@@ -32,6 +35,7 @@ const A = '/api/vlab/admin';
 
 const realAccountsApi = {
   // the sign-in screen: the answer is the same whether an account matched or not
+  passwordPolicy: async () => (await call<{ policy: PasswordPolicy }>('GET', '/api/vlab/password-policy')).policy,
   requestReset: async (login: string) => { await call('POST', '/api/vlab/password-reset', { login }); },
   checkReset: async (token: string) => call<ResetCheck>('POST', '/api/vlab/password-reset/check', { token }),
   confirmReset: async (token: string, password: string) => call<{ username: string }>('POST', '/api/vlab/password-reset/confirm', { token, password }),
@@ -89,7 +93,8 @@ export function downloadText(name: string, text: string, type = 'text/csv;charse
 const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 120));
 const fail = (status: number, msg: string, code?: string) => Promise.reject(new ApiError(status, msg, code ? { error: msg, code } : undefined));
 const now = () => new Date().toISOString().slice(0, 19);
-const policy: PasswordPolicy = { min_length: 8, uppercase: true, lowercase: true, numbers: true, special: false };
+// the mock site runs the bundled directory: one password for the portal and the desktops
+const policy: PasswordPolicy = { min_length: 8, uppercase: true, lowercase: true, numbers: true, special: false, complexity: false, unified: true, domain: 'MOAVI' };
 const weak = (pw: string) => pw.length < 8 || !/[A-Z]/.test(pw) || !/[a-z]/.test(pw) || !/[0-9]/.test(pw)
   ? 'Password must contain: at least 8 characters, an upper and a lower case letter and a number' : null;
 
@@ -105,6 +110,7 @@ const consents: Consent[] = ['admin', 'alice', 'bob', 'carol'].map((u, i) => ({
 let settings: AccountSettings = { notice_days: 7, delete_after_days: 0, reclaim: true, public_url: '' };
 
 const mockAccountsApi: AccountsApi = {
+  passwordPolicy: () => delay({ ...policy }),
   requestReset: (login) => {
     const name = login.trim().toLowerCase();
     if ([...mockUsers, ...mockDisabledUsers].some((u) => u.username === name || u.email === name)) resets.set('mock-reset', { username: name.includes('@') ? 'alice' : name, used: false });

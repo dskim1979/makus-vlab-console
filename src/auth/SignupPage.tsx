@@ -5,6 +5,7 @@ import { isMock } from '../api/client';
 import { nextApi, type SignupConfig } from '../api/next';
 import { BrandLockup } from '../components/Brand';
 import { CompanyNotice } from '../components/CompanyNotice';
+import { accountErrorText, PasswordRules, policyProblems, usePasswordPolicy } from '../components/PasswordRules';
 import { TermsBoxes } from '../components/Terms';
 import { useI18n } from '../i18n';
 
@@ -45,6 +46,7 @@ export function SignupPage() {
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState<Sent | null>(null);
   useEffect(() => { nextApi.signupConfig().then(setCfg); }, []);
+  const policy = usePasswordPolicy(cfg ? cfg.password_policy ?? null : null);
   useEffect(() => { if (cfg?.terms?.enabled) accountsApi.publicTerms().then(setTerms); }, [cfg?.terms?.enabled]);
   const set = (k: keyof typeof f) => (e: { target: { value: string } }) => setF({ ...f, [k]: e.target.value });
   const mailNeeded = cfg?.verify_email === 'required';
@@ -54,6 +56,8 @@ export function SignupPage() {
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (f.password !== f.password2) { setError(L('비밀번호가 서로 다릅니다.', 'The passwords differ.')); return; }
+    const missing = policy ? policyProblems(f.password, policy, L, [f.username, f.display_name]) : [];
+    if (missing.length) { setError(L(`비밀번호 규칙: ${missing.join(', ')}`, `Password rule: ${missing.join(', ')}`)); return; }
     if (termsOn && !agree) { setError(L('약관과 개인정보 처리 방침에 동의해 주세요.', 'Agree to the terms and the privacy policy.')); return; }
     setBusy(true); setError(null);
     try {
@@ -61,7 +65,7 @@ export function SignupPage() {
       const r = await nextApi.signup({ username: f.username.trim().toLowerCase(), password: f.password, display_name: f.display_name.trim(),
         email, department_id: f.department_id || null, note: f.note.trim(), ...(termsOn ? { terms_version: terms?.version ?? cfg?.terms?.version } : {}) });
       setSent({ id: r.request.id, email, verify: r.request.verify ?? 'none', auto: !!r.request.auto });
-    } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
+    } catch (err) { setError(accountErrorText(err, L)); } finally { setBusy(false); }
   }
 
   if (sent && sent.verify !== 'none') return <VerifyStep sent={sent} />;
@@ -81,6 +85,7 @@ export function SignupPage() {
             <label><span>{L('비밀번호', 'Password')}</span><input id="su-pass" type="password" autoComplete="new-password" value={f.password} onChange={set('password')} /></label>
             <label><span>{L('비밀번호 확인', 'Again')}</span><input id="su-pass2" type="password" autoComplete="new-password" value={f.password2} onChange={set('password2')} /></label>
           </div>
+          <PasswordRules policy={policy} pw={f.password} names={[f.username, f.display_name]} />
           <label><span>{L('이름', 'Name')}</span><input id="su-name" value={f.display_name} onChange={set('display_name')} /></label>
           <label><span>{mailNeeded ? L('메일 (인증 필요)', 'Mail (to confirm)') : cfg?.verify_email === 'optional' ? L('메일 (선택, 넣으면 인증)', 'Mail (optional, confirmed)') : L('메일 (선택)', 'Mail (optional)')}</span>
             <input id="su-mail" type="email" required={mailNeeded} value={f.email} onChange={set('email')} placeholder={domains[0] ? `name@${domains[0]}` : ''} /></label>

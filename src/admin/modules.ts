@@ -66,7 +66,8 @@ export const MODULES: AdminModule[] = [
     pages: [
       { id: 'list', label: { ko: '사용자', en: 'Users' }, phase: 1, tabs: [
         T('list', '사용자 목록', 'Users', 'users/list'), T('signups', '가입 심사', 'Sign-up review', 'users/signups', ['signup']),
-        T('departments', '부서', 'Departments', 'users/departments', ['org', 'signup'])] },
+        T('departments', '부서', 'Departments', 'users/departments', ['org', 'signup']),
+        T('ad', 'AD 디렉터리', 'AD directory', 'users/ad')] },
       { id: 'perm', label: { ko: '권한', en: 'Access rights' }, phase: 1, feature: ['org'], tabs: [
         T('roles', '역할', 'Roles', 'users/roles'), T('access', '유효 권한 조회', 'Effective access', 'users/access')] },
       { id: 'access', label: { ko: '유효 권한 조회', en: 'Effective access' }, phase: 1, hidden: true, render: 'users/access' },
