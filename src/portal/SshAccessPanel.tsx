@@ -71,38 +71,45 @@ function SshAccessBody() {
             <button type="button" className="btn-ghost small-btn danger" onClick={() => del(k.id)}>{L('삭제', 'Delete')}</button>
           </div>
         ))}
-        <label><span>{L('공개키 추가 (내용: id_ed25519.pub 등 한 줄)', 'Add public key (one line, e.g. id_ed25519.pub)')}</span>
-          <textarea id="wg-pub" rows={3} value={pub} placeholder="ssh-ed25519 AAAA... me@laptop" onChange={(e) => setPub(e.target.value)} /></label>
-        <div className="form-row form-row-even">
-          <label><span>{L('이름표', 'Label')}</span><input id="wg-pub-label" value={label} placeholder={L('노트북', 'laptop')} onChange={(e) => setLabel(e.target.value)} /></label>
+        <div className="form">
+          <label><span>{L('공개키 추가 — id_ed25519.pub 같은 .pub 파일 내용 한 줄', 'Add a public key - one line from a .pub file such as id_ed25519.pub')}</span>
+            <textarea id="wg-pub" rows={2} value={pub} placeholder="ssh-ed25519 AAAA... me@laptop" onChange={(e) => setPub(e.target.value)} /></label>
+          <div className="form-row form-row-wide">
+            <label><span>{L('이름표', 'Label')}</span><input id="wg-pub-label" value={label} placeholder={L('연구실 노트북', 'lab laptop')} onChange={(e) => setLabel(e.target.value)} /></label>
+            <label><span>&nbsp;</span><button type="button" className="btn primary" disabled={busy || !pub.trim()} onClick={add}><Icon name="plus" size={16} />{L('공개키 등록', 'Add key')}</button></label>
+          </div>
+          {msg && <p className={`alert small ${msg.ok ? 'info' : 'error'}`}>{msg.text}</p>}
         </div>
-        {msg && <p className={msg.ok ? 'form-ok' : 'form-error'}>{msg.text}</p>}
-        <div className="toolbar"><button type="button" className="btn primary" disabled={busy || !pub.trim()} onClick={add}><Icon name="plus" size={16} />{L('공개키 등록', 'Add key')}</button></div>
       </div>
 
       {/* 접속 정보 */}
       {entries.length > 0 && (
         <div className="folder-list">
           <div className="strong">{L('데스크톱 접속 (내 SSH 도구)', 'Desktop access (your SSH tools)')}</div>
-          <p className="muted small">{L('MOAVI Desk 클라이언트가 아래 내용을 ~/.ssh/config 에 자동으로 넣습니다. 수동으로 쓰려면 "config 복사"로 넣으세요.',
-            'The MOAVI Desk client writes this into ~/.ssh/config automatically. To do it by hand, use "Copy config".')}</p>
-          {cfg.state === 'ok' && cfg.data.managed_block && (
-            <div className="folder-item"><span className="strong">~/.ssh/config</span>
-              <Copy text={cfg.data.managed_block} label={L('전체 config 복사', 'Copy all config')} /></div>
-          )}
+          <p className="muted small" style={{ margin: 0 }}>{L('MOAVI Desk 클라이언트가 아래 블록을 ~/.ssh/config 에 자동으로 넣습니다. 브라우저만 쓰면 아래에서 복사해 직접 넣으세요. 그 뒤 터미널에서 ssh 명령 한 줄이면 됩니다.',
+            'The MOAVI Desk client writes this block into ~/.ssh/config for you. Browser only? Copy it in yourself; then one ssh command is all it takes.')}</p>
           {entries.map((e) => (
-            <div key={e.desktop_id} className="folder-item">
-              <span className="strong">{e.desktop_name}</span>
-              <span className="folder-paths">
-                <span><span className="muted small">ssh </span><code className="code">{e.ssh_command}</code> <Copy text={e.ssh_command} label={L('복사', 'Copy')} /></span>
-                <span><span className="muted small">Host </span><code className="code">{e.hostname}:{e.port}</code></span>
-                <span><span className="muted small">User </span><code className="code">{e.user}</code> <Copy text={e.user} label={L('복사', 'Copy')} /></span>
-                <span><Copy text={e.config_snippet} label={L('이 항목 config 복사', 'Copy this entry')} /></span>
-              </span>
+            <div key={e.desktop_id} className="ssh-entry">
+              <div className="ssh-entry-head">
+                <span className="strong">{e.desktop_name}</span>
+                <code className="code">{e.ssh_command}</code>
+                <Copy text={e.ssh_command} label={L('명령 복사', 'Copy command')} />
+                <span className="muted small">Host <code className="code">{e.hostname}:{e.port}</code></span>
+                <span className="muted small">User <code className="code">{e.user}</code></span>
+                <Copy text={e.user} label={L('User 복사', 'Copy user')} />
+              </div>
+              <pre className="job-output snippet">{e.config_snippet}</pre>
             </div>
           ))}
-          <p className="muted small">{L('VS Code: Remote-SSH에서 호스트 이름(moavi-…)을 고르면 됩니다. PuTTY/WinSCP: 호스트에 위 Host 주소·포트, 사용자 이름에 위 User 값을 넣고 개인키를 지정하세요. Warpgate가 대상으로 중계하고 세션을 기록합니다.',
-            'VS Code: pick the host name (moavi-…) in Remote-SSH. PuTTY/WinSCP: use the Host address/port above and the User value as the login, with your private key. Warpgate relays to the target and records the session.')}</p>
+          {cfg.state === 'ok' && cfg.data.managed_block && (
+            <div className="toolbar"><Copy text={cfg.data.managed_block} label={L('전체 ~/.ssh/config 블록 복사', 'Copy the whole ~/.ssh/config block')} /></div>
+          )}
+          <div className="strong">{L('도구별 사용법', 'How to use with your tools')}</div>
+          <ul className="muted small ssh-howto">
+            <li><b>VS Code</b> — {L('Remote-SSH 확장 → "Connect to Host" → moavi-… 이름을 고릅니다(위 블록이 ~/.ssh/config 에 있어야 함).', 'Remote-SSH extension, "Connect to Host", pick a moavi-… name (the block above must be in ~/.ssh/config).')}</li>
+            <li><b>PuTTY</b> — {L('Host Name 에 위 Host 주소, Port 에 포트, Connection › Data › Auto-login username 에 위 User 값, SSH › Auth 에 개인키(.ppk).', 'Host Name = the Host address, Port = the port, Connection > Data > Auto-login username = the User value, SSH > Auth = your private key (.ppk).')}</li>
+            <li><b>WinSCP</b> — {L('SFTP, 호스트·포트·사용자 이름은 PuTTY 와 같고, 고급 › SSH › 인증에 개인키. 파일 전송은 풀 정책과 Warpgate 기록을 따릅니다.', 'SFTP, the same host, port and user as PuTTY, Advanced > SSH > Authentication = your private key. Transfers follow the pool policy and are recorded by Warpgate.')}</li>
+          </ul>
         </div>
       )}
     </section>

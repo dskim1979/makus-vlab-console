@@ -137,16 +137,19 @@ const mockWarpgateApi: WarpgateApi = {
   },
   deleteSshKey: async (id) => { mockKeys = mockKeys.filter((k) => k.id !== id); saveKeys(); return [...mockKeys]; },
   sshConfig: async () => {
+    let me = 'alice';
+    try { me = JSON.parse(localStorage.getItem('vlab.mock.user') || 'null')?.username || 'alice'; } catch { /* mock only */ }
     const host = (mockCfg.base_url || 'https://warpgate.example:8888').replace(/^[a-z]+:\/\//, '').replace(/:\d+$/, '');
     const mk = (id: string, name: string): SshConfigEntry => {
       const target = `moavi-${name}-${id}`;
-      const user = `alice:${target}`;
+      const user = `${me}:${target}`;
       return { host: `moavi-${name}`, hostname: host, port: mockCfg.ssh_port, user, target_name: target,
         ssh_command: `ssh moavi-${name}`, desktop_id: id, desktop_name: name,
         config_snippet: `Host moavi-${name}\n    HostName ${host}\n    Port ${mockCfg.ssh_port}\n    User ${user}\n` };
     };
-    const entries = mockCfg.enabled ? [mk('d1', 'ai-box'), mk('d2', 'ubuntu-ws')] : [];
-    return { enabled: mockCfg.enabled, warpgate_host: host, ssh_port: mockCfg.ssh_port, login: 'alice',
+    // the mock's Linux desktops (src/api/mock.ts), as a pool with researcher_ssh would list them
+    const entries = mockCfg.enabled ? [mk('d2', 'board-lab-zcu102'), mk('d1', 'vivado-build-01')] : [];
+    return { enabled: mockCfg.enabled, warpgate_host: host, ssh_port: mockCfg.ssh_port, login: me,
       entries, managed_block: entries.map((e) => e.config_snippet).join('\n').trim() };
   },
 };

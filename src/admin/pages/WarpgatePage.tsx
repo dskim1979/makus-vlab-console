@@ -116,7 +116,7 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
         <p className="muted small">{L('RDP는 자동 로그인하지 않고 데스크톱의 Windows 로그온 화면을 띄웁니다(interactive_logon). 이 서비스 계정은 네트워크 수준 인증(CredSSP) 통과용이며 사용자 비밀번호가 아닙니다. 데스크톱에서 NLA를 끄면 비워 두세요.',
           'RDP shows the desktop\'s Windows logon screen instead of signing in (interactive_logon). This service account only passes network-level auth (CredSSP); it is not a user password. Leave empty if NLA is disabled on the desktops.')}</p>
 
-        {msg && <p className={msg.ok ? 'form-ok' : 'form-error'}>{msg.text}</p>}
+        {msg && <p className={`alert small ${msg.ok ? 'info' : 'error'}`}>{msg.text}</p>}
         <div className="toolbar">
           <button type="button" className="btn primary" disabled={busy} onClick={save}><Icon name="shield" size={16} />{L('저장', 'Save')}</button>
           <button type="button" className="btn" disabled={busy || !f.base_url || (!f.has_token && !token)} onClick={test}><Icon name="refresh" size={16} />{L('연결 테스트', 'Test connection')}</button>
