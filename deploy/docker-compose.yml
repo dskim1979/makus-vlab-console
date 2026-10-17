@@ -168,6 +168,9 @@ services:
       - "${VLAB_DIRECTORY_IP:-127.0.0.1}:636:636/tcp"
       - "${VLAB_DIRECTORY_IP:-127.0.0.1}:3268:3268/tcp"
       - "${VLAB_DIRECTORY_IP:-127.0.0.1}:3269:3269/tcp"
+      # RPC: Windows domain join and DNS updates (entrypoint pins the dynamic range to 49152-49200)
+      - "${VLAB_DIRECTORY_IP:-127.0.0.1}:135:135/tcp"
+      - "${VLAB_DIRECTORY_IP:-127.0.0.1}:49152-49200:49152-49200/tcp"
     networks:
       vlab:
         aliases:
