@@ -6,6 +6,7 @@ import { mockBranding, mockNotices, noticeState } from './mock';
 import { mockNodeState } from './ops';
 import { mockDeskWork, mockLeaseExtras } from './mockWork';
 import type { Lab, LabAfter, LabSchedule, Terminal, TerminalEnrollment, ActiveAlert, AlertChannel, AlertMute, AlertRule, AccelDevice, BackupJob, VmBackup, AccelUser, AdminDesktop, AdminLease, PoolPolicy, ClusterNode, ClusterStorage, Guest, PciMapping, Pool, SessionRow, VgpuProfile } from './types';
+import { SHARED_SCREEN_TYPES } from './types';
 
 const CLUSTER = { id: 'lab-cluster', name: 'LAB-PVE', connected: true, host: '10.20.0.11', connection_error: null as string | null, pools: 0 };
 const clusters = [CLUSTER];
@@ -651,7 +652,8 @@ export const mockAdminApi: AdminApi = {
   poolPolicy: (poolId) => {
     const p = pools.find((x) => x.id === poolId);
     if (!p) return fail(404, 'Pool not found');
-    return delay({ policy: { ...POLICY_DEFAULTS, ...(p.settings?.policy ?? {}) }, defaults: POLICY_DEFAULTS,
+    const defaults = { ...POLICY_DEFAULTS, screen_thumbnail: !SHARED_SCREEN_TYPES.includes(p.type) };
+    return delay({ policy: { ...defaults, ...(p.settings?.policy ?? {}) }, defaults,
       reset_allowed: p.type === 'reset' || p.type === 'classroom' });
   },
   savePoolPolicy: (poolId, pol) => {

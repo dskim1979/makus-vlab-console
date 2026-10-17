@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from '../../api/admin';
 import type { Clipboard, Pool, PoolPolicy } from '../../api/types';
+import { SHARED_SCREEN_TYPES } from '../../api/types';
 import { Dialog } from '../../components/Dialog';
 import { Icon } from '../../components/Icon';
 import { useLoad } from '../../components/useLoad';
@@ -250,7 +251,9 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
             <span>{t('pol.allowPower')}</span></label>
           <label className="check"><input type="checkbox" checked={p.screen_thumbnail !== false} onChange={(e) => set('screen_thumbnail', e.target.checked)} />
             <span>{L('포털 카드에 화면 미리보기', 'Screen preview on the portal card')}</span></label>
-          <small className="muted hint-indent">{L('VM 콘솔 화면입니다 — RDP로 쓰는 Windows는 잠금 화면이 보입니다.', "The VM's console - a Windows desktop used over RDP shows its lock screen.")}</small>
+          <small className="muted hint-indent">{SHARED_SCREEN_TYPES.includes(pool.type)
+            ? L('공유 풀은 기본으로 꺼짐 — 켜도 지금 쓰는 사용자만 봅니다.', 'Off by default in shared pools - when on, only the user on it sees it.')
+            : L('VM 콘솔 화면입니다 — RDP로 쓰는 Windows는 잠금 화면이 보입니다.', "The VM's console - a Windows desktop used over RDP shows its lock screen.")}</small>
           <label>
             <span>{t('pol.maxSession')}</span>
             <span className="with-unit">

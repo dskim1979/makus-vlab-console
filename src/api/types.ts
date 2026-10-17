@@ -85,6 +85,8 @@ export type Lease = {
 // --- admin (/api/vlab/admin/*) ---------------------------------------------------
 
 export type PoolType = 'dedicated' | 'reset' | 'shared' | 'classroom' | 'buildfarm';
+// pools whose desktops pass from user to user: the card's screen picture is off unless the pool turns it on
+export const SHARED_SCREEN_TYPES: PoolType[] = ['reset', 'shared', 'classroom', 'buildfarm'];
 
 // LABs: rooms of terminals and the weekly schedules of their pools (/api/vlab/admin/labs ...)
 export type LabSlot = { schedule_id: string; pool_id: string; title: string; start: string; end: string; preparing?: boolean };
