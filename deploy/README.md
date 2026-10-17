@@ -68,10 +68,12 @@ Warpgate 를 켜지 않으면 브라우저 RDP 가 없다 — 이 커밋은 Warp
    `warpgate-setup` 가 첫 기동 때 `warpgate-data` 볼륨에 설정을 만든다(HTTP 8888, SSH 2222,
    RDP 3389, VNC 5900, 세션 녹화 켜짐; 이미 있으면 건너뜀). 열리는 포트: 8888(관리자 UI·브라우저
    RDP/SSH·관리자 API), 2222/3389/5900(native SSH/RDP/VNC).
-2. **관리자 API 토큰 만들기**: `https://<호스트>:8888` 의 Warpgate 관리자 UI 에 위 비밀번호로 로그인 →
-   토큰을 발급한다(관리자 역할).
-3. **콘솔에 연결**: MOAVI Desk 콘솔 > 플랫폼 설정 > **Warpgate** 에서 base URL(`https://<호스트>:8888`)과
-   그 API 토큰을 넣고 **연결 테스트** 후 저장·사용함. 토큰은 코어 DB 키로 봉인되어 저장된다(읽히지 않음).
+2. **연결은 자동**: 엔진이 첫 기동 때 위 비밀번호로 Warpgate 에 로그인해 API 토큰을 만들고, 코어 DB 키로
+   봉인해 저장한다(base URL `https://<VLAB_WARPGATE_HOST>:8888`, 포트는 `.env` 값, 웹 RDP 는 Guacamole 유지).
+   콘솔 > 플랫폼 설정 > **보안 게이트웨이**에서 '연결됨'만 확인한다. 이미 설정이 있으면 건드리지 않는다.
+   RDP 를 3389 가 아닌 포트로 게시했다면 `VLAB_WARPGATE_RDP_PORT` 도 `.env` 에 넣는다.
+3. **수동 연결(자동이 실패했을 때)**: Warpgate UI(`https://<호스트>:8888/@warpgate`)에 admin 으로 로그인 →
+   Profile > API tokens 에서 토큰을 만들어 콘솔 > 플랫폼 설정 > **보안 게이트웨이**에 넣고 **연결 테스트** 후 저장.
 4. **직접 접속 차단**: `proxmox-firewall/` 의 `moavi-relay` 에 Warpgate 주소를 넣어 데스크톱의
    RDP/SSH/VNC 를 Warpgate 에서만 받게 한다.
 

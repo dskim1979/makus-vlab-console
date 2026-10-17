@@ -33,6 +33,15 @@ services:
       VLAB_FEATURES: ${VLAB_FEATURES:-}                     # optional: fpga,gpuai
       VLAB_HOSTNAME: ${VLAB_HOSTNAME:-vlab.local}           # the gateway's address as shown in the console
       VLAB_HTTPS_PORT: ${VLAB_HTTPS_PORT:-443}
+      # 보안 게이트웨이 첫 기동 자동 연결(VLAB_WARPGATE=1): 엔진이 관리자 비밀번호로 API 토큰을 만들어 봉인 저장한다.
+      # 설정이 이미 있으면 건드리지 않는다. 주소·포트는 사용자에게 보이는 값(Warpgate가 게시한 호스트 포트)이다.
+      VLAB_WARPGATE: ${VLAB_WARPGATE:-0}
+      VLAB_WARPGATE_URL: https://${VLAB_WARPGATE_HOST:-${VLAB_HOSTNAME:-vlab.local}}:${VLAB_WARPGATE_HTTP_PORT:-8888}
+      VLAB_WARPGATE_ADMIN_PASSWORD: ${VLAB_WARPGATE_ADMIN_PASSWORD:-}
+      VLAB_WARPGATE_SSH_PORT: ${VLAB_WARPGATE_SSH_PORT:-2222}
+      VLAB_WARPGATE_RDP_PORT: ${VLAB_WARPGATE_RDP_PORT:-3389}
+      VLAB_WARPGATE_VNC_PORT: ${VLAB_WARPGATE_VNC_PORT:-5900}
+      VLAB_WARPGATE_VERIFY_TLS: ${VLAB_WARPGATE_VERIFY_TLS:-0}       # Warpgate 기본 인증서는 자체 서명
       TZ: ${TZ:-Asia/Seoul}
     volumes:
       - vlab-config:/app/config             # database (encrypted), master key, settings - back this up
@@ -60,8 +69,8 @@ services:
   # --- Warpgate 접근 게이트웨이(bastion) — 선택(기본 꺼짐) --------------------------------
   # VLAB_WARPGATE=1 로 켠다. 모든 데스크톱 RDP/SSH/VNC를 Warpgate 하나로 중계해 대상 IP를
   # 숨기고 세션을 녹화하며, 접속할 때 비밀번호를 저장·전달하지 않는다(1회용 티켓). 이 제거 커밋에서는
-  # Guacamole를 걷어냈으므로 웹 RDP/SSH는 Warpgate가 담당한다. 켠 뒤 Warpgate 관리자 UI(https://<host>:8888)에서
-  # 관리자 API 토큰을 만들어 MOAVI Desk 콘솔 > 플랫폼 설정 > Warpgate 에 붙여넣어야 연동된다.
+  # Guacamole를 걷어냈으므로 웹 RDP/SSH는 Warpgate가 담당한다. 첫 기동 때 엔진이 관리자 API 토큰을
+  # 만들어 스스로 연결한다(콘솔 > 플랫폼 설정 > 보안 게이트웨이에서 '연결됨' 확인).
   #
   # warpgate-setup: 첫 기동 때만 /data/warpgate.yaml 을 unattended-setup으로 만든다(이미
   # 있으면 건너뜀). 관리자 비밀번호는 VLAB_WARPGATE_ADMIN_PASSWORD(.env)에서 온다.
