@@ -10,6 +10,7 @@ import { SettingsPage } from './SettingsPage';
 import { ClientSettingsPage } from './NextPages';
 import { SupportPage } from './SupportPage';
 import { FeaturesPage } from './FeaturesPage';
+import { WarpgatePage } from './WarpgatePage';
 import { useFeatures } from '../../features';
 
 // 운영 > 플랫폼 설정: everything that sets how the platform behaves, in one place -
@@ -19,6 +20,7 @@ import { useFeatures } from '../../features';
 // 계정 · 약관 (account expiry, the address in mails, terms of use and privacy with the consents).
 const TABS: { id: string; key: MessageKey }[] = [
   { id: 'general', key: 'hub.general' }, { id: 'features', key: 'hub.features' }, { id: 'accounts', key: 'hub.accounts' }, { id: 'directory', key: 'hub.directory' }, { id: 'branding', key: 'hub.branding' }, { id: 'client', key: 'hub.client' },
+  { id: 'warpgate', key: 'hub.warpgate' },
   { id: 'notices', key: 'hub.notices' }, { id: 'pair', key: 'hub.pair' }, { id: 'support', key: 'hub.support' },
 ];
 
@@ -45,6 +47,7 @@ export function SettingsHub({ tab }: { tab?: string }) {
       {id === 'directory' && <DirectoryPage />}
       {id === 'branding' && <BrandingPage />}
       {id === 'client' && <ClientSettingsPage />}
+      {id === 'warpgate' && <WarpgatePage />}
       {id === 'notices' && <NoticesPage />}
       {id === 'pair' && <ServerPairPage />}
       {id === 'support' && <SupportPage />}

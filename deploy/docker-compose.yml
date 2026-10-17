@@ -120,6 +120,52 @@ services:
       - "8080"                              # not published: reached through vlab-proxy /guacamole/
     networks: [vlab]
 
+  # --- Warpgate 접근 게이트웨이(bastion) — 선택(기본 꺼짐) --------------------------------
+  # VLAB_WARPGATE=1 로 켠다. 모든 데스크톱 RDP/SSH/VNC를 Warpgate 하나로 중계해 대상 IP를
+  # 숨기고 세션을 녹화하며, 접속할 때 비밀번호를 저장·전달하지 않는다(1회용 티켓). Guacamole는
+  # 그대로 두므로 둘 다 켤 수 있다(전환식). 켠 뒤 Warpgate 관리자 UI(https://<host>:8888)에서
+  # 관리자 API 토큰을 만들어 MOAVI Desk 콘솔 > 플랫폼 설정 > Warpgate 에 붙여넣어야 연동된다.
+  #
+  # warpgate-setup: 첫 기동 때만 /data/warpgate.yaml 을 unattended-setup으로 만든다(이미
+  # 있으면 건너뜀). 관리자 비밀번호는 VLAB_WARPGATE_ADMIN_PASSWORD(.env)에서 온다.
+  warpgate-setup:
+    image: ${VLAB_WARPGATE_IMAGE:-ghcr.io/warp-tech/warpgate:latest}
+    restart: "no"
+    deploy:
+      replicas: ${VLAB_WARPGATE:-0}         # 0: Warpgate off
+    environment:
+      WARPGATE_ADMIN_PASSWORD: ${VLAB_WARPGATE_ADMIN_PASSWORD:-}
+    volumes:
+      - warpgate-data:/data
+    entrypoint: ["/usr/local/bin/warpgate", "--config", "/data/warpgate.yaml", "unattended-setup"]
+    command:
+      - --data-path=/data
+      - --http-port=8888
+      - --ssh-port=2222
+      - --rdp-port=3389
+      - --vnc-port=5900
+      - --record-sessions
+      - --external-host=${VLAB_WARPGATE_HOST:-${VLAB_HOSTNAME:-vlab.local}}
+      - --if-config-exists=skip            # 이미 설정이 있으면 손대지 않는다(재기동 안전)
+
+  warpgate:
+    image: ${VLAB_WARPGATE_IMAGE:-ghcr.io/warp-tech/warpgate:latest}
+    restart: unless-stopped
+    deploy:
+      replicas: ${VLAB_WARPGATE:-0}         # 0: Warpgate off
+    depends_on:
+      warpgate-setup:
+        condition: service_completed_successfully
+    volumes:
+      - warpgate-data:/data                 # DB(암호화)·호스트키·설정·세션 녹화 - 백업 대상
+    command: ["run"]
+    ports:
+      - "${VLAB_WARPGATE_HTTP_PORT:-8888}:8888"   # 관리자 UI + 브라우저 RDP/SSH + 관리자 API(/@warpgate/admin/api)
+      - "${VLAB_WARPGATE_SSH_PORT:-2222}:2222"    # native SSH (ticket-<secret>@host)
+      - "${VLAB_WARPGATE_RDP_PORT:-3389}:3389"    # native RDP
+      - "${VLAB_WARPGATE_VNC_PORT:-5900}:5900"    # native VNC
+    networks: [vlab]                        # 데스크톱의 RDP/SSH/VNC 포트에 닿아야 한다
+
 networks:
   vlab:
 
@@ -128,3 +174,4 @@ volumes:
   vlab-logs:
   vlab-tls:
   vlab-guac:                                # the shared Guacamole key
+  warpgate-data:                            # Warpgate 데이터·설정·세션 녹화 (VLAB_WARPGATE=1)

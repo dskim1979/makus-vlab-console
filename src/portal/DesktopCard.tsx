@@ -62,9 +62,9 @@ function Screen({ d, family }: { d: Desktop; family: OsFamily }) {
   );
 }
 
-export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hint, onChanged }: {
-  d: Desktop; busy: boolean; fav: boolean; onFav: () => void; onChanged?: () => void;
-  onConnect: (p: 'vnc' | 'spice' | 'rdp' | 'guac') => void; onPower: (a: PowerAction) => void; error?: string; hint?: string;
+export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hint, onChanged, warpgate }: {
+  d: Desktop; busy: boolean; fav: boolean; onFav: () => void; onChanged?: () => void; warpgate?: boolean;
+  onConnect: (p: 'vnc' | 'spice' | 'rdp' | 'guac' | 'wg-rdp' | 'wg-ssh') => void; onPower: (a: PowerAction) => void; error?: string; hint?: string;
 }) {
   const { t, lang, pick } = useI18n();
   const family = osFamily(d);
@@ -119,6 +119,18 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
                 <button type="button" role="menuitem" disabled={busy || !running}
                   onClick={() => { setMenu(false); onConnect('guac'); }}>
                   <Icon name="globe" size={16} />{t('portal.connectGuac')}
+                </button>
+              )}
+              {warpgate && (
+                <button type="button" role="menuitem" disabled={busy || !running}
+                  onClick={() => { setMenu(false); onConnect('wg-rdp'); }}>
+                  <Icon name="globe" size={16} />{t('portal.connectWarpgate')}
+                </button>
+              )}
+              {warpgate && family === 'linux' && (
+                <button type="button" role="menuitem" disabled={busy || !running}
+                  onClick={() => { setMenu(false); onConnect('wg-ssh'); }}>
+                  <Icon name="globe" size={16} />{t('portal.connectWarpgateSsh')}
                 </button>
               )}
               {!canPower ? null : running ? (

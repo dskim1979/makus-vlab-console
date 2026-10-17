@@ -8,6 +8,7 @@ Linux 서버 한 대에 `docker compose up` 한 번으로 설치한다. 시험�
 | `vlab-engine` | vLAB 엔진 (화면 없이 API 만, `WEB_UI=0`) | `makus-vlab` |
 | `guacd`, `guacamole` | 브라우저 RDP — Apache Guacamole 1.6 + guacamole-auth-json, 같은 443 의 `/guacamole/` (끄기: `VLAB_GUACAMOLE=0`) | 공식 이미지 |
 | `vlab-guac-key` | 시작할 때 한 번 돌고 끝남 — Guacamole 공유 키를 `vlab-guac` 볼륨에 둔다 | `alpine` |
+| `warpgate`, `warpgate-setup` | 접근 게이트웨이(bastion) — 데스크톱 RDP/SSH/VNC를 한 곳으로 중계, 1회용 티켓·세션 녹화·비밀번호 비저장 (켜기: `VLAB_WARPGATE=1`, 기본 꺼짐) | 공식 이미지 |
 
 사용자 PC 에서 열어야 하는 포트는 **443 하나**다. SPICE 를 쓰면 사용자 PC → Proxmox 노드 **3128**(spiceproxy)도 열어야 한다.
 엔진 → Proxmox 는 **8006**(API).
@@ -70,6 +71,34 @@ docker compose up -d --force-recreate vlab-guac-key vlab-engine guacamole
 **끄기** (브라우저 RDP 를 쓰지 않는 현장): `.env` 에 `VLAB_GUACAMOLE=0` 을 넣고 `docker compose up -d --remove-orphans`.
 guacd·guacamole 컨테이너가 만들어지지 않고(이미 있으면 내려간다), 내장 게이트웨이는 "사용 안 함" 이 된다. 다시 켜려면 줄을 지우고 `docker compose up -d`.
 별도로 둔 Guacamole 을 쓰려면 끈 다음 **게이트웨이** 화면에서 그 서버(주소·포트·공유 키)를 추가한다.
+
+## Warpgate 접근 게이트웨이(bastion) — 선택
+모든 데스크톱 RDP/SSH/VNC 를 Warpgate(Apache-2.0) 한 곳으로 중계한다. 대상 IP 가 사용자에게 숨고,
+세션이 녹화되며, 접속할 때 **사용자·데스크톱 비밀번호를 저장·전달하지 않는다**(그 사용자+그 대상에만
+쓸 수 있는 1회용·단시간 티켓). Guacamole/MS RD 게이트웨이와 함께 켤 수 있다(전환식). 기본은 꺼짐.
+
+1. `.env` 에 다음을 넣고 `docker compose up -d`:
+   ```
+   VLAB_WARPGATE=1
+   VLAB_WARPGATE_ADMIN_PASSWORD=<Warpgate 관리자 UI 로그인 비밀번호>
+   # VLAB_WARPGATE_HOST=warpgate.lab.example   # 비우면 VLAB_HOSTNAME 을 쓴다
+   ```
+   `warpgate-setup` 가 첫 기동 때 `warpgate-data` 볼륨에 설정을 만든다(HTTP 8888, SSH 2222,
+   RDP 3389, VNC 5900, 세션 녹화 켜짐; 이미 있으면 건너뜀). 열리는 포트: 8888(관리자 UI·브라우저
+   RDP/SSH·관리자 API), 2222/3389/5900(native SSH/RDP/VNC).
+2. **관리자 API 토큰 만들기**: `https://<호스트>:8888` 의 Warpgate 관리자 UI 에 위 비밀번호로 로그인 →
+   토큰을 발급한다(관리자 역할).
+3. **콘솔에 연결**: MOAVI Desk 콘솔 > 플랫폼 설정 > **Warpgate** 에서 base URL(`https://<호스트>:8888`)과
+   그 API 토큰을 넣고 **연결 테스트** 후 저장·사용함. 토큰은 코어 DB 키로 봉인되어 저장된다(읽히지 않음).
+4. **직접 접속 차단**: `proxmox-firewall/` 의 `moavi-relay` 에 Warpgate 주소를 넣어 데스크톱의
+   RDP/SSH/VNC 를 Warpgate 에서만 받게 한다.
+
+인증은 비밀번호를 저장하지 않는다: VNC 는 인증 없음, SSH 는 Warpgate 공개키, RDP 는 자동 로그인하지
+않는 모드(`interactive_logon`; NLA 가 필요하면 콘솔의 Warpgate 설정에 **서비스 계정**만 넣는다 —
+사용자 비밀번호가 아니다). 외부 OIDC/LDAP 로그인과 디렉터리 연동은 Warpgate `config.yaml` 에서 설정한다.
+
+**끄기**: `.env` 에서 `VLAB_WARPGATE=0` (또는 줄 삭제) 후 `docker compose up -d --remove-orphans`.
+`warpgate-data` 볼륨(설정·세션 녹화)은 남는다.
 
 ## 데스크톱 직접 접속 차단 (Proxmox 보안 그룹)
 사용자가 데스크톱 안에서 IP 를 알아내 원격 데스크톱·SSH 로 직접 붙는 길을 막아, 모든 접속이 MOAVI Desk
@@ -142,6 +171,8 @@ docker run --rm -v vlab_vlab-config:/data -v "$PWD":/backup alpine \
 | 브라우저 RDP 가 502 | Guacamole 이 안 떠 있다: `.env` 에 `VLAB_GUACAMOLE=0` 이 있는지, `docker compose logs vlab-guac-key guacamole` (`VLAB_GUAC_KEY` 형식이 틀리면 키 단계에서 멈춘다) |
 | 브라우저 RDP 링크가 로그인 화면/거부 | 엔진과 guacamole 의 키가 다르다(키를 바꾼 뒤 둘 다 다시 만들지 않음 — 위 "키 바꾸기"), 또는 서버 시계가 틀리다(링크 5분 유효) |
 | Guacamole 화면 뒤 "연결 오류" | guacd → 데스크톱 3389, 데스크톱의 RDP 허용·NLA 설정. `docker compose logs guacd` |
+| Warpgate 연결 테스트 실패 | base URL(`https://<호스트>:8888`)·API 토큰이 맞는지, `VLAB_WARPGATE=1` 로 떠 있는지. `docker compose logs warpgate warpgate-setup` (`VLAB_WARPGATE_ADMIN_PASSWORD` 가 없으면 setup 이 멈춘다) |
+| Warpgate 연결 뒤 "연결 오류" | Warpgate → 데스크톱 3389/22/VNC 가 닿는지(같은 `vlab` 네트워크·방화벽 relay), RDP 는 데스크톱의 NLA 설정 확인 |
 | 웹 IDE 가 포털로 돌아옴(`?ide=expired`) | 링크는 1분 · 한 번만. 포털에서 다시 "열기". IDE 가 유휴 시간으로 꺼졌으면 다시 시작 |
 | 웹 IDE 가 502 | vlab-proxy → VM 8890-8989/tcp 가 막혀 있거나 IDE 가 아직 뜨는 중. 가속 자원 > GPU 작업 › 웹 IDE 의 상태 · 오류, VM 의 `~/.moavi/ide-<세션>.log` |
 | 웹 IDE "설치돼 있지 않음" | 템플릿에 jupyter(VS Code 는 code-server 도)가 없음 — 위 "템플릿 준비" |

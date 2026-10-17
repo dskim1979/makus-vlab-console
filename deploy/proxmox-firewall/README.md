@@ -22,10 +22,16 @@ VM 안 방화벽(Windows 방화벽·iptables)만으로는 부족하다. 사용�
 
 | 접속 | 경로 | 비고 |
 |---|---|---|
+| Warpgate bastion (RDP·SSH·VNC, 선택) | Warpgate (VLAB_WARPGATE=1) | 1회용 티켓, 세션 녹화, 비밀번호 비저장 |
 | 브라우저 RDP | 내장 Guacamole (서버 안 443) | 더 열 포트 없음, TCP |
 | 전용 앱·RDP (외부망, UDP 유지) | MS RD 게이트웨이 | Windows Server·RDS CAL 필요(고객), UDP 3391 |
 | SPICE·VNC | Proxmox 프록시·엔진 경유 | 지금 그대로 |
 | 브라우저 SSH·SFTP | 내장 Guacamole (서버 안 443) | 파일 전송은 풀 정책 |
+
+**Warpgate(bastion)를 쓰면** 데스크톱의 RDP·SSH·VNC가 모두 Warpgate 한 주소에서만 들어온다.
+`moavi-relay` 를 Warpgate 주소로 좁히면 데스크톱 노출이 가장 작아지고, 접속 기록·세션 녹화·1회용
+티켓이 항상 적용된다. Warpgate는 Guacamole/MS RD 게이트웨이와 함께 켤 수 있다(전환식). 설계는
+엔진 저장소 `docs/warpgate-gateway.md`.
 
 사내망(라우팅되는 망)에서만 쓰는 현장이면, 보안 그룹의 `moavi-relay` 에 사용자 PC 대역을 넣어
 직접 RDP(UDP 포함)를 열어도 된다. 다만 그러면 그 대역에서는 포털을 거치지 않고도 붙을 수 있으니,

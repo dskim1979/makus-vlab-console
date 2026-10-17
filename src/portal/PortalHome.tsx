@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { PortalInstallButtons } from '../admin/pages/TerminalEnroll';
 import { api } from '../api/client';
 import { storageCodeText } from '../api/storage';
+import { warpgateApi } from '../api/warpgate';
 import type { ClientConfig, Clipboard, Desktop, PowerAction } from '../api/types';
 import { BRAND } from '../brand';
 import { Icon } from '../components/Icon';
@@ -35,6 +36,8 @@ export function PortalHome() {
   const [help, setHelp] = useState(false);
   const [client, setClient] = useState<ClientConfig | null>(null);
   useEffect(() => { let live = true; api.clientConfig().then((c) => { if (live) setClient(c); }); return () => { live = false; }; }, []);
+  const [wgOn, setWgOn] = useState(false);
+  useEffect(() => { let live = true; warpgateApi.myStatus().then((s) => { if (live) setWgOn(s.enabled); }).catch(() => {}); return () => { live = false; }; }, []);
   const [open, setOpen] = useState<{ title: string; wsPath: string; password: string; sessionId: string; clipboard: Clipboard } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<{ id: string; text: string } | null>(null);
@@ -45,8 +48,19 @@ export function PortalHome() {
     try { localStorage.setItem(VIEW_KEY, v); } catch { /* per-browser convenience only */ }
   }
 
-  async function connect(d: Desktop, protocol: 'vnc' | 'spice' | 'rdp' | 'guac') {
+  async function connect(d: Desktop, protocol: 'vnc' | 'spice' | 'rdp' | 'guac' | 'wg-rdp' | 'wg-ssh') {
     setBusy(d.id); setError(null); setHint(null);
+    if (protocol === 'wg-rdp' || protocol === 'wg-ssh') {
+      try {
+        const conn = await warpgateApi.connect(d.id, protocol === 'wg-ssh' ? 'ssh' : 'rdp');
+        window.open(conn.browser_url, '_blank', 'noopener');
+        setHint({ id: d.id, text: t('portal.warpgateHint') });
+      } catch (e) {
+        const code = (e as { code?: string }).code;
+        setError({ id: d.id, text: code && code.startsWith('NO_') ? t(`portal.err.${code}` as MessageKey) : (e as Error).message });
+      } finally { setBusy(null); }
+      return;
+    }
     try {
       const c = await api.connect(d.id, protocol);
       // 공유 저장소: the build folder could not be prepared - say so, the session still opens
@@ -196,7 +210,7 @@ export function PortalHome() {
               <div className="dtiles">
                 {list.map((d) => (
                   <DesktopCard key={d.id} d={d} busy={busy === d.id} fav={favs.includes(d.id)} onFav={() => toggleFav(d.id)}
-                    onConnect={(p) => connect(d, p)} onPower={(a) => power(d, a)} onChanged={desktops.reload}
+                    onConnect={(p) => connect(d, p)} onPower={(a) => power(d, a)} onChanged={desktops.reload} warpgate={wgOn}
                     error={error?.id === d.id ? error.text : undefined} hint={hint?.id === d.id ? hint.text : undefined} />
                 ))}
               </div>

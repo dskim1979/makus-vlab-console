@@ -17,17 +17,22 @@
 #   3. 노드(호스트)의 관리 포트(22, 8006 등)는 이 그룹과 무관하다 — 호스트 방화벽에서 따로 지킨다.
 #
 # ipset: 데스크톱에 접속을 걸어도 되는 곳만 넣는다.
-#   moavi-relay = MOAVI Desk 서버(들)와 등록한 게이트웨이(MS RD 게이트웨이, 별도 Guacamole 등).
-#   내장 Guacamole·웹 IDE 는 vlab-engine/vlab-proxy 와 같은 호스트이므로 그 주소만으로 충분하다.
+#   moavi-relay = MOAVI Desk 서버(들)와 등록한 게이트웨이(Warpgate bastion, MS RD 게이트웨이,
+#   별도 Guacamole 등). 내장 Guacamole·웹 IDE 는 vlab-engine/vlab-proxy 와 같은 호스트이므로
+#   그 주소만으로 충분하다.
+#   Warpgate(bastion)를 쓰면 모든 RDP/SSH/VNC가 Warpgate 한 곳에서만 들어오므로, moavi-relay 를
+#   Warpgate 주소 하나로 좁혀 데스크톱 노출을 최소화할 수 있다.
 
 [group moavi-desktop] # MOAVI Desk 데스크톱: 원격 접속은 서버·게이트웨이에서만
-IN ACCEPT -source +moavi-relay -p tcp -dport 22,3389 -log nolog # RDP·SSH from MOAVI Desk
+IN ACCEPT -source +moavi-relay -p tcp -dport 22,3389 -log nolog # RDP·SSH from MOAVI Desk / Warpgate
 IN ACCEPT -source +moavi-relay -p udp -dport 3389 -log nolog    # RDP UDP (MS RD 게이트웨이)
+IN ACCEPT -source +moavi-relay -p tcp -dport 5900:5910 -log nolog # VNC from Warpgate / 게이트웨이
 IN DROP -p tcp -dport 22,3389,5900:5910 -log info               # 그 밖의 직접 접속 차단
 IN DROP -p udp -dport 3389 -log info
 
 [ipset moavi-relay] # MOAVI Desk 서버와 게이트웨이 (환경에 맞게 고칠 것)
 10.20.0.10  # MOAVI Desk 서버 (vlab-proxy/vlab-engine)
 # 10.20.0.11 # HA 짝 서버
+# 10.20.0.14 # Warpgate bastion (VLAB_WARPGATE=1; 데스크톱 RDP/SSH/VNC는 여기서만 들어온다)
 # 10.20.0.12 # MS RD 게이트웨이
 # 10.20.0.13 # 별도 Guacamole 서버
