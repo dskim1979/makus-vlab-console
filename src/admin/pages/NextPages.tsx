@@ -1447,8 +1447,10 @@ function ClientForm({ initial, onSaved }: { initial: ClientSettings; onSaved: ()
       <label><span>{L('다운로드 주소 (MSI)', 'Download URL (MSI)')}</span><input id="cl-url" value={v.download_url} placeholder="https://github.com/dskim1979/moavi-desk/releases/latest" onChange={(e) => setV({ ...v, download_url: e.target.value.trim() })} /></label>
       <label><span>{L('기본 접속 방식', 'Default protocol')}</span>
         <select id="cl-proto" value={v.protocol} onChange={(e) => setV({ ...v, protocol: e.target.value as ClientSettings['protocol'] })}>
-          <option value="auto">{L('자동 (SPICE → VNC)', 'Auto (SPICE then VNC)')}</option><option value="spice">SPICE</option><option value="vnc">VNC</option>
+          <option value="auto">{L('자동 (RDP → SPICE → VNC)', 'Auto (RDP, then SPICE, then VNC)')}</option><option value="rdp">RDP</option><option value="spice">SPICE</option><option value="vnc">VNC</option>
         </select></label>
+      <small className="muted">{L('자동: Windows 데스크톱은 RDP(H.264 · UDP)로, RDP 서버(xrdp)가 없는 Linux 데스크톱은 SPICE로 엽니다. 실습실 키오스크는 SPICE를 씁니다(USB · 전체 화면).',
+        'Auto: Windows desktops open with RDP (H.264, UDP); a Linux desktop without an RDP server (xrdp) opens with SPICE. Lab kiosks use SPICE (USB, full screen).')}</small>
       <NoticeBar notice={notice} />
       <div className="toolbar"><button type="button" className="btn primary" disabled={busy} onClick={save}>{L('저장', 'Save')}</button></div>
     </section>

@@ -85,7 +85,7 @@ export type JobPool = { id: string; name: string; workdir?: string; gpus_per_vm?
 export type CardRow = { card: string; resource_id: string; loans: number; hours: number; users: string[]; active: number; use_pct: number;
   // what the card really did while lent (GPU/NPU samples): average use, hours under the idle threshold or off, hours measured
   util_avg?: number | null; idle_hours?: number; measured_hours?: number; unmeasured_hours?: number };
-export type ClientSettings = { latest_version: string; min_version: string; download_url: string; protocol: 'auto' | 'spice' | 'vnc' };
+export type ClientSettings = { latest_version: string; min_version: string; download_url: string; protocol: 'auto' | 'rdp' | 'spice' | 'vnc' };
 export type MyExternal = { id: string; name: string; address: string; port: number; notes: string };
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {

@@ -163,8 +163,8 @@ const mockBackups: VmBackup[] = [0, 1, 2].flatMap((k) => [300, 301, 400].map((v)
   ctime: Date.now() / 1000 - (k + 1) * 86400, size: (v >= 400 ? 92 : 21) * 1024 ** 3, notes: 'vlab-pool nightly', storage: 'pbs-lab' })));
 
 const POLICY_DEFAULTS: PoolPolicy = {
-  protocols: ['vnc', 'spice'], spice_fullscreen: false, clipboard: 'both', usb_redirect: true, usb_autoshare: false,
-  client_drives: false, client_printers: true, start_on_connect: true, idle_shutdown_min: 0, reset_on_logout: false, allow_power: true, max_session_hours: 0,
+  protocols: ['vnc', 'spice', 'rdp'], spice_fullscreen: false, clipboard: 'both', usb_redirect: true, usb_autoshare: false,
+  client_drives: false, client_printers: true, rdp_tune: true, start_on_connect: true, idle_shutdown_min: 0, reset_on_logout: false, allow_power: true, max_session_hours: 0,
   defer_when_busy: true, busy_gpu_pct: 10, busy_cpu_pct: 50, defer_max_hours: 12, web_ide: [], web_ide_idle_min: 240,
 };
 const cloneSources = new Map<number, Set<string>>();   // template -> pools cloned from it
