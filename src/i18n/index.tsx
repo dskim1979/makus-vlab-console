@@ -35,7 +35,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const value = useMemo<I18n>(() => ({
     lang,
     setLang,
-    t: (key) => messages[key][lang],
+    // a key built from server data (an alert severity, a state) may be unknown: '' lets the caller's fallback show
+    t: (key) => messages[key]?.[lang] ?? '',
     pick: (text) => text[lang],
   }), [lang, setLang]);
 
