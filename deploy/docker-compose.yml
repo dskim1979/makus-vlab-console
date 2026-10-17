@@ -78,7 +78,7 @@ services:
   # warpgate-setup: 첫 기동 때만 /data/warpgate.yaml 을 unattended-setup으로 만든다(이미
   # 있으면 건너뜀). 관리자 비밀번호는 VLAB_WARPGATE_ADMIN_PASSWORD(.env)에서 온다.
   warpgate-setup:
-    image: ${VLAB_WARPGATE_IMAGE:-ghcr.io/dskim1979/warpgate:0.29.2-moavi6}   # MOAVI 빌드: 한국어 화면 + 한국어 키보드 RDP 수정 + SSO 자동 시작 + MOAVI 아이콘 + 웹 SSH 파일 패널 + 탭에 데스크톱 이름 (원본 warp-tech/warpgate:0.29.2)
+    image: ${VLAB_WARPGATE_IMAGE:-ghcr.io/dskim1979/warpgate:0.29.2-moavi7}   # MOAVI 빌드: 한국어 화면 + 한국어 키보드 RDP 수정 + SSO 자동 시작 + MOAVI 아이콘 + 웹 SSH 파일 패널 + 탭에 데스크톱 이름 (원본 warp-tech/warpgate:0.29.2)
     restart: "no"
     deploy:
       replicas: ${VLAB_WARPGATE:-0}         # 0: Warpgate off
@@ -107,7 +107,7 @@ services:
         echo 'MOAVI Desk sign-in added to warpgate.yaml'; fi; fi
 
   warpgate:
-    image: ${VLAB_WARPGATE_IMAGE:-ghcr.io/dskim1979/warpgate:0.29.2-moavi6}
+    image: ${VLAB_WARPGATE_IMAGE:-ghcr.io/dskim1979/warpgate:0.29.2-moavi7}
     restart: unless-stopped
     deploy:
       replicas: ${VLAB_WARPGATE:-0}         # 0: Warpgate off
