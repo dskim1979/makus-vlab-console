@@ -2,7 +2,8 @@
 # The portal account becomes the desktop account: the engine makes, disables and deletes the same
 # account here and writes the password the user sets. docs: deploy/README.md "내장 디렉터리"
 #
-# Debian 12 ships Samba 4.17 (AD DC with the internal DNS, RFC2307 ids for Linux / NFS).
+# Debian 12 ships Samba 4.17 (AD DC with the internal DNS). Linux desktops join with realm/SSSD and
+# SSSD's id mapping (uid/gid from the SID, the same on every desktop) - no RFC2307 attributes needed.
 
 FROM debian:12.8-slim
 ENV DEBIAN_FRONTEND=noninteractive

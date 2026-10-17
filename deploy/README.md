@@ -115,7 +115,8 @@ docker compose logs -f vlab-directory     # "starting samba (primary)" 가 나�
   일반화하지 않은 설치본을 복제하면 SID · 이름이 같아 가입이 꼬인다. 가입한 데스크톱의 RDP 파일은 `MOAVI\아이디` 로 로그인한다.
 - **Linux**: 템플릿에 `realmd sssd adcli` 와 홈 폴더 자동 생성(Ubuntu: `libpam-mkhomedir` / `pam-auth-update`, RHEL 계열: `oddjob-mkhomedir`)을 넣어 둔다.
   엔진이 `realm join` 하고 짧은 이름(`alice`)으로 로그인하게 sssd 를 맞추고 `moavi-users` 만 허용한다.
-  RFC2307 로 uid/gid 를 DC 가 정하므로, 공유 저장소(NFS)의 소유자도 모든 VM 에서 같다.
+  uid/gid 는 SSSD id 매핑(계정의 SID 에서 계산, 범위는 sssd.conf 에 고정)이라 모든 데스크톱에서 같고, 공유 저장소(NFS)의 폴더 소유자도 VM 마다 같다.
+  가입한 데스크톱에서는 공유 저장소 확인의 LOCAL_ACCOUNT 경고가 사라진다(사용자가 VM 의 `/etc/passwd` 가 아니라 디렉터리에 있으므로).
 - 가입 계정 `vlab-join` 의 비밀번호는 엔진이 만들어 DC 에 넣고 엔진 DB 에 봉인한다. 게스트에는 에이전트의 표준 입력으로만 간다.
   **내장 디렉터리 > 디렉터리 구조 · 가입 계정 > 비밀번호 새로 정하기** 로 언제든 바꾼다.
 
