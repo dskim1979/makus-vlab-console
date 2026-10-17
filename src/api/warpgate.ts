@@ -8,6 +8,7 @@ export type WarpgateConfig = {
   base_url: string; ssh_port: number; rdp_port: number; vnc_port: number;
   verify_tls: boolean; enabled: boolean; rdp_nla_user: string; has_nla_password: boolean;
   web_rdp_provider: 'guac' | 'warpgate';   // who serves browser RDP (guac until Warpgate is verified)
+  rdp_via_warpgate: boolean;   // the client's / mstsc's .rdp aimed at Warpgate (single-use ticket)
   has_token: boolean; last_check: string | null; last_ok: boolean | null; last_detail: string;
 };
 
@@ -15,7 +16,7 @@ export type WarpgateConfig = {
 export type WarpgateInput = {
   base_url: string; ssh_port: number; rdp_port: number; vnc_port: number;
   verify_tls: boolean; enabled: boolean; rdp_nla_user?: string;
-  admin_token?: string; rdp_nla_password?: string; web_rdp_provider?: 'guac' | 'warpgate';
+  admin_token?: string; rdp_nla_password?: string; web_rdp_provider?: 'guac' | 'warpgate'; rdp_via_warpgate?: boolean;
 };
 
 export type WarpgateConnection = {
@@ -79,7 +80,7 @@ const MOCK_CFG_KEY = 'vlab.mock.warpgate';
 const MOCK_KEYS_KEY = 'vlab.mock.sshkeys';
 const MOCK_DEFAULT: WarpgateConfig = {
   base_url: '', ssh_port: 2222, rdp_port: 3389, vnc_port: 5900, verify_tls: false, enabled: false,
-  rdp_nla_user: '', has_nla_password: false, web_rdp_provider: 'guac',
+  rdp_nla_user: '', has_nla_password: false, web_rdp_provider: 'guac', rdp_via_warpgate: false,
   has_token: false, last_check: null, last_ok: null, last_detail: '',
 };
 function mockLoad<T>(key: string, fallback: T): T {
@@ -103,6 +104,7 @@ const mockWarpgateApi: WarpgateApi = {
       has_token: b.admin_token !== undefined ? !!b.admin_token : mockCfg.has_token,
       has_nla_password: b.rdp_nla_password !== undefined ? !!b.rdp_nla_password : mockCfg.has_nla_password,
       web_rdp_provider: b.web_rdp_provider ?? mockCfg.web_rdp_provider,
+      rdp_via_warpgate: b.rdp_via_warpgate ?? mockCfg.rdp_via_warpgate,
     };
     saveCfg();
     return { ...mockCfg };

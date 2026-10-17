@@ -221,7 +221,7 @@ export type UserAccess = {
 export type ConnectInfo = (
   | { type: 'vnc'; ws_path: string; password: string; session_id: string; clipboard?: Clipboard }
   | { type: 'spice'; vv: string; filename: string; session_id: string }
-  | { type: 'rdp'; rdp: string; filename: string; session_id: string }
+  | { type: 'rdp'; rdp: string; filename: string; session_id: string; via?: 'warpgate' }
   | { type: 'guac'; url: string; session_id: string }
 ) & { storage?: StorageResult };
 export type ConnectProtocol = 'vnc' | 'spice' | 'rdp' | 'guac';

@@ -27,6 +27,7 @@ export function WarpgatePage() {
           { label: L('연결', 'Connection'), value: c ? (c.last_ok === true ? L('정상', 'ok') : c.last_ok === false ? L('오류', 'error') : L('확인 전', 'unchecked')) : '-', tone: c?.last_ok === true ? 'ok' : c?.last_ok === false ? 'warn' : undefined },
           { label: L('동기화된 대상', 'Targets'), value: cfg.state === 'ok' ? String(cfg.data.targets) : '-' },
           { label: L('브라우저 RDP', 'Browser RDP'), value: c ? (c.web_rdp_provider === 'warpgate' ? 'Warpgate' : 'Guacamole') : '-' },
+          { label: L('앱·RDP 파일', 'App / RDP file'), value: c ? (c.rdp_via_warpgate ? 'Warpgate' : L('직접', 'direct')) : '-' },
         ]} />}>
       <LoadState value={cfg} retry={cfg.reload}>{(d) => <WarpgateForm initial={d.config} onSaved={cfg.reload} />}</LoadState>
     </SettingsShell>
@@ -47,6 +48,7 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
       const saved = await warpgateApi.save({
         base_url: f.base_url, ssh_port: f.ssh_port, rdp_port: f.rdp_port, vnc_port: f.vnc_port,
         verify_tls: f.verify_tls, enabled: f.enabled, rdp_nla_user: f.rdp_nla_user, web_rdp_provider: f.web_rdp_provider,
+        rdp_via_warpgate: f.rdp_via_warpgate,
         ...(token ? { admin_token: token } : {}),
         ...(nlaPw ? { rdp_nla_password: nlaPw } : {}),
       });
@@ -101,6 +103,11 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
           </select>
           <small className="muted">{L('Warpgate 웹 RDP를 실제 클러스터에서 확인하기 전에는 Guacamole로 두세요. 포털의 "브라우저 RDP로 열기"는 이 설정을 따르고, "Warpgate로 연결"은 항상 따로 있습니다.',
             'Keep Guacamole until Warpgate web RDP is verified on a real cluster. The portal\'s "Open in browser RDP" follows this; "Connect via Warpgate" is always separate.')}</small></label>
+
+        <label className="check"><input id="wg-rdp-via" type="checkbox" checked={!!f.rdp_via_warpgate} onChange={(e) => setF({ ...f, rdp_via_warpgate: e.target.checked })} />
+          <span>{L('전용 앱·RDP 파일을 Warpgate 경유로 (1회용 티켓, 비밀번호 없음)', 'Windows app / RDP file through Warpgate (single-use ticket, no password)')}</span></label>
+        <small className="muted hint-indent">{L('켜면 MOAVI Desk 클라이언트·mstsc가 받는 .rdp가 데스크톱 주소 대신 Warpgate를 향하고, 사용자 이름에 그 사용자·데스크톱 전용 1회용 티켓이 들어갑니다. 데스크톱이 로그인을 물으면 사용자가 본인(AD) 계정으로 들어갑니다. 끄면 지금처럼 직접/RD 게이트웨이 .rdp. Warpgate가 응답하지 않으면 그 접속만 직접 .rdp로 돌아갑니다.',
+          'On: the .rdp the MOAVI Desk client / mstsc gets points at Warpgate instead of the desktop, with a single-use ticket for that user and desktop as the user name. If the desktop asks to sign in, the user uses their own (AD) account. Off: the direct / RD Gateway .rdp as today. If Warpgate does not answer, that one connect falls back to the direct .rdp.')}</small>
 
         <label className="check"><input id="wg-tls" type="checkbox" checked={f.verify_tls} onChange={(e) => setF({ ...f, verify_tls: e.target.checked })} />
           <span>{L('Warpgate의 TLS 인증서 검증 (자체 서명이면 끄기)', 'Verify Warpgate\'s TLS certificate (off for self-signed)')}</span></label>

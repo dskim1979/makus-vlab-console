@@ -520,6 +520,7 @@ export const messages = {
   'portal.connectRdp': { ko: "RDP 파일 받기", en: "Get RDP file" },
   'portal.connectGuac': { ko: "브라우저 RDP로 열기", en: "Open in browser RDP" },
   'portal.rdpHint': { ko: "받은 .rdp 파일을 열면 원격 데스크톱으로 접속합니다.", en: "Open the .rdp file to connect with Remote Desktop." },
+  'portal.rdpHintWarpgate': { ko: "받은 .rdp 파일을 열면 Warpgate를 거쳐 접속합니다(1회용, 몇 분 안에 여세요). 데스크톱이 로그인을 물으면 본인 계정으로 들어가세요.", en: "Open the .rdp file to connect through Warpgate (single use - open it within a few minutes). If the desktop asks you to sign in, use your own account." },
   'portal.guacHint': { ko: "새 탭에서 브라우저 RDP가 열렸습니다.", en: "Browser RDP opened in a new tab." },
   'portal.connectWarpgate': { ko: "Warpgate로 연결 (RDP)", en: "Connect via Warpgate (RDP)" },
   'portal.connectWarpgateSsh': { ko: "Warpgate SSH 터미널", en: "Warpgate SSH terminal" },

@@ -77,7 +77,7 @@ export function PortalHome() {
         const a = document.createElement('a');
         a.href = url; a.download = c.filename; a.click();
         setTimeout(() => URL.revokeObjectURL(url), 10000);
-        setHint({ id: d.id, text: t('portal.rdpHint') });
+        setHint({ id: d.id, text: t(c.via === 'warpgate' ? 'portal.rdpHintWarpgate' : 'portal.rdpHint') });
       } else {
         // the .vv carries a one-time ticket: hand it straight to the browser as a download
         const url = URL.createObjectURL(new Blob([c.vv], { type: 'application/x-virt-viewer' }));
