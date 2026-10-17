@@ -3,6 +3,7 @@ import { forProfile } from './mockProfile';
 import { ApiError, type Api } from './client';
 import type { AuthStatus, Branding, Desktop, Lease, Notice, User, KioskInfo } from './types';
 import { mockDeskWork, mockLeaseExtras } from './mockWork';
+import { SHARED_SCREEN_TYPES, type PoolType } from './types';
 
 // Kept in sessionStorage so a page reload stays signed in, like the real session cookie.
 const KEY = 'vlab.mock.user';
@@ -29,6 +30,7 @@ export const mockWhoAmI = () => current?.username ?? '';
 
 const desktops: Desktop[] = [
   { id: 'd1', name: 'vivado-build-01', pool: 'FPGA 빌드 팜', state: 'ready', os: 'Rocky Linux 9', spec: { cpu: 16, memory_gb: 64 }, protocols: ['spice', 'vnc'], resources: [{ kind: 'card', name: 'Alveo U250 #2' }], pool_type: 'buildfarm', last_connected: new Date(Date.now() - 3 * 864e5).toISOString(),
+    policy: { clipboard: 'both', allow_power: true, start_on_connect: true, screen_thumbnail: true },   // the build farm turned it on
     storage: { kind: 'nfs', data_on_nas_only: false, ok: true, code: 'OK', warnings: [], folders: {
       home: { linux: '/nas/home/alice', windows: null, nas: 'nas01.lab.local:/export/eda/home/alice', folder: 'home/alice', quota_gb: 0 },
       scratch: { linux: '/nas/scratch/alice', windows: null, nas: 'nas01.lab.local:/export/eda/scratch/alice', folder: 'scratch/alice', quota_gb: 500, retention_days: 14 } } } },
@@ -185,7 +187,8 @@ export const mockApi: Api = {
   },
   async screenshot(desktopId) {
     const d = desktops.find((x) => x.id === desktopId);
-    if (!d || (d.state !== 'ready' && d.state !== 'in_use') || d.policy?.screen_thumbnail === false) return delay(null);
+    const allowed = d?.policy?.screen_thumbnail ?? !(d?.pool_type && SHARED_SCREEN_TYPES.includes(d.pool_type as PoolType));
+    if (!d || (d.state !== 'ready' && d.state !== 'in_use') || !allowed) return delay(null);
     if (d.id === 'd1') return delay('off' as const);   // a build server whose display went to sleep
     return delay(new Blob([mockScreen(d)], { type: 'image/svg+xml' }));
   },
