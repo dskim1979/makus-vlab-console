@@ -68,11 +68,9 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
           <Link to="/" className="tb-link"><Icon name="vm" size={16} />{t('nav.workspace')}</Link>
         )}
         {user && <TaskIndicator console={mode === 'console'} admin={isAdmin} />}
-        {mode === 'workspace' && (
-          <a href={feedback} target="_blank" rel="noopener noreferrer" className="tb-link tb-support tb-feedback" title={t('sup.feedbackHint')}>
-            <Icon name="info" size={16} /><span>{t('sup.feedback')}</span>
-          </a>
-        )}
+        <a href={feedback} target="_blank" rel="noopener noreferrer" className="tb-link tb-support tb-feedback" title={t('sup.feedbackHint')}>
+          <Icon name="info" size={16} /><span>{t('sup.feedback')}</span>
+        </a>
         <a href={support} target="_blank" rel="noopener noreferrer" className="tb-link tb-support" title={t('sup.hint')}>
           <Icon name="support" size={16} /><span>{t('sup.remote')}</span>
         </a>
