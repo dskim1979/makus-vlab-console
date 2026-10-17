@@ -68,8 +68,7 @@ function SshAccessBody() {
         <span className="stat-icon tone-blue"><Icon name="shield" size={18} /></span>
         <div>
           <h2 className="section-title">{L('SSH 키 · 내 도구로 접속 (Warpgate)', 'SSH keys · connect with your tools (Warpgate)')}</h2>
-          <p className="muted small" style={{ margin: 0 }}>{L('PuTTY · scp · WinSCP · VS Code Remote-SSH 로 데스크톱에 붙되 Warpgate를 거칩니다. 공개키만 등록하세요 — 개인키는 올리지 마세요.',
-            'Use PuTTY, scp, WinSCP or VS Code Remote-SSH through Warpgate. Register your public key only; never upload a private key.')}</p>
+          <p className="muted small" style={{ margin: 0 }}>{L('내 SSH 도구로 Warpgate를 거쳐 데스크톱에 접속합니다.', 'Reach your desktops with your own SSH tools, through Warpgate.')}</p>
         </div>
       </div>
 
@@ -85,7 +84,7 @@ function SshAccessBody() {
           </div>
         ))}
         <div className="form">
-          <label><span>{L('공개키 추가 — id_ed25519.pub 같은 .pub 파일 내용 한 줄', 'Add a public key - one line from a .pub file such as id_ed25519.pub')}</span>
+          <label><span>{L('공개키 추가 (.pub 한 줄)', 'Add a public key (one .pub line)')}</span>
             <textarea id="wg-pub" rows={2} value={pub} placeholder="ssh-ed25519 AAAA... me@laptop" onChange={(e) => setPub(e.target.value)} /></label>
           <div className="form-row form-row-wide">
             <label><span>{L('이름표', 'Label')}</span><input id="wg-pub-label" value={label} placeholder={L('연구실 노트북', 'lab laptop')} onChange={(e) => setLabel(e.target.value)} /></label>
@@ -99,8 +98,7 @@ function SshAccessBody() {
       {entries.length > 0 && (
         <div className="folder-list">
           <div className="strong">{L('데스크톱 접속 (내 SSH 도구)', 'Desktop access (your SSH tools)')}</div>
-          <p className="muted small" style={{ margin: 0 }}>{L('MOAVI Desk 클라이언트가 아래 블록을 ~/.ssh/config 에 자동으로 넣습니다. 브라우저만 쓰면 아래에서 복사해 직접 넣으세요. 그 뒤 터미널에서 ssh 명령 한 줄이면 됩니다.',
-            'The MOAVI Desk client writes this block into ~/.ssh/config for you. Browser only? Copy it in yourself; then one ssh command is all it takes.')}</p>
+          <p className="muted small" style={{ margin: 0 }}>{L('MOAVI Desk 클라이언트가 ~/.ssh/config 에 자동으로 넣습니다.', 'The MOAVI Desk client adds this to ~/.ssh/config for you.')}</p>
           {entries.map((e) => (
             <div key={e.desktop_id} className="ssh-entry">
               <div className="ssh-entry-head">
@@ -117,12 +115,17 @@ function SshAccessBody() {
           {cfg.state === 'ok' && cfg.data.managed_block && (
             <div className="toolbar"><Copy text={cfg.data.managed_block} label={L('전체 ~/.ssh/config 블록 복사', 'Copy the whole ~/.ssh/config block')} /></div>
           )}
-          <div className="strong">{L('도구별 사용법', 'How to use with your tools')}</div>
-          <ul className="muted small ssh-howto">
-            <li><b>VS Code</b> — {L('Remote-SSH 확장 → "Connect to Host" → moavi-… 이름을 고릅니다(위 블록이 ~/.ssh/config 에 있어야 함).', 'Remote-SSH extension, "Connect to Host", pick a moavi-… name (the block above must be in ~/.ssh/config).')}</li>
-            <li><b>PuTTY</b> — {L('Host Name 에 위 Host 주소, Port 에 포트, Connection › Data › Auto-login username 에 위 User 값, SSH › Auth 에 개인키(.ppk).', 'Host Name = the Host address, Port = the port, Connection > Data > Auto-login username = the User value, SSH > Auth = your private key (.ppk).')}</li>
-            <li><b>WinSCP</b> — {L('SFTP, 호스트·포트·사용자 이름은 PuTTY 와 같고, 고급 › SSH › 인증에 개인키. 파일 전송은 풀 정책과 Warpgate 기록을 따릅니다.', 'SFTP, the same host, port and user as PuTTY, Advanced > SSH > Authentication = your private key. Transfers follow the pool policy and are recorded by Warpgate.')}</li>
-          </ul>
+          <details className="wg-more">
+            <summary>{L('사용 방법', 'How to use')}</summary>
+            <ul className="muted small ssh-howto">
+              <li><b>{L('터미널', 'Terminal')}</b> — <code className="code">ssh moavi-…</code>, <code className="code">scp 파일 moavi-…:</code></li>
+              <li><b>VS Code</b> — {L('Remote-SSH › Connect to Host › moavi-… 선택', 'Remote-SSH › Connect to Host › pick moavi-…')}</li>
+              <li><b>PuTTY</b> — {L('Host·Port 와 User 값, SSH › Auth 에 개인키(.ppk)', 'Host, Port and the User value; SSH › Auth = your private key (.ppk)')}</li>
+              <li><b>WinSCP</b> — {L('SFTP, PuTTY 와 같은 값', 'SFTP, the same values as PuTTY')}</li>
+              <li>{L('공개키만 등록합니다. 개인키는 PC 밖으로 보내지 마세요.', 'Register only the public key; the private key stays on your PC.')}</li>
+              <li>{L('파일 전송은 풀 정책을 따르고 Warpgate가 기록합니다.', 'File transfers follow the pool policy and are recorded by Warpgate.')}</li>
+            </ul>
+          </details>
         </div>
       )}
     </section>

@@ -75,20 +75,18 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
   return (
     <>
       <SettingsSection id="warpgate" title="Warpgate"
-        desc={L('모든 데스크톱 RDP/SSH/VNC를 Warpgate 하나로 중계합니다. 대상 IP가 숨고 세션이 녹화되며, 접속할 때 사용자·데스크톱 비밀번호를 저장하지 않습니다(그 사용자·대상에만 쓸 수 있는 1회용 티켓). Guacamole 등 기존 경로와 함께 켤 수 있습니다.',
-          'Relays all desktop RDP/SSH/VNC through one Warpgate. Target IPs are hidden, sessions recorded, and no password is stored on connect (a single-use ticket scoped to the user and target). Works alongside Guacamole.')}>
+        desc={L('데스크톱 RDP·SSH·VNC를 Warpgate 한 곳으로 중계합니다.', 'Relays desktop RDP, SSH and VNC through one Warpgate.')}>
         <label className="check"><input id="wg-on" type="checkbox" checked={f.enabled} onChange={(e) => setF({ ...f, enabled: e.target.checked })} />
-          <span>{L('Warpgate 사용 (포털 연결이 Warpgate를 거칩니다)', 'Use Warpgate (portal connects go through it)')}</span></label>
+          <span>{L('Warpgate 사용', 'Use Warpgate')}</span></label>
 
-        <label><span>{L('Base URL (관리자 UI · API)', 'Base URL (admin UI / API)')}</span>
+        <label><span>{L('Base URL', 'Base URL')}</span>
           <input id="wg-url" value={f.base_url} placeholder="https://warpgate.lab.example:8888" onChange={(e) => setF({ ...f, base_url: e.target.value.trim() })} /></label>
 
         <label><span>{L('관리자 API 토큰', 'Admin API token')}</span>
           <input id="wg-token" type="password" autoComplete="off" value={token}
             placeholder={f.has_token ? L('저장됨 — 바꿀 때만 입력', 'Saved; type only to change') : L('Warpgate 관리자 UI에서 발급', 'Issue it in the Warpgate admin UI')}
             onChange={(e) => setToken(e.target.value)} />
-          <small className="muted">{L('코어 DB 키로 봉인되어 저장됩니다(다시 읽히지 않음). Warpgate 관리자 UI에서 관리자 역할 토큰을 만드세요.',
-            'Sealed with the core DB key (never read back). Create an admin-role token in the Warpgate admin UI.')}</small></label>
+          <small className="muted">{L('봉인 저장, 다시 표시하지 않음', 'Stored sealed, never shown again')}</small></label>
 
         <div className="form-row form-row-even">
           <label><span>{L('SSH 포트', 'SSH port')}</span><input id="wg-ssh" type="number" min={1} max={65535} value={f.ssh_port} onChange={(e) => setF({ ...f, ssh_port: Number(e.target.value) || 0 })} /></label>
@@ -98,38 +96,47 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
 
         <label><span>{L('브라우저 RDP 제공', 'Browser RDP served by')}</span>
           <select id="wg-provider" value={f.web_rdp_provider} onChange={(e) => setF({ ...f, web_rdp_provider: e.target.value as 'guac' | 'warpgate' })}>
-            <option value="guac">{L('Guacamole (기본, 항상 동작)', 'Guacamole (default, always on)')}</option>
-            <option value="warpgate">{L('Warpgate (실클러스터 검증 후 전환)', 'Warpgate (switch after real-cluster verification)')}</option>
+            <option value="guac">{L('Guacamole (기본)', 'Guacamole (default)')}</option>
+            <option value="warpgate">Warpgate</option>
           </select>
-          <small className="muted">{L('Warpgate 웹 RDP를 실제 클러스터에서 확인하기 전에는 Guacamole로 두세요. 포털의 "브라우저 RDP로 열기"는 이 설정을 따르고, "Warpgate로 연결"은 항상 따로 있습니다.',
-            'Keep Guacamole until Warpgate web RDP is verified on a real cluster. The portal\'s "Open in browser RDP" follows this; "Connect via Warpgate" is always separate.')}</small></label>
+          <small className="muted">{L('검증 전에는 Guacamole 유지', 'Keep Guacamole until verified')}</small></label>
 
         <label className="check"><input id="wg-rdp-via" type="checkbox" checked={!!f.rdp_via_warpgate} onChange={(e) => setF({ ...f, rdp_via_warpgate: e.target.checked })} />
-          <span>{L('전용 앱·RDP 파일을 Warpgate 경유로 (1회용 티켓, 비밀번호 없음)', 'Windows app / RDP file through Warpgate (single-use ticket, no password)')}</span></label>
-        <small className="muted hint-indent">{L('켜면 MOAVI Desk 클라이언트·mstsc가 받는 .rdp가 데스크톱 주소 대신 Warpgate를 향하고, 사용자 이름에 그 사용자·데스크톱 전용 1회용 티켓이 들어갑니다. 데스크톱이 로그인을 물으면 사용자가 본인(AD) 계정으로 들어갑니다. 끄면 지금처럼 직접/RD 게이트웨이 .rdp. Warpgate가 응답하지 않으면 접속을 거부합니다(아래 옵션을 켠 경우만 직접 연결).',
-          'On: the .rdp the MOAVI Desk client / mstsc gets points at Warpgate instead of the desktop, with a single-use ticket for that user and desktop as the user name. If the desktop asks to sign in, the user uses their own (AD) account. Off: the direct / RD Gateway .rdp as today. If Warpgate does not answer, the connect is refused (unless the option below allows the direct path).')}</small>
+          <span>{L('전용 앱·RDP 파일을 Warpgate 경유로', 'Windows app / RDP file through Warpgate')}</span></label>
 
         <label className="check"><input id="wg-fallback" type="checkbox" checked={!!f.allow_direct_fallback} onChange={(e) => setF({ ...f, allow_direct_fallback: e.target.checked })} />
-          <span>{L('Warpgate 장애 시 직접 접속 허용 (보안 약화)', 'Allow direct access when Warpgate is down (weakens security)')}</span></label>
-        {f.allow_direct_fallback
-          ? <div className="alert small error">{L('켜져 있음: Warpgate가 응답하지 않으면 그 접속은 Warpgate를 거치지 않고 직접 .rdp·Guacamole로 열립니다. 세션 녹화·1회용 티켓·대상 숨김이 적용되지 않고, 데스크톱 직접 접속을 막은 현장에서는 어차피 실패합니다. 장애 대응 중에만 잠깐 켜세요.',
-              'On: when Warpgate does not answer, the connect skips Warpgate and opens the direct .rdp / Guacamole - no recording, no single-use ticket, the desktop address is exposed, and it fails anyway where direct access is blocked. Turn it on only briefly during an outage.')}</div>
-          : <small className="muted hint-indent">{L('꺼짐(권장): Warpgate로 전환한 접속은 Warpgate가 응답하지 않으면 "Warpgate에 연결할 수 없습니다" 오류로 막습니다(bastion 우회 없음).',
-              'Off (recommended): connects switched to Warpgate are refused with "Cannot reach Warpgate" while it is down (no bastion bypass).')}</small>}
+          <span>{L('Warpgate 장애 시 직접 접속 허용', 'Allow direct access when Warpgate is down')}</span></label>
+        {f.allow_direct_fallback && (
+          <div className="alert small error">{L('보안 약화: 장애 중에는 녹화·티켓 없이 직접 연결됩니다.', 'Weakens security: during an outage connects go direct, unrecorded.')}</div>
+        )}
 
         <label className="check"><input id="wg-tls" type="checkbox" checked={f.verify_tls} onChange={(e) => setF({ ...f, verify_tls: e.target.checked })} />
-          <span>{L('Warpgate의 TLS 인증서 검증 (자체 서명이면 끄기)', 'Verify Warpgate\'s TLS certificate (off for self-signed)')}</span></label>
+          <span>{L('TLS 인증서 검증', 'Verify the TLS certificate')}</span></label>
 
         <div className="form-row form-row-even">
-          <label><span>{L('RDP NLA 서비스 계정 (선택)', 'RDP NLA service account (optional)')}</span>
+          <label><span>{L('RDP NLA 서비스 계정', 'RDP NLA service account')}</span>
             <input id="wg-nla-user" value={f.rdp_nla_user} placeholder="moavi-nla" onChange={(e) => setF({ ...f, rdp_nla_user: e.target.value.trim() })} /></label>
-          <label><span>{L('RDP NLA 비밀번호 (선택)', 'RDP NLA password (optional)')}</span>
+          <label><span>{L('RDP NLA 비밀번호', 'RDP NLA password')}</span>
             <input id="wg-nla-pw" type="password" autoComplete="off" value={nlaPw}
-              placeholder={f.has_nla_password ? L('저장됨 — 바꿀 때만 입력', 'Saved; type only to change') : L('NLA가 필요할 때만', 'only if NLA is enforced')}
+              placeholder={f.has_nla_password ? L('저장됨 — 바꿀 때만 입력', 'Saved; type only to change') : L('NLA가 필요할 때만', 'Only if NLA is required')}
               onChange={(e) => setNlaPw(e.target.value)} /></label>
         </div>
-        <p className="muted small">{L('RDP는 자동 로그인하지 않고 데스크톱의 Windows 로그온 화면을 띄웁니다(interactive_logon). 이 서비스 계정은 네트워크 수준 인증(CredSSP) 통과용이며 사용자 비밀번호가 아닙니다. 데스크톱에서 NLA를 끄면 비워 두세요.',
-          'RDP shows the desktop\'s Windows logon screen instead of signing in (interactive_logon). This service account only passes network-level auth (CredSSP); it is not a user password. Leave empty if NLA is disabled on the desktops.')}</p>
+
+        <details className="wg-more">
+          <summary>{L('자세히', 'Details')}</summary>
+          <ul className="muted small ssh-howto">
+            <li>{L('브라우저 RDP 제공 — 포털 "브라우저 RDP로 열기"가 이 설정을 따릅니다. Warpgate로 바꾸면 사용자는 Warpgate 화면에 로그인해 데스크톱을 엽니다.',
+              'Browser RDP served by - the portal\'s "Open in browser RDP" follows it. With Warpgate, users sign in to Warpgate and open the desktop there.')}</li>
+            <li>{L('앱·RDP 파일 — .rdp가 데스크톱 대신 Warpgate를 향하고, 사용자 이름에 1회용 티켓이 들어갑니다. 비밀번호는 없습니다.',
+              'App / RDP file - the .rdp points at Warpgate, with a single-use ticket as the user name and no password.')}</li>
+            <li>{L('장애 시 — 기본은 "Warpgate에 연결할 수 없습니다"로 막습니다. 직접 접속 허용은 장애 대응 중에만 잠깐 켜세요. 직접 접속을 막은 현장에서는 어차피 실패합니다.',
+              'When Warpgate is down - connects are refused by default. Allow the direct path only briefly during an outage; it fails anyway where direct access is blocked.')}</li>
+            <li>{L('RDP 로그인 — 자동 로그인하지 않고 데스크톱 로그온 화면을 띄웁니다. 사용자는 본인 계정으로 들어갑니다. NLA 서비스 계정은 네트워크 수준 인증용이며 사용자 비밀번호가 아닙니다. NLA를 끈 데스크톱이면 비워 두세요.',
+              'RDP sign-in - no auto logon; the desktop\'s logon screen asks for the user\'s own account. The NLA service account only passes network-level auth and is not a user password. Leave it empty if NLA is off.')}</li>
+            <li>{L('API 토큰 — Warpgate 관리자 UI에서 관리자 역할 토큰을 만드세요. 자체 서명 인증서면 TLS 검증을 끄세요.',
+              'API token - create an admin-role token in the Warpgate admin UI. Turn TLS verification off for a self-signed certificate.')}</li>
+          </ul>
+        </details>
 
         {msg && <p className={`alert small ${msg.ok ? 'info' : 'error'}`}>{msg.text}</p>}
         <div className="toolbar">
@@ -139,8 +146,7 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
       </SettingsSection>
 
       <SettingsSection id="sessions" title={L('세션 녹화', 'Session recordings')}
-        desc={L('Warpgate가 모든 세션을 녹화합니다. 관리자 녹화 페이지에서 사용자·대상·시각별로 다시 볼 수 있습니다.',
-          'Warpgate records every session. Review them by user, target and time in its admin page.')}>
+        desc={L('Warpgate가 녹화한 세션을 다시 봅니다.', 'Review the sessions Warpgate recorded.')}>
         <div className="toolbar">
           <button type="button" className="btn" disabled={!f.base_url} onClick={openSessions}><Icon name="globe" size={16} />{L('녹화 세션 열기', 'Open recorded sessions')}</button>
         </div>

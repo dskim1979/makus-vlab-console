@@ -1590,3 +1590,7 @@ fieldset.plain:disabled { opacity: .55; }
 .ssh-entry-head { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .75rem; }
 .ssh-entry .snippet { margin: 0; max-height: none; }
 .ssh-howto { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .3rem; }
+
+/* Warpgate: the "사용 방법" / "자세히" disclosures (long text stays folded) */
+.wg-more summary { cursor: pointer; font-size: .85rem; color: var(--text-2); margin: .3rem 0; }
+.wg-more[open] summary { margin-bottom: .4rem; }
