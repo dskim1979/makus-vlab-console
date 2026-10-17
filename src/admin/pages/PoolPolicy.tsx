@@ -132,8 +132,8 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
             onChange={(e) => set('rdp_tune', e.target.checked)} />
             <span>{L('Windows 데스크톱 RDP 자동 준비 — 처음 RDP로 접속할 때 원격 데스크톱 켜기 · 방화벽 · H.264/AVC 444 · UDP 설정',
               'Prepare Windows desktops for RDP - at the first RDP connect: Remote Desktop on, firewall, H.264/AVC 444, UDP')}</span></label>
-          <small className="muted hint-indent">{L('Linux 데스크톱은 xrdp(또는 gnome-remote-desktop)가 있을 때만 RDP로 열리고, 없으면 전용 앱이 SPICE · VNC로 엽니다. 원격 데스크톱 사용자 그룹(도메인 사용자)은 GPO나 템플릿에서 정하세요.',
-            'A Linux desktop opens with RDP only when it runs xrdp (or gnome-remote-desktop); otherwise the client opens SPICE or VNC. Put the users in Remote Desktop Users by GPO or in the template.')}</small>
+          <small className="muted hint-indent">{L('Linux 데스크톱은 xrdp(또는 gnome-remote-desktop)가 있을 때만 RDP로 열리고, 없으면 전용 앱이 SPICE · VNC로 엽니다. AD가 없는 VM은 그 VM의 로컬 계정이 RDP로 들어오게 하고, AD가 있으면 도메인 사용자를 GPO로 원격 데스크톱 사용자 그룹에 넣으세요.',
+            'A Linux desktop opens with RDP only when it runs xrdp (or gnome-remote-desktop); otherwise the client opens SPICE or VNC. Off a domain the VM\'s own accounts may sign in over RDP; with AD put the domain users in Remote Desktop Users by GPO.')}</small>
           <label className="check"><input type="checkbox" checked={p.spice_fullscreen} disabled={!p.protocols.includes('spice')}
             onChange={(e) => set('spice_fullscreen', e.target.checked)} /><span>{t('pol.fullscreen')}</span></label>
           <span className="field-label">{L('웹 IDE (브라우저)', 'Web IDE (browser)')}</span>
