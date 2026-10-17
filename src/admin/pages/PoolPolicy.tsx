@@ -11,6 +11,7 @@ import type { PoolStorage } from '../../api/storage';
 import { draftOf, StorageStep, storageBody, storageStepError, storageSummary } from './PoolStorage';
 import type { StorageDraft } from './PoolStorage';
 import { useL } from './OpsPages';
+import { useFeatures } from '../../features';
 
 // 데스크톱 풀 > (풀) > 정책: how the pool's desktops are reached and kept - a summary on the
 // pool page and a wizard in six steps plus review. The engine applies it (pegaprox/vlab/policy.py; the
@@ -73,6 +74,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
 }) {
   const { t } = useI18n();
   const { L } = useL();
+  const { on } = useFeatures();
   const [p, setP] = useState<PoolPolicy>(initial);
   const [st, setSt] = useState<StorageDraft>(draftOf(storage));
   const setStorage = <K extends keyof StorageDraft>(k: K, v: StorageDraft[K]) => setSt((o) => ({ ...o, [k]: v }));
@@ -181,7 +183,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
           <small className="muted hint-indent">{t('pol.usbRedirectHint')}</small>
           <label className="check"><input type="checkbox" checked={p.usb_autoshare} disabled={!p.usb_redirect}
             onChange={(e) => set('usb_autoshare', e.target.checked)} /><span>{t('pol.usbAuto')}</span></label>
-          <div className="callout"><Icon name="info" size={18} /><p>{t('pol.usbNote')}</p></div>
+          {on('fpga') && <div className="callout"><Icon name="info" size={18} /><p>{t('pol.usbNote')}</p></div>}
           <span className="field-label">{L('RDP 접속 (Windows 앱 · 브라우저 RDP)', 'RDP connections (Windows app, browser RDP)')}</span>
           <label className="check"><input type="checkbox" checked={!!p.client_drives} onChange={(e) => set('client_drives', e.target.checked)} />
             <span className="strong">{L('내 PC 드라이브 연결 허용', 'Allow the PC\'s drives')}</span></label>
