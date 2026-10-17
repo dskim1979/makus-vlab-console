@@ -568,7 +568,7 @@ function OpsNoticesForm({ initial, channels, lab, fpga, onSaved }: { initial: Op
         <div className="ops-row">
           <label className="check"><input id="on-license" type="checkbox" checked={f.license_denied} onChange={(e) => set({ license_denied: e.target.checked })} />
             <span><span className="strong">{L('라이선스 거부', 'Licence refusals')}</span>
-              <span className="muted small"> — {L('라이선스 서버가 좌석 부족 등으로 요청을 거부했을 때 (좌석 보기를 켜고 디버그 로그를 읽는 서버)', 'a licence server refused checkouts (servers with seats on and a readable debug log)')}</span></span></label>
+              <span className="muted small"> — {L('라이선스 서버가 라이선스 부족 등으로 요청을 거부했을 때 (사용 현황 보기를 켜고 디버그 로그를 읽는 서버)', 'a licence server refused checkouts (servers with seats on and a readable debug log)')}</span></span></label>
         </div>
       )}
       <div className="ops-row">

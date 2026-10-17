@@ -1,4 +1,4 @@
-// 라이선스 좌석: who holds the seats of a FlexLM / FlexNet licence server, per feature, read every
+// 라이선스 사용 현황: who holds the seats of a FlexLM / FlexNet licence server, per feature, read every
 // 5 minutes by the engine's lmutil or by the guest agent of the licence server VM (makus-vlab
 // pegaprox/vlab/license_usage.py, pegaprox/api/vlab_license.py). Times are epoch seconds.
 import { ApiError, isMock, request } from './client';

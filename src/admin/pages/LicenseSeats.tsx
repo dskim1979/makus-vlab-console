@@ -10,8 +10,8 @@ import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 
-// 가속 자원 > 라이선스 서버 > 좌석 사용량 (the panel under the server list) and 운영 > 사용률 보고서 >
-// 라이선스 좌석 (the report): seats per feature from lmstat, who holds them on which MOAVI desktop,
+// 가속 자원 › 라이선스 서버 › 사용 현황 (the panel under the server list) and 운영 > 사용률 보고서 >
+// 라이선스 사용 현황 (the report): seats per feature from lmstat, who holds them on which MOAVI desktop,
 // use over time, shortages and refusals (engine: pegaprox/api/vlab_license.py). Inline ko/en.
 
 function useL() {
@@ -64,11 +64,11 @@ export function LicenseSeatsPanel({ server, onChanged, onClose }: { server: Lice
   }
 
   return (
-    <section className="panel seat-panel" aria-label={L('좌석 사용량', 'Seat use')}>
+    <section className="panel seat-panel" aria-label={L('라이선스 사용량', 'Seat use')}>
       <div className="panel-head">
         <div>
-          <h2 className="section-title">{L(`좌석 사용량 · ${server.name}`, `Seat use · ${server.name}`)}</h2>
-          <p className="muted small" style={{ margin: 0 }}>{L('lmstat 으로 기능(feature)마다 전체 좌석 · 사용 중 · 누가 쥐고 있는지를 5분마다 읽어 90일 보관합니다.',
+          <h2 className="section-title">{L(`라이선스 사용량 · ${server.name}`, `Seat use · ${server.name}`)}</h2>
+          <p className="muted small" style={{ margin: 0 }}>{L('lmstat 으로 기능(feature)마다 전체 라이선스 · 사용 중 · 누가 쥐고 있는지를 5분마다 읽어 90일 보관합니다.',
             'lmstat is read every 5 minutes: seats, in use and who holds them per feature, kept 90 days.')}</p>
         </div>
         <div className="panel-actions">
@@ -83,7 +83,7 @@ export function LicenseSeatsPanel({ server, onChanged, onClose }: { server: Lice
           <>
             <SeatStatus u={u} />
             {u.settings.mode === 'off' ? (
-              <div className="empty"><p>{L('이 서버는 좌석 수집이 꺼져 있습니다. "수집 설정"에서 방식을 고르세요.', 'Seat reading is off for this server. Pick a way under "Collection".')}</p></div>
+              <div className="empty"><p>{L('이 서버는 라이선스 수집이 꺼져 있습니다. "수집 설정"에서 방식을 고르세요.', 'Seat reading is off for this server. Pick a way under "Collection".')}</p></div>
             ) : u.features.length === 0 ? (
               <div className="empty"><p>{L('아직 읽은 기록이 없습니다. "지금 읽기"로 확인해 보세요.', 'Nothing read yet. Try "Read now".')}</p></div>
             ) : (
@@ -96,7 +96,7 @@ export function LicenseSeatsPanel({ server, onChanged, onClose }: { server: Lice
                 <SeatStats u={u} />
                 <div className="table-scroll"><table className="table compact-head seat-table">
                   <thead><tr><th>{L('기능', 'Feature')}</th><th>{L('사용 중 / 전체', 'In use / seats')}</th><th className="num">{L('기준', 'Alert at')}</th>
-                    <th className="num">{L('최대 · 평균', 'Peak · avg')}</th><th className="num">{L('좌석 부족', 'Shortages')}</th><th className="num">{L('거부', 'Refused')}</th><th className="actions" /></tr></thead>
+                    <th className="num">{L('최대 · 평균', 'Peak · avg')}</th><th className="num">{L('라이선스 부족', 'Shortages')}</th><th className="num">{L('거부', 'Refused')}</th><th className="actions" /></tr></thead>
                   <tbody>{u.features.map((f) => (
                     <Fragment key={f.feature}>
                       <tr>
@@ -104,7 +104,7 @@ export function LicenseSeatsPanel({ server, onChanged, onClose }: { server: Lice
                         <td className="seat-cell">
                           <span className="nowrap"><b>{f.in_use}</b> / {f.total} <span className="muted small">({f.pct}%)</span>
                             {f.queued > 0 && <span className="chip chip-warn" style={{ marginLeft: 6 }}>{L(`대기 ${f.queued}`, `${f.queued} queued`)}</span>}
-                            {f.alerted === 'full' && <span className="chip chip-off">{L('좌석 없음', 'full')}</span>}
+                            {f.alerted === 'full' && <span className="chip chip-off">{L('라이선스 없음', 'full')}</span>}
                             {f.alerted === 'high' && <span className="chip chip-warn" style={{ marginLeft: 6 }}>{L('기준 초과', 'over')}</span>}</span>
                           <SeatBar f={f} />
                         </td>
@@ -122,7 +122,7 @@ export function LicenseSeatsPanel({ server, onChanged, onClose }: { server: Lice
                         <tr className="seat-holders"><td colSpan={7}>
                           <table className="table compact-head">
                             <thead><tr><th>{L('사용자', 'User')}</th><th>{L('MOAVI 데스크톱', 'MOAVI desktop')}</th><th>{L('호스트 · 디스플레이', 'Host · display')}</th>
-                              <th>{L('시작', 'Since')}</th><th className="num">{L('사용 시간', 'Held')}</th><th className="num">{L('좌석', 'Seats')}</th><th>{L('버전', 'Version')}</th></tr></thead>
+                              <th>{L('시작', 'Since')}</th><th className="num">{L('사용 시간', 'Held')}</th><th className="num">{L('라이선스 수', 'Seats')}</th><th>{L('버전', 'Version')}</th></tr></thead>
                             <tbody>{f.holders.map((h, i) => (
                               <tr key={`${h.user}-${h.host}-${i}`}>
                                 <td className="strong">{h.user}</td>
@@ -177,11 +177,11 @@ function SeatStats({ u }: { u: SeatUsage }) {
   const holders = new Set(live.flatMap((f) => f.holders.map((h) => h.user)));
   return (
     <div className="stats">
-      <div className="stat static"><span className="stat-label">{L('사용 중 좌석', 'Seats in use')}</span><span className="stat-value">{inUse} / {total}</span>
+      <div className="stat static"><span className="stat-label">{L('사용 중 라이선스', 'Seats in use')}</span><span className="stat-value">{inUse} / {total}</span>
         <span className="stat-sub">{L(`기능 ${live.length}개 · 사용자 ${holders.size}명`, `${live.length} features · ${holders.size} users`)}</span></div>
       <div className="stat static"><span className="stat-label">{L('기준 넘은 기능', 'Over the alert line')}</span><span className="stat-value">{live.filter((f) => f.alerted).length}</span>
         <span className="stat-sub">{L('알림 채널로 한 번 알림', 'alert channels told once')}</span></div>
-      <div className="stat static"><span className="stat-label">{L('좌석 부족 (사용 중 = 전체)', 'Shortages (all seats taken)')}</span><span className="stat-value">{L(`${runs}회`, `${runs}×`)}</span>
+      <div className="stat static"><span className="stat-label">{L('라이선스 부족 (사용 중 = 전체)', 'Shortages (all seats taken)')}</span><span className="stat-value">{L(`${runs}회`, `${runs}×`)}</span>
         <span className="stat-sub">{L(`합계 ${dur(mins)}`, `${dur(mins)} in all`)}</span></div>
       <div className="stat static"><span className="stat-label">{L('거부 (DENIED)', 'Refused (DENIED)')}</span><span className="stat-value">{u.denied_total}</span>
         <span className="stat-sub">{u.settings.debug_log ? L('lmgrd 디버그 로그', 'lmgrd debug log') : L('디버그 로그 미설정', 'no debug log set')}</span></div>
@@ -195,7 +195,7 @@ function SeatChart({ u, feature, onPick }: { u: SeatUsage; feature: string; onPi
   const series = [
     { name: L('사용 중 (최대)', 'In use (peak)'), color: SERIES[0], points: pts.map((p) => ({ ts: p.t * 1000, v: p.max })) },
     { name: L('사용 중 (평균)', 'In use (avg)'), color: SERIES[1], points: pts.map((p) => ({ ts: p.t * 1000, v: p.avg })) },
-    { name: L('전체 좌석', 'Seats'), color: SERIES[2], points: pts.map((p) => ({ ts: p.t * 1000, v: p.total })) },
+    { name: L('전체 라이선스', 'Seats'), color: SERIES[2], points: pts.map((p) => ({ ts: p.t * 1000, v: p.total })) },
   ];
   const top = Math.max(1, ...pts.map((p) => p.total));
   return (
@@ -265,7 +265,7 @@ function SeatSettingsDialog({ server, current, features, onClose, onDone }: {
   }
 
   return (
-    <Dialog open wide title={L('좌석 수집 설정', 'Seat collection')} onClose={onClose} onSubmit={submit} submitLabel={L('저장', 'Save')} busy={busy} error={error}>
+    <Dialog open wide title={L('라이선스 수집 설정', 'Seat collection')} onClose={onClose} onSubmit={submit} submitLabel={L('저장', 'Save')} busy={busy} error={error}>
       <fieldset className="al-channels">
         <legend>{L('수집 방식', 'How')}</legend>
         <label className="check"><input type="radio" name="seat-mode" checked={mode === 'off'} onChange={() => setMode('off')} /><span>{L('끔 — 포트 감시만', 'Off - ports only')}</span></label>
@@ -305,7 +305,7 @@ function SeatSettingsDialog({ server, current, features, onClose, onDone }: {
   );
 }
 
-// --- 운영 > 사용률 보고서 > 라이선스 좌석 -------------------------------------------------------------
+// --- 운영 > 사용률 보고서 > 라이선스 사용 현황 -------------------------------------------------------------
 
 export function LicenseSeatReport({ days }: { days: number }) {
   const { L } = useL();
@@ -328,8 +328,8 @@ export function LicenseSeatReport({ days }: { days: number }) {
   return (
     <section className="panel rsv-report">
       <div className="panel-head">
-        <div><h2 className="section-title">{L('라이선스 좌석', 'Licence seats')}</h2>
-          <p className="muted small" style={{ margin: 0 }}>{L('기능별 최대 동시 사용 · 평균 · 좌석이 모두 찬 시간 · 거부 건수와 사용자별 사용 시간. 좌석 증설 · 감축 판단 근거입니다.',
+        <div><h2 className="section-title">{L('라이선스 사용 현황', 'Licence seats')}</h2>
+          <p className="muted small" style={{ margin: 0 }}>{L('기능별 최대 동시 사용 · 평균 · 라이선스가 모두 쓰인 시간 · 거부 건수와 사용자별 사용 시간. 라이선스 추가 · 감축 판단 근거입니다.',
             'Per feature: peak, average, time with every seat taken and refusals; hours per user - the case for more or fewer seats.')}</p></div>
         <span className="spacer" />
         {report.state === 'ok' && <>
@@ -342,7 +342,7 @@ export function LicenseSeatReport({ days }: { days: number }) {
         </>}
       </div>
       <LoadState value={report} retry={report.reload}>
-        {(r) => r.features.length === 0 ? <div className="empty"><p>{L('좌석 기록이 없습니다. 가속 자원 > 라이선스 서버에서 좌석 수집을 켜세요.', 'No seat records. Turn seat reading on under Accelerators > Licence servers.')}</p></div> : (
+        {(r) => r.features.length === 0 ? <div className="empty"><p>{L('라이선스 기록이 없습니다. 가속 자원 > 라이선스 서버에서 라이선스 수집을 켜세요.', 'No seat records. Turn seat reading on under Accelerators > Licence servers.')}</p></div> : (
           <>
             <SeatReportTable r={r} />
             <h3 className="section-title" style={{ marginTop: '.75rem' }}>{L('사용자별 사용 시간', 'Hours per user')}</h3>
@@ -369,15 +369,15 @@ function SeatReportTable({ r }: { r: SeatReport }) {
     <>
       <div className="stats">
         <div className="stat static"><span className="stat-label">{L('증설 검토', 'Consider adding')}</span><span className="stat-value">{add.length}</span>
-          <span className="stat-sub">{L('좌석이 찼거나 거부된 기능', 'ran out or refused')}</span></div>
+          <span className="stat-sub">{L('라이선스가 다 쓰였거나 거부된 기능', 'ran out or refused')}</span></div>
         <div className="stat static"><span className="stat-label">{L('감축 검토', 'Consider dropping')}</span><span className="stat-value">{cut.length}</span>
-          <span className="stat-sub">{L(`최대 사용이 2/3 이하 · 남는 좌석 ${cut.reduce((a, f) => a + f.advice.seats, 0)}`, `peak at or under 2/3 · ${cut.reduce((a, f) => a + f.advice.seats, 0)} spare`)}</span></div>
-        <div className="stat static"><span className="stat-label">{L('좌석 부족 시간', 'Time at full')}</span><span className="stat-value">{dur(r.features.reduce((a, f) => a + f.shortage_minutes, 0))}</span></div>
+          <span className="stat-sub">{L(`최대 사용이 2/3 이하 · 남는 라이선스 ${cut.reduce((a, f) => a + f.advice.seats, 0)}`, `peak at or under 2/3 · ${cut.reduce((a, f) => a + f.advice.seats, 0)} spare`)}</span></div>
+        <div className="stat static"><span className="stat-label">{L('라이선스 부족 시간', 'Time at full')}</span><span className="stat-value">{dur(r.features.reduce((a, f) => a + f.shortage_minutes, 0))}</span></div>
         <div className="stat static"><span className="stat-label">{L('거부', 'Refused')}</span><span className="stat-value">{r.features.reduce((a, f) => a + f.denied, 0)}</span></div>
       </div>
       <div className="table-scroll"><table className="table compact-head">
-        <thead><tr><th>{L('기능', 'Feature')}</th><th>{L('서버', 'Server')}</th><th className="num">{L('좌석', 'Seats')}</th><th className="num">{L('최대 동시', 'Peak')}</th>
-          <th className="num">{L('평균', 'Average')}</th><th className="num">{L('좌석 부족', 'At full')}</th><th className="num">{L('거부', 'Refused')}</th><th>{L('판단', 'Suggests')}</th></tr></thead>
+        <thead><tr><th>{L('기능', 'Feature')}</th><th>{L('서버', 'Server')}</th><th className="num">{L('라이선스 수', 'Seats')}</th><th className="num">{L('최대 동시', 'Peak')}</th>
+          <th className="num">{L('평균', 'Average')}</th><th className="num">{L('라이선스 부족', 'At full')}</th><th className="num">{L('거부', 'Refused')}</th><th>{L('판단', 'Suggests')}</th></tr></thead>
         <tbody>{r.features.map((f) => (
           <tr key={`${f.server_id}-${f.feature}`}>
             <td className="strong">{f.feature}<div className="muted small">{f.vendor}</div></td>
@@ -392,7 +392,7 @@ function SeatReportTable({ r }: { r: SeatReport }) {
               : <span className="muted small">{L('유지', 'keep')}</span>}</td>
           </tr>))}</tbody>
       </table></div>
-      <p className="muted small">{L('판단 기준: 좌석이 모두 찬 적이 있거나 거부가 있으면 증설(전체의 10%, 최소 1). 7일 이상 기록에서 최대 동시 사용이 전체의 2/3 이하이면 감축(최대 + 1 만 남김). 학기 · 마감 주기를 생각해 90일 기간으로도 확인하세요.',
+      <p className="muted small">{L('판단 기준: 라이선스가 모두 쓰인 적이 있거나 거부가 있으면 증설(전체의 10%, 최소 1). 7일 이상 기록에서 최대 동시 사용이 전체의 2/3 이하이면 감축(최대 + 1 만 남김). 학기 · 마감 주기를 생각해 90일 기간으로도 확인하세요.',
         'Rule: any time at full or any refusal suggests adding (10 %, at least 1). Over a week or more with the peak at or under 2/3 of the seats suggests dropping to peak + 1. Check the 90-day view too, for term and tape-out peaks.')}</p>
     </>
   );

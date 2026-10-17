@@ -1419,7 +1419,7 @@ fieldset.plain:disabled { opacity: .55; }
 .table tr.row-error td { background: color-mix(in srgb, var(--danger, #d33) 7%, transparent); }
 .import-preview th, .import-preview td { white-space: nowrap; }
 .import-preview td:last-child { white-space: normal; min-width: 12rem; }
-/* 라이선스 서버 > 좌석 사용량 (admin/pages/LicenseSeats.tsx) */
+/* 라이선스 서버 › 사용 현황 (admin/pages/LicenseSeats.tsx) */
 .seat-panel { margin-top: 1.25rem; }
 .seat-cell { min-width: 190px; }
 .seat-bar { position: relative; display: block; margin-top: .3rem; }
