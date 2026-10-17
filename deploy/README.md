@@ -71,6 +71,11 @@ docker compose up -d --force-recreate vlab-guac-key vlab-engine guacamole
 guacd·guacamole 컨테이너가 만들어지지 않고(이미 있으면 내려간다), 내장 게이트웨이는 "사용 안 함" 이 된다. 다시 켜려면 줄을 지우고 `docker compose up -d`.
 별도로 둔 Guacamole 을 쓰려면 끈 다음 **게이트웨이** 화면에서 그 서버(주소·포트·공유 키)를 추가한다.
 
+## 데스크톱 직접 접속 차단 (Proxmox 보안 그룹)
+사용자가 데스크톱 안에서 IP 를 알아내 원격 데스크톱·SSH 로 직접 붙는 길을 막아, 모든 접속이 MOAVI Desk
+서버·게이트웨이를 거치게 한다(접속 기록·시간 제한·정책이 항상 적용). VM 밖(하이퍼바이저)에서 걸리므로
+VM 안에서 root·관리자여도 끌 수 없다. 설정 예시와 점검법: [proxmox-firewall/README.md](proxmox-firewall/README.md).
+
 ## 웹 IDE (JupyterLab · VS Code)
 같은 443 의 `/ide/<세션>/` 경로로 나간다. 더 열 포트는 없고, **vlab-proxy(이 서버) → 데스크톱 · 빌드 VM 의 8890-8989/tcp** 만 열려 있으면 된다
 (사용자 PC 에는 열지 않는다).
