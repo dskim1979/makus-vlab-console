@@ -147,7 +147,7 @@ export function joinCodeText(code: string, L: (ko: string, en: string) => string
     NOT_RUNNING: ['꺼져 있음', 'Not running'], NO_AGENT: ['게스트 에이전트 응답 없음', 'No guest agent'], NO_CLUSTER: ['클러스터 연결 안 됨', 'Cluster not connected'],
     UNSUPPORTED: ['컨테이너는 가입 안 함', 'Containers are not joined'], OTHER_DOMAIN: ['다른 도메인에 가입돼 있음', 'In another domain'],
     NO_DNS: ['DNS 에서 DC 를 못 찾음', 'No DC in DNS'], JOIN_FAILED: ['가입 실패', 'Join failed'], NO_TOOLS: ['realmd · sssd 없음', 'No realmd / sssd'],
-    RENAME_FAILED: ['이름 바꾸기 실패', 'Rename failed'], AGENT_ERROR: ['에이전트 오류', 'Agent error'], PENDING: ['게스트에서 진행 중', 'Still running'],
+    RENAME_FAILED: ['이름 바꾸기 실패', 'Rename failed'], AGENT_ERROR: ['에이전트 오류', 'Agent error'], AGENT_EXEC_DISABLED: ['게스트 에이전트가 명령 실행을 막음', 'Guest agent blocks guest-exec'], PENDING: ['게스트에서 진행 중', 'Still running'],
     NOT_JOINED: ['가입 안 됨', 'Not joined'], QUEUED: ['조인 대기', 'Queued'], GAVE_UP: ['자동 조인 중단', 'Auto join stopped'],
     NOT_SYSPREPPED: ['sysprep 안 된 복제본', 'Clone not sysprepped'], NO_SERVICE_ACCOUNT: ['서비스 계정 없음', 'No service account'], UNREACHABLE: ['DC 에 연결 안 됨', 'DC unreachable'],
   };
