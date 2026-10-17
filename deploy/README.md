@@ -76,6 +76,12 @@ Warpgate 를 켜지 않으면 브라우저 RDP 가 없다 — 이 커밋은 Warp
    Profile > API tokens 에서 토큰을 만들어 콘솔 > 플랫폼 설정 > **보안 게이트웨이**에 넣고 **연결 테스트** 후 저장.
 4. **직접 접속 차단**: `proxmox-firewall/` 의 `moavi-relay` 에 Warpgate 주소를 넣어 데스크톱의
    RDP/SSH/VNC 를 Warpgate 에서만 받게 한다.
+5. **Warpgate 로그인을 MOAVI Desk 로그인으로**: `.env` 에 `VLAB_WARPGATE_OIDC_SECRET=<openssl rand -hex 32 값>`.
+   `warpgate-setup` 이 `warpgate.yaml` 에 `MOAVI Desk` 로그인(sso_providers `moavi-desk`)을 한 번 넣고, 엔진이
+   그 로그인을 포털 세션으로 받아 준다(비밀번호 없음). 포털의 보안 게이트웨이 링크 → Warpgate 로그인 화면에서
+   **MOAVI Desk** 한 번 → 데스크톱. Warpgate 세션이 남아 있는 동안은 바로 열린다. 이미 설치된 곳은
+   `docker compose up -d && docker compose restart warpgate`. 다른 sso_providers 가 이미 있으면 setup 은 손대지 않으니
+   엔진 `docs/warpgate-gateway.md` 4-6 의 항목을 직접 넣는다.
 
 인증은 비밀번호를 저장하지 않는다: VNC 는 인증 없음, SSH 는 Warpgate 공개키, RDP 는 자동 로그인하지
 않는 모드(`interactive_logon`; NLA 가 필요하면 콘솔의 Warpgate 설정에 **서비스 계정**만 넣는다 —

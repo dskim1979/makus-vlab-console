@@ -42,6 +42,9 @@ services:
       VLAB_WARPGATE_RDP_PORT: ${VLAB_WARPGATE_RDP_PORT:-3389}
       VLAB_WARPGATE_VNC_PORT: ${VLAB_WARPGATE_VNC_PORT:-5900}
       VLAB_WARPGATE_VERIFY_TLS: ${VLAB_WARPGATE_VERIFY_TLS:-0}       # Warpgate 기본 인증서는 자체 서명
+      # 보안 게이트웨이 로그인을 MOAVI Desk 로그인으로(OIDC). 비우면 꺼짐 - 사용자가 Warpgate 에 따로 로그인해야 한다.
+      VLAB_WARPGATE_OIDC_SECRET: ${VLAB_WARPGATE_OIDC_SECRET:-}
+      VLAB_WARPGATE_OIDC_ISSUER: http://vlab-engine:5000/api/vlab/oidc   # Warpgate 가 엔진에 직접 묻는 주소(vlab 네트워크)
       TZ: ${TZ:-Asia/Seoul}
     volumes:
       - vlab-config:/app/config             # database (encrypted), master key, settings - back this up
@@ -82,16 +85,26 @@ services:
     environment:
       WARPGATE_ADMIN_PASSWORD: ${VLAB_WARPGATE_ADMIN_PASSWORD:-}
       WG_EXTERNAL_HOST: ${VLAB_WARPGATE_HOST:-${VLAB_HOSTNAME:-vlab.local}}
+      WG_OIDC_SECRET: ${VLAB_WARPGATE_OIDC_SECRET:-}
     volumes:
       - warpgate-data:/data
-    # 0.29.2 unattended-setup에는 --if-config-exists 옵션이 없다 → 설정 파일이 있으면 셸에서 건너뛴다(재기동 안전)
+    # 0.29.2 unattended-setup에는 --if-config-exists 옵션이 없다 → 설정 파일이 있으면 셸에서 건너뛴다(재기동 안전).
+    # VLAB_WARPGATE_OIDC_SECRET 이 있으면 MOAVI Desk 로그인(sso_providers: moavi-desk)을 한 번만 덧붙인다
+    # (이미 있거나 다른 sso_providers 가 있으면 건드리지 않음 - 그때는 docs 의 항목을 손으로 넣는다).
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >-
-        [ -f /data/warpgate.yaml ] && exit 0;
-        exec /usr/local/bin/warpgate --config /data/warpgate.yaml unattended-setup
+        set -e;
+        [ -f /data/warpgate.yaml ] || /usr/local/bin/warpgate --config /data/warpgate.yaml unattended-setup
         --data-path=/data --http-port=8888 --ssh-port=2222 --rdp-port=3389 --vnc-port=5900
-        --record-sessions --external-host="$$WG_EXTERNAL_HOST"
+        --record-sessions --external-host="$$WG_EXTERNAL_HOST";
+        if [ -n "$$WG_OIDC_SECRET" ] && ! grep -q 'name: moavi-desk' /data/warpgate.yaml; then
+        sed -i '/^sso_providers: \[\]$$/d' /data/warpgate.yaml;
+        if grep -q '^sso_providers:' /data/warpgate.yaml; then echo 'sso_providers already set: add moavi-desk by hand'; else
+        printf '%s\n' 'sso_providers:' '  - name: moavi-desk' '    label: MOAVI Desk' '    provider:'
+        '      type: custom' '      client_id: warpgate' "      client_secret: $$WG_OIDC_SECRET"
+        '      issuer_url: http://vlab-engine:5000/api/vlab/oidc' '      scopes: [email, profile]' >> /data/warpgate.yaml;
+        echo 'MOAVI Desk sign-in added to warpgate.yaml'; fi; fi
 
   warpgate:
     image: ${VLAB_WARPGATE_IMAGE:-ghcr.io/warp-tech/warpgate:0.29.2}
