@@ -7,6 +7,7 @@ Linux 서버 한 대에 `docker compose up` 한 번으로 설치한다. 시험�
 | `vlab-proxy` | 콘솔 화면, HTTPS(443), `/api` 를 엔진으로 전달 (VNC 웹소켓 포함) | 이 저장소 |
 | `vlab-engine` | vLAB 엔진 (화면 없이 API 만, `WEB_UI=0`) | `makus-vlab` |
 | `warpgate`, `warpgate-setup` | 접근 게이트웨이(bastion) — 데스크톱 RDP/SSH/VNC를 한 곳으로 중계, 웹 RDP/SSH·1회용 티켓·세션 녹화·비밀번호 비저장 (켜기: `VLAB_WARPGATE=1`) | 공식 이미지 |
+| `vlab-directory` | **선택**(`VLAB_DIRECTORY=1`) — 내장 디렉터리(Samba AD DC). AD 가 없는 곳에서 포털 계정 = 데스크톱 계정 | 이 저장소 `deploy/directory/` (Debian 12 · Samba 4.17) |
 
 사용자 PC 에서 열어야 하는 포트는 **443 하나**다. SPICE 를 쓰면 사용자 PC → Proxmox 노드 **3128**(spiceproxy)도 열어야 한다.
 엔진 → Proxmox 는 **8006**(API).
@@ -117,6 +118,85 @@ VS Code Remote-SSH 로 데스크톱에 평소처럼 붙되 Warpgate를 거친다
 서버·게이트웨이를 거치게 한다(접속 기록·시간 제한·정책이 항상 적용). VM 밖(하이퍼바이저)에서 걸리므로
 VM 안에서 root·관리자여도 끌 수 없다. 설정 예시와 점검법: [proxmox-firewall/README.md](proxmox-firewall/README.md).
 
+## 내장 디렉터리 (AD 가 없는 곳)
+기관 AD 가 없으면 설치 묶음의 **Samba AD DC** 를 켜서 포털 계정을 그대로 데스크톱(Windows · Linux) 계정으로 쓴다.
+사용자는 포털과 데스크톱에 같은 아이디 · 비밀번호로 로그인하고, 부서는 디렉터리 그룹이 된다.
+**기관 AD 가 있으면 켜지 않는다** — 그 AD 를 **운영 > 플랫폼 설정 > 도메인(AD/LDAP)** 에 넣는다(그 설정이 켜져 있으면 내장 DC 는 로그인에 쓰이지 않는다).
+
+### 켜기
+```bash
+cat >> .env <<'ENV'
+VLAB_DIRECTORY=1
+VLAB_DIRECTORY_IP=10.20.0.5          # 이 서버의 데스크톱 망 주소 (데스크톱이 DNS · 로그인에 쓰는 주소)
+VLAB_DIRECTORY_REALM=moavi.lan       # 도메인 DNS 이름 (바꾸려면 처음 켜기 전에)
+VLAB_DIRECTORY_DOMAIN=MOAVI          # NetBIOS 이름 (MOAVI\alice), 15자 이내
+VLAB_DIRECTORY_HOSTNAME=dc1          # DC 이름 (dc1.moavi.lan)
+# VLAB_DIRECTORY_ADMIN_PASSWORD=...  # 비우면 처음에 만들어 볼륨에 둔다 (아래 "관리자 비밀번호")
+# VLAB_DIRECTORY_DNS_FORWARDER=...   # 도메인 밖 이름을 물을 DNS (기본: 도커가 주는 호스트의 DNS)
+ENV
+docker compose up -d --build
+docker compose logs -f vlab-directory     # "starting samba (primary)" 가 나오면 준비됨
+```
+
+첫 시작에 도메인을 만들고 `OU=MOAVI` 아래에 `Users` · `Groups` · `Desktops` · `Service` 를 둔다. 엔진 서비스 계정 `vlab-svc` 는
+`OU=MOAVI` 만 관리할 수 있고(비밀번호는 `vlab-directory-out` 볼륨에, 엔진은 읽기만), 가입 계정 `vlab-join` 은 `OU=Desktops` 에 컴퓨터만 만들 수 있다.
+엔진은 시작할 때 이를 알아채고 **포털 로그인을 내장 DC(LDAPS 636, DC 가 만든 CA 로 인증서 확인)로** 돌린다.
+콘솔 **사용자 > 도메인(AD/LDAP)** 맨 위의 **내장 디렉터리** 에서 상태 · 연결 확인 · 지금 맞추기 · 계정 목록을 본다.
+
+- **열 포트 (데스크톱 망 쪽만, `VLAB_DIRECTORY_IP` 에만 묶임)**: 53 tcp/udp(DNS), 88 tcp/udp(Kerberos), 389 tcp/udp(LDAP), 445 tcp(SMB · SYSVOL),
+  464 tcp/udp(비밀번호 변경), 636 tcp(LDAPS), 3268 · 3269 tcp(글로벌 카탈로그). 인터넷 쪽에는 절대 열지 않는다.
+  `VLAB_DIRECTORY_IP` 를 넣지 않으면 컨테이너가 시작하지 않는다(포트도 127.0.0.1 에만).
+- **데스크톱 DNS**: 데스크톱이 DC 를 DNS 로 써야 한다. 데스크톱 망의 DHCP 가 `VLAB_DIRECTORY_IP` 를 DNS 로 주는 것이 가장 좋다.
+  아니면 도메인 가입 때 엔진이 데스크톱의 DNS 를 DC 로 바꾼다(설정 "가입할 때 DNS 를 DC 로", 기본 켬).
+- **계정**: 포털에서 만들거나(한 명씩 · CSV) 가입을 승인하면 같은 계정이 DC 에 생긴다. 사용 중지 · 삭제 · 부서 이동도 바로 간다.
+  켜기 전부터 있던 포털 계정은 **다음 로그인 때** 그 비밀번호로 옮겨진다. 관리자 계정은 포털 계정으로 남는다(DC 가 멈춰도 콘솔에 들어오도록).
+- **비밀번호**: 사용자가 정한 비밀번호(가입 · 비밀번호 찾기 · 내 계정)는 그 자리에서 DC 로만 간다. 엔진은 사용자 비밀번호를 저장하지 않는다.
+  비밀번호 규칙은 포털의 비밀번호 정책과 DC 의 규칙을 합친 것이다. DC 는 AD 기본 복잡도(대문자 · 소문자 · 숫자 · 기호 중 셋, 아이디 · 이름 포함 금지)를
+  켜 두고 만료 · 이력 · 잠금은 꺼 두었다(포털이 따로 한다). 포털 화면이 같은 규칙을 보여 주고 미리 검사하므로 포털이 받은 비밀번호는 DC 도 받는다.
+
+### 데스크톱 도메인 가입
+**데스크톱 풀 > 풀 > (풀) > 도메인 가입** 에서 한 대씩 또는 켜진 데스크톱을 한꺼번에 가입시킨다(QEMU 게스트 에이전트 필요).
+
+- **Windows**: `Add-Computer` 로 `OU=Desktops` 에, 이름은 `MD-{vmid}`(설정에서 바꿈). 재시작해야 적용된다("가입 후 재시작" 을 켜면 15초 뒤 재시작).
+  `moavi-users` 를 원격 데스크톱 사용자에 넣는다. **템플릿은 반드시 sysprep 으로 일반화**한다(`sysprep /generalize /oobe /shutdown`) —
+  일반화하지 않은 설치본을 복제하면 SID · 이름이 같아 가입이 꼬인다. 가입한 데스크톱의 RDP 파일은 `MOAVI\아이디` 로 로그인한다.
+- **Linux**: 템플릿에 `realmd sssd adcli` 와 홈 폴더 자동 생성(Ubuntu: `libpam-mkhomedir` / `pam-auth-update`, RHEL 계열: `oddjob-mkhomedir`)을 넣어 둔다.
+  엔진이 `realm join` 하고 짧은 이름(`alice`)으로 로그인하게 sssd 를 맞추고 `moavi-users` 만 허용한다.
+  uid/gid 는 SSSD id 매핑(계정의 SID 에서 계산, 범위는 sssd.conf 에 고정)이라 모든 데스크톱에서 같고, 공유 저장소(NFS)의 폴더 소유자도 VM 마다 같다.
+  가입한 데스크톱에서는 공유 저장소 확인의 LOCAL_ACCOUNT 경고가 사라진다(사용자가 VM 의 `/etc/passwd` 가 아니라 디렉터리에 있으므로).
+- 가입 계정 `vlab-join` 의 비밀번호는 엔진이 만들어 DC 에 넣고 엔진 DB 에 봉인한다. 게스트에는 에이전트의 표준 입력으로만 간다.
+  **내장 디렉터리 > 디렉터리 구조 · 가입 계정 > 비밀번호 새로 정하기** 로 언제든 바꾼다.
+
+### 관리자 비밀번호
+도메인 `Administrator` 비밀번호는 `.env` 의 `VLAB_DIRECTORY_ADMIN_PASSWORD` 이거나(넣었으면), 처음 만들 때 볼륨에 둔 값이다:
+```bash
+docker compose exec vlab-directory cat /var/lib/samba/private/vlab-admin-password
+```
+GPO · DNS 를 관리할 때는 Windows 관리 PC 를 도메인에 가입시키고 RSAT 로 접속한다. `OU=MOAVI` 안의 계정 · 그룹은 엔진이 맞추므로 손으로 바꾸지 않는다
+(엔진이 만들지 않은 계정은 건드리지 않는다).
+
+### 이중화 (HA 상대 서버에 두 번째 DC)
+MOAVI Desk 서버 이중화를 쓰면 상대 서버에도 DC 를 두어 DC 가 하나 멈춰도 로그인 · 데스크톱 로그인이 된다. 두 DC 는 서로 복제하고,
+각 서버의 엔진은 자기 쪽 DC 를 쓴다(엔진의 봉인된 계정과 가입 상태는 HA 동기화로 넘어간다).
+
+1. 두 DC 가 서로의 실제 주소로 닿아야 한다(복제는 RPC 135 + 49152-49200 도 쓴다). **macvlan 으로 DC 마다 데스크톱 망 주소를 주는 방식**을 권한다:
+   `docker compose -f docker-compose.yml -f docker-compose.directory-macvlan.yml up -d` (`.env`: `VLAB_DIRECTORY_PARENT`, `VLAB_DIRECTORY_SUBNET`,
+   `VLAB_DIRECTORY_GATEWAY`, compose 2.24 이상). macvlan 주소는 호스트 자신에서는 닿지 않는다(엔진은 내부 망으로 닿는다).
+2. 상대 서버의 `.env`: 같은 `VLAB_DIRECTORY_REALM` · `VLAB_DIRECTORY_DOMAIN`, 다른 `VLAB_DIRECTORY_HOSTNAME`(예: `dc2`) · `VLAB_DIRECTORY_IP`,
+   `VLAB_DIRECTORY_ROLE=replica`, `VLAB_DIRECTORY_PRIMARY_IP=<첫 DC 주소>`, `VLAB_DIRECTORY_ADMIN_PASSWORD=<첫 DC 의 관리자 비밀번호>`.
+   첫 시작에 `samba-tool domain join ... DC` 로 합류한다. 상대 서버의 엔진은 `vlab-svc` 비밀번호를 HA 동기화로 받는다.
+3. 데스크톱 망 DHCP 에 DNS 를 두 DC 주소로 준다(또는 설정의 "DNS 서버" 에 둘 다).
+4. 확인: `docker compose exec vlab-directory samba-tool drs showrepl` — 양쪽 모두 오류 없이 "Last attempt ... was successful".
+
+**한계**: Samba 는 SYSVOL(GPO 파일)을 복제하지 않는다. GPO 를 쓰면 첫 DC 에서 만들고 `/var/lib/samba/sysvol` 을 상대 쪽으로 복사한다(rsync, 바꿀 때마다).
+FSMO 역할은 첫 DC 에 있다. 첫 DC 가 오래 멈추면 `samba-tool fsmo seize` 로 넘긴다.
+
+### 백업
+`vlab-directory` 볼륨이 도메인 DB 다. `vlab-config` 와 함께 백업한다(엔진 쪽에는 봉인된 가입 계정만 있다).
+```bash
+docker compose exec vlab-directory samba-tool domain backup offline --targetdir=/var/lib/samba/backup
+```
+
 ## 웹 IDE (JupyterLab · VS Code)
 같은 443 의 `/ide/<세션>/` 경로로 나간다. 더 열 포트는 없고, **vlab-proxy(이 서버) → 데스크톱 · 빌드 VM 의 8890-8989/tcp** 만 열려 있으면 된다
 (사용자 PC 에는 열지 않는다).
@@ -167,7 +247,7 @@ cd deploy && docker compose up -d --build
 설정·DB 는 `vlab-config` 볼륨에 남는다.
 
 ## 백업
-`vlab-config` 볼륨이 전부다 (DB 와 그 암호화 키가 같이 있어야 복원된다).
+`vlab-config` 볼륨이 전부다 (DB 와 그 암호화 키가 같이 있어야 복원된다). 내장 디렉터리를 켰으면 `vlab-directory` 볼륨도 (위 "내장 디렉터리 > 백업").
 
 ```bash
 docker run --rm -v vlab_vlab-config:/data -v "$PWD":/backup alpine \
@@ -185,6 +265,9 @@ docker run --rm -v vlab_vlab-config:/data -v "$PWD":/backup alpine \
 | 웹 IDE 가 포털로 돌아옴(`?ide=expired`) | 링크는 1분 · 한 번만. 포털에서 다시 "열기". IDE 가 유휴 시간으로 꺼졌으면 다시 시작 |
 | 웹 IDE 가 502 | vlab-proxy → VM 8890-8989/tcp 가 막혀 있거나 IDE 가 아직 뜨는 중. 가속 자원 > GPU 작업 › 웹 IDE 의 상태 · 오류, VM 의 `~/.moavi/ide-<세션>.log` |
 | 웹 IDE "설치돼 있지 않음" | 템플릿에 jupyter(VS Code 는 code-server 도)가 없음 — 위 "템플릿 준비" |
+| 내장 디렉터리 컨테이너가 계속 재시작 | `docker compose logs vlab-directory` — `VLAB_DIRECTORY_IP` 가 비었거나, 이름 형식(NetBIOS 15자) 이 틀림. 53 번을 이미 쓰는 서비스(dnsmasq 등)가 그 주소에 있는지 |
+| 포털 로그인은 되는데 데스크톱 로그인이 안 됨 | 데스크톱이 도메인에 가입했는지(풀 > 도메인 가입), Windows 는 가입 뒤 재시작했는지, 데스크톱의 DNS 가 DC 인지 |
+| 도메인 가입이 NO_DNS | 데스크톱이 DC 를 DNS 로 쓰지 않음 — DHCP 의 DNS 를 DC 로, 또는 내장 디렉터리 설정의 "가입할 때 DNS 를 DC 로" |
 | 클러스터 연결 실패 | 엔진 컨테이너에서 노드 8006 접속, 사용자/비밀번호, 인증서 확인 옵션 |
 
 ```bash

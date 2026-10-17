@@ -27,6 +27,7 @@ import { SummaryPage } from './pages/SummaryPage';
 import { ReportPage } from './pages/ReportPage';
 import { UsagePage } from './pages/UsagePage';
 import { RolesPage } from './pages/RolesPage';
+import { AdDirectoryPage } from './pages/AdDirectoryPage';
 import { UsersPage } from './pages/UsersPage';
 import { AccelChecksPage } from './pages/AccelChecksPage';
 import { EnvCatalogPage } from './pages/EnvCatalogPage';
@@ -66,6 +67,7 @@ function pageBody(key: string, subId?: string) {
   if (key === 'labs/pools') return <ScheduledPoolsPage />;
   if (key === 'users/list') return <UsersPage />;
   if (key === 'users/roles') return <RolesPage />;
+  if (key === 'users/ad') return <AdDirectoryPage />;
   if (key === 'users/access') return <AccessPage username={subId} />;
   if (key === 'vms/golden') return <GoldenImagesPage />;
   if (key === 'vms/environments') return <EnvCatalogPage />;

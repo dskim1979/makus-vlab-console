@@ -12,6 +12,9 @@ import { PoolGpuPanel } from './PoolGpu';
 import { PoolPolicyPanel } from './PoolPolicy';
 import { PoolStoragePanel } from './PoolStorage';
 import { PoolGrantsPanel } from './PoolGrants';
+import { PoolDomainJoinPanel } from './BundledDirectory';
+import { directoryApi, joinCodeText, type DomainJoin } from '../../api/directory';
+import { useL } from './OpsPages';
 import type { MessageKey } from '../../i18n/messages';
 import { useAdminConsole, VmManageDialog, type ManagedDesktop } from './VmManage';
 
@@ -22,6 +25,7 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
   const desktops = useLoad(useCallback(() => adminApi.poolDesktops(poolId), [poolId]), [poolId]);
   const users = useLoad(adminApi.users);
   const [adding, setAdding] = useState(false);
+  const [joinRows, setJoinRows] = useState<Record<string, DomainJoin>>({});
   const [cloning, setCloning] = useState(false);
   const [editing, setEditing] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'info' | 'error'; text: string } | null>(null);
@@ -115,10 +119,12 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
       {notice && <div className={`alert ${notice.kind === 'error' ? 'error' : 'info'}`} role="status">{notice.text}</div>}
       {pool && <PoolPolicyPanel pool={pool} onChanged={pools.reload} />}
       {pool && <PoolStoragePanel pool={pool} />}
+      {pool && <PoolDomainJoinPanel pool={pool} />}
       {pool && <PoolGrantsPanel pool={pool} />}
       {pool && <PoolGpuPanel pool={pool} onChanged={() => { pools.reload(); desktops.reload(); }} />}
       <p className="muted small">{t('desk.assignNote')}</p>
 
+      <JoinStates poolId={poolId} tick={desktops.state} onRows={setJoinRows} />
       <LoadState value={desktops} retry={desktops.reload}>
         {(list) => list.length === 0 ? (
           <div className="empty"><p>{t('desk.empty')}</p></div>
@@ -132,7 +138,7 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
             </thead>
             <tbody>
               {list.map((d) => (
-                <DesktopRow key={d.id} d={d} users={users.state === 'ok' ? users.data : []}
+                <DesktopRow key={d.id} d={d} join={joinRows[d.id]} users={users.state === 'ok' ? users.data : []}
                   onAssign={(u) => act(() => adminApi.assign(d.id, u))}
                   onReset={() => resetOne(d)} onBase={() => retakeBase(d)}
                   onManage={() => setManaging({ id: d.id, name: d.name })} onScreen={() => adminConsole.start({ id: d.id, name: d.name })}
@@ -164,8 +170,8 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
   );
 }
 
-function DesktopRow({ d, users, onAssign, onReset, onBase, onRemove, onManage, onScreen }: {
-  d: AdminDesktop; users: AssignableUser[]; onAssign: (u: string | null) => void;
+function DesktopRow({ d, join, users, onAssign, onReset, onBase, onRemove, onManage, onScreen }: {
+  d: AdminDesktop; join?: DomainJoin; users: AssignableUser[]; onAssign: (u: string | null) => void;
   onReset: () => void; onBase: () => void; onRemove: () => void; onManage: () => void; onScreen: () => void;
 }) {
   const { t } = useI18n();
@@ -175,6 +181,7 @@ function DesktopRow({ d, users, onAssign, onReset, onBase, onRemove, onManage, o
       <td>
         <span className="strong">{d.name}</span>
         {d.has_base && <span className="chip chip-base" title={t('reset.hasBase')}>{t('reset.hasBase')}</span>}
+        {join && <JoinChip j={join} />}
       </td>
       <td className="num">{d.vmid}</td>
       <td>{d.node}</td>
@@ -362,4 +369,34 @@ export function CloneDialog({ pool: fixed, pools, templateVmid, defaultFull = fa
       </label>
     </Dialog>
   );
+}
+
+// the domain join of each desktop while the bundled directory is on; asked again every 20 s while
+// one is still joining (the engine's automatic join)
+function JoinStates({ poolId, tick, onRows }: { poolId: string; tick: unknown; onRows: (r: Record<string, DomainJoin>) => void }) {
+  const [on, setOn] = useState(false);
+  const [n, setN] = useState(0);
+  useEffect(() => { directoryApi.get().then((d) => setOn(d.enabled && d.active)).catch(() => setOn(false)); }, []);
+  useEffect(() => {
+    if (!on) { onRows({}); return undefined; }
+    let live = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    directoryApi.joins(poolId).then((rows) => {
+      if (!live) return;
+      onRows(Object.fromEntries(rows.filter((r) => r.state !== 'unknown').map((r) => [r.desktop_id, r])));
+      if (rows.some((r) => r.state === 'pending')) timer = setTimeout(() => setN((x) => x + 1), 20000);
+    }).catch(() => undefined);
+    return () => { live = false; if (timer) clearTimeout(timer); };
+  }, [on, poolId, tick, n]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
+function JoinChip({ j }: { j: DomainJoin }) {
+  const { L } = useL();
+  if (j.state === 'joined') return <span className="chip chip-ok" title={j.computer}>{L('조인됨', 'Joined')}</span>;
+  if (j.state === 'pending') return <span className="chip" title={j.detail}>{L('조인 중', 'Joining')}</span>;
+  if (j.state === 'failed' || j.state === 'other') {
+    return <span className="chip chip-warn" title={j.detail}>{L('실패', 'Failed')}: {joinCodeText(j.code, L)}</span>;
+  }
+  return null;
 }

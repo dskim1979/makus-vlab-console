@@ -157,6 +157,8 @@ export type PoolPolicy = {
   browser_ssh?: boolean; researcher_ssh?: boolean; ssh_files?: 'off' | 'down' | 'up' | 'both';
   // the portal card's screen picture (absent from engines before it: counts as on)
   screen_thumbnail?: boolean;
+  // new, cloned and reset desktops join the bundled directory by themselves; null = on while it is in use
+  auto_domain_join?: boolean | null;
 };
 export type PoolPolicyAnswer = { policy: PoolPolicy; defaults: PoolPolicy; reset_allowed: boolean };
 
