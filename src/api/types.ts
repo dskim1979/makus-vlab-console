@@ -153,6 +153,8 @@ export type PoolPolicy = {
   // a working desktop (busy GPU / CPU, a build job, the user's "작업 중") is not shut down or reset; the step waits
   defer_when_busy: boolean; busy_gpu_pct: number; busy_cpu_pct: number; defer_max_hours: number;
   web_ide: ('jupyter' | 'vscode')[]; web_ide_idle_min: number;   // 웹 IDE (research.ts)
+  // SSH: 포털 브라우저 터미널(Guacamole), 연구자 자기 도구(Warpgate), 둘의 파일 전송(SFTP) 정책
+  browser_ssh?: boolean; researcher_ssh?: boolean; ssh_files?: 'off' | 'down' | 'up' | 'both';
 };
 export type PoolPolicyAnswer = { policy: PoolPolicy; defaults: PoolPolicy; reset_allowed: boolean };
 

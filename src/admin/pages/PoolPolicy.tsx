@@ -163,6 +163,25 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
                 'Linux desktops and build VMs need JupyterLab (and code-server) installed; see 가속 자원 > 웹 IDE 세션, "preparing the template".')}</small>
             </label>
           )}
+          <span className="field-label">{L('SSH 접속 (Linux 데스크톱)', 'SSH access (Linux desktops)')}</span>
+          <label className="check"><input type="checkbox" checked={!!p.browser_ssh} onChange={(e) => set('browser_ssh', e.target.checked)} />
+            <span>{L('브라우저 SSH 터미널 (내장 Guacamole, 포털에서 열기)', 'Browser SSH terminal (bundled Guacamole, open from the portal)')}</span></label>
+          <label className="check"><input type="checkbox" checked={!!p.researcher_ssh} onChange={(e) => set('researcher_ssh', e.target.checked)} />
+            <span>{L('연구자 네이티브 SSH — 자기 도구(PuTTY · scp · WinSCP · VS Code Remote-SSH)로 Warpgate 경유 접속',
+              'Researcher native SSH - own tools (PuTTY, scp, WinSCP, VS Code Remote-SSH) through Warpgate')}</span></label>
+          {(p.browser_ssh || p.researcher_ssh) && (
+            <label>
+              <span>{L('파일 전송 (SFTP/scp)', 'File transfer (SFTP/scp)')}</span>
+              <select value={p.ssh_files ?? 'off'} onChange={(e) => set('ssh_files', e.target.value as 'off' | 'down' | 'up' | 'both')}>
+                <option value="off">{L('없음', 'None')}</option>
+                <option value="down">{L('내려받기만', 'Download only')}</option>
+                <option value="up">{L('올리기만', 'Upload only')}</option>
+                <option value="both">{L('양방향', 'Both')}</option>
+              </select>
+              <small className="muted">{L('연구자 네이티브 SSH는 셸을 주므로 유출을 완전히 막지 못합니다. 엄격한 풀은 이 기능을 끄고 브라우저 터미널만 허용하세요. 전송은 Warpgate가 기록합니다.',
+                'Native SSH gives a shell and cannot fully prevent exfiltration. For strict pools, turn it off and allow only the browser terminal. Transfers are recorded by Warpgate.')}</small>
+            </label>
+          )}
         </div>
       )}
 
