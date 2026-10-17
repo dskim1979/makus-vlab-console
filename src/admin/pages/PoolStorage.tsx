@@ -158,6 +158,17 @@ export function StorageStep({ s, set, hasPassword }: {
                   placeholder={hasPassword ? L('저장됨 · 바꿀 때만 입력', 'Stored - type only to change it') : ''}
                   onChange={(e) => set('smb_password', e.target.value)} /></label>
             )}
+            <span className="field-label">{L('Windows 데스크톱 저장 위치', 'Where Windows desktops save')}</span>
+            <label className="check"><input type="checkbox" checked={!!s.win_redirect} disabled={!s.folders.home.enabled}
+              onChange={(e) => { set('win_redirect', e.target.checked); if (!e.target.checked) set('win_block_local', false); }} />
+              <span>{L(`바탕 화면 · 문서 · 다운로드 · 사진을 홈 드라이브(${s.folders.home.drive}:)로 — 파일이 NAS에 저장되고 백업됩니다`,
+                `Desktop, Documents, Downloads and Pictures on the home drive (${s.folders.home.drive}:) - files are kept and backed up on the NAS`)}</span></label>
+            <label className="check"><input type="checkbox" checked={!!s.win_block_local} disabled={!s.win_redirect}
+              onChange={(e) => set('win_block_local', e.target.checked)} />
+              <span>{L('C 드라이브 숨기고 막기 — 탐색기 · 열기/저장 창에서 C:가 보이지 않습니다(프로그램은 그대로 실행)',
+                'Hide and refuse the C: drive - not shown in Explorer or the open / save dialogs (programs still run)')}</span></label>
+            {s.win_redirect && <small className="muted hint-indent">{L('다음 로그인부터 적용됩니다. C 드라이브 막기는 이 VM의 모든 계정(관리자 포함)에 적용되니, 관리 작업은 관리 콘솔 · 원격 지원으로 하세요. AD가 있으면 GPO 폴더 리디렉션을 써도 됩니다.',
+              'Takes effect at the next sign-in. Hiding C: applies to every account on the VM (administrators too) - do admin work from the console or remote support. With AD a GPO folder redirection works too.')}</small>}
           </>
         )}
         <div className="callout"><Icon name="info" size={18} />

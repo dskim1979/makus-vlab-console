@@ -106,9 +106,9 @@
 |---|---|
 | **풀 상세** — 정책 · 이용 권한 · GPU 정책 패널, 데스크톱 할당 · 초기화 | **이용 권한** — 사용자 · 부서(하위 포함) · AD/LDAP 그룹, 공유 풀의 데스크톱당 최대 접속 |
 | ![풀 상세](docs/images/pool-detail.png) | ![이용 권한](docs/images/pool-grants.png) |
-| **풀 편집** — 이름 · 설명 · 사용/중지, 공유 풀 최대 접속, RDP · 브라우저 RDP 게이트웨이 | **풀 정책** — 접속 방식(noVNC · SPICE · RDP · 브라우저 RDP · 웹 IDE), 클립보드 · USB, 전원 · 시간 · 초기화 |
+| **풀 편집** — 이름 · 설명 · 사용/중지, 공유 풀 최대 접속, RDP · 브라우저 RDP 게이트웨이 | **풀 정책** — 접속 방식(noVNC · SPICE · RDP · 브라우저 RDP · 웹 IDE), 클립보드 · USB · RDP 내 PC 드라이브 · 프린터, 전원 · 시간 · 초기화 |
 | ![풀 편집](docs/images/pool-edit.png) | ![풀 정책](docs/images/pool-policy.png) |
-| **풀 정책 › 공유 저장소** — NFS(autofs) · SMB, home · project · scratch 폴더 템플릿과 할당량 · 보관 기간 | **풀 상세 › 공유 저장소** — 마지막 확인 결과, 사용자별 사용량, 템플릿에 넣을 autofs 파일 |
+| **풀 정책 › 공유 저장소** — NFS(autofs) · SMB, home · project · scratch 폴더 템플릿과 할당량 · 보관 기간, Windows 바탕 화면 · 문서 · 다운로드를 홈 드라이브로 · C 드라이브 숨기기 | **풀 상세 › 공유 저장소** — 마지막 확인 결과, 사용자별 사용량, 템플릿에 넣을 autofs 파일 |
 | ![공유 저장소 설정](docs/images/pool-policy-storage.png) | ![공유 저장소 상태](docs/images/pool-storage.png) |
 | **접속 설정 › 게이트웨이** — RDP 게이트웨이 · MS RD 게이트웨이 · Guacamole(내장 자동 등록), 포트 응답 확인 | **접속 설정 › USB 장치** — VID · PID 등록, FPGA JTAG 케이블 기본 제공 |
 | ![게이트웨이](docs/images/gateways.png) | ![USB 장치](docs/images/usb-library.png) |

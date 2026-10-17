@@ -56,6 +56,7 @@ function Summary({ p, storage }: { p: PoolPolicy; storage: PoolStorage | null })
     `${t('pol.s.clip')}: ${t(`pol.clip.${p.clipboard}` as MessageKey)}`,
     `USB: ${p.usb_redirect ? t('pol.on') : t('pol.offShort')}`,
   ];
+  if (p.client_drives) chips.push(L('내 PC 드라이브 연결', 'PC drives'));
   if (p.start_on_connect) chips.push(t('pol.startOnConnect'));
   if (p.idle_shutdown_min) chips.push(`${t('pol.idle')} ${p.idle_shutdown_min}${t('pol.min')}`);
   if (p.reset_on_logout) chips.push(t('pol.resetOnLogout'));
@@ -181,6 +182,14 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
           <label className="check"><input type="checkbox" checked={p.usb_autoshare} disabled={!p.usb_redirect}
             onChange={(e) => set('usb_autoshare', e.target.checked)} /><span>{t('pol.usbAuto')}</span></label>
           <div className="callout"><Icon name="info" size={18} /><p>{t('pol.usbNote')}</p></div>
+          <span className="field-label">{L('RDP 접속 (Windows 앱 · 브라우저 RDP)', 'RDP connections (Windows app, browser RDP)')}</span>
+          <label className="check"><input type="checkbox" checked={!!p.client_drives} onChange={(e) => set('client_drives', e.target.checked)} />
+            <span className="strong">{L('내 PC 드라이브 연결 허용', 'Allow the PC\'s drives')}</span></label>
+          <small className="muted hint-indent">{L('사용자 PC의 C: · USB 메모리가 데스크톱 안에 보입니다. 끄면 이 길로 파일을 들이거나 내갈 수 없습니다(기본: 끔).',
+            'The user\'s PC drives and USB sticks show inside the desktop. Off, files cannot be carried in or out that way (default: off).')}</small>
+          <label className="check"><input type="checkbox" checked={p.client_printers ?? true} onChange={(e) => set('client_printers', e.target.checked)} />
+            <span className="strong">{L('내 PC 프린터로 인쇄', 'Print to the PC\'s printers')}</span></label>
+          <small className="muted hint-indent">{L('브라우저 RDP는 PDF로 내려받아 인쇄합니다.', 'Browser RDP prints to a PDF the browser downloads.')}</small>
         </div>
       )}
 
@@ -229,6 +238,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
             <dt>{L('웹 IDE', 'Web IDE')}</dt><dd>{(p.web_ide ?? []).length ? `${p.web_ide.map((k) => (k === 'jupyter' ? 'JupyterLab' : 'VS Code')).join(', ')} · ${L(`유휴 ${p.web_ide_idle_min}분 뒤 끔`, `ends after ${p.web_ide_idle_min} min unused`)}` : t('pol.offShort')}</dd>
             <dt>{t('pol.s.clip')}</dt><dd>{t(`pol.clip.${p.clipboard}` as MessageKey)}</dd>
             <dt>{t('pol.s.usb')}</dt><dd>{p.usb_redirect ? `${t('pol.on')}${p.usb_autoshare ? ` · ${t('pol.usbAuto')}` : ''}` : t('pol.offShort')}</dd>
+            <dt>{L('RDP 드라이브 · 프린터', 'RDP drives, printers')}</dt><dd>{`${L('내 PC 드라이브', 'PC drives')} ${p.client_drives ? t('pol.on') : t('pol.offShort')} · ${L('프린터', 'printers')} ${(p.client_printers ?? true) ? t('pol.on') : t('pol.offShort')}`}</dd>
             <dt>{t('pol.s.power')}</dt><dd>{[p.start_on_connect && t('pol.startOnConnect'),
               p.idle_shutdown_min ? `${t('pol.idle')} ${p.idle_shutdown_min}${t('pol.min')}` : '',
               p.reset_on_logout && t('pol.resetOnLogout')].filter(Boolean).join(' · ') || t('pol.none')}</dd>

@@ -13,6 +13,8 @@ export type PoolStorage = {
   enabled: boolean; kind: StorageKind; server: string; share: string; nfs_version: '3' | '4.1' | 'krb5'; options: string;
   linux_path: string; create_by: 'user' | 'engine'; admin_path: string; private: boolean; build_workdir: boolean;
   smb_auth: SmbAuth; smb_domain: string; smb_user: string; has_password: boolean;
+  // Windows office desktops: 바탕 화면 · 문서 · 다운로드 · 사진 on the home drive; C: hidden and refused
+  win_redirect: boolean; win_block_local: boolean;
   folders: Record<FolderKey, FolderTemplate>;
 };
 export type PoolStorageInput = Omit<PoolStorage, 'has_password'> & { smb_password?: string; clear_password?: boolean };
@@ -34,6 +36,7 @@ export const FOLDER_KEYS: FolderKey[] = ['home', 'project', 'scratch'];
 export const STORAGE_DEFAULTS: PoolStorage = {
   enabled: false, kind: 'nfs', server: '', share: '', nfs_version: '3', options: '', linux_path: '/nas', create_by: 'user', admin_path: '',
   private: true, build_workdir: true, smb_auth: 'kerberos', smb_domain: '', smb_user: '', has_password: false,
+  win_redirect: false, win_block_local: false,
   folders: {
     home: { enabled: true, rule: 'home/{username}', drive: 'H', quota_gb: 0 },
     project: { enabled: false, rule: 'projects/{department}', drive: 'P', quota_gb: 0 },
@@ -142,6 +145,8 @@ const mock = {
       if (s.create_by === 'engine' && !s.admin_path) bad('create_by engine needs admin_path (the export mounted on the engine host)');
       if (s.kind === 'smb' && s.smb_auth === 'service' && (!s.smb_user || !(s.smb_password || (cur.has_password && !s.clear_password))))
         bad('the SMB service account needs a user name and a password');
+      if (s.win_redirect && !s.folders.home.enabled) bad('win_redirect needs the home folder (the drive the folders go to)');
+      if (s.win_block_local && !s.win_redirect) bad('win_block_local needs win_redirect - the folders users save to must be on the NAS first');
     }
     const { smb_password, clear_password, ...rest } = s;
     store[poolId] = clone({ ...rest, has_password: smb_password ? true : clear_password ? false : cur.has_password });

@@ -144,6 +144,8 @@ export type PoolPolicy = {
   protocols: ('vnc' | 'spice' | 'rdp' | 'guac')[]; spice_fullscreen: boolean;
   clipboard: Clipboard;
   usb_redirect: boolean; usb_autoshare: boolean;
+  // RDP / browser RDP: the user's own PC drives and printers in the desktop
+  client_drives: boolean; client_printers: boolean;
   start_on_connect: boolean; idle_shutdown_min: number; reset_on_logout: boolean;
   allow_power: boolean; max_session_hours: number;
   // a working desktop (busy GPU / CPU, a build job, the user's "작업 중") is not shut down or reset; the step waits
