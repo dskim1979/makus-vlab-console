@@ -1,15 +1,13 @@
 # MAKUS vLAB (working name) - one Linux host, one `docker compose up -d`. Install guide: README.md here.
 #
-#   vlab-proxy   console + HTTPS (443), passes /api to the engine   <- makus-vlab-console (this repo)
-#                and /guacamole/ to guacamole (browser RDP on the same 443)
-#   vlab-engine  vLAB engine, API only, no web UI (WEB_UI=0)          <- makus-vlab
-#   guacd        Apache Guacamole proxy daemon (speaks RDP to the desktops)
-#   guacamole    Guacamole web app, guacamole-auth-json only: links signed by the engine
-#   vlab-guac-key  one-shot: the shared Guacamole key (VLAB_GUAC_KEY in .env, or made on first
-#                start) into the vlab-guac volume; the engine registers the bundled Guacamole as a
-#                gateway with it by itself
+# REMOVAL commit (apply only after real-cluster verification passes): the bundled Guacamole
+# (guacd / guacamole / vlab-guac-key / vlab-guac) has been removed — Warpgate is now the web RDP/SSH.
+# Turn Warpgate on (VLAB_WARPGATE=1) and switch web RDP to it (console: web_rdp_provider=warpgate)
+# BEFORE applying this, or there is no web RDP. Rollback: git revert this commit.
 #
-# Browser RDP off: VLAB_GUACAMOLE=0 in .env (no guacd/guacamole containers, the gateway disabled).
+#   vlab-proxy   console + HTTPS (443), passes /api to the engine   <- makus-vlab-console (this repo)
+#   vlab-engine  vLAB engine, API only, no web UI (WEB_UI=0)          <- makus-vlab
+#   warpgate     access gateway (bastion) for desktop RDP/SSH/VNC (VLAB_WARPGATE=1)
 #
 # Built from the two repositories checked out side by side:
 #   <dir>/makus-vlab            (engine)
@@ -19,29 +17,6 @@
 name: vlab
 
 services:
-  vlab-guac-key:
-    image: alpine:3.20.3
-    restart: "no"
-    environment:
-      VLAB_GUAC_KEY: ${VLAB_GUAC_KEY:-}     # optional; empty -> keep the one in the volume, or make one
-    volumes:
-      - vlab-guac:/guac
-    command:
-      - sh
-      - -c
-      - |
-        set -e
-        f=/guac/json-secret-key
-        k=$$(printf %s "$$VLAB_GUAC_KEY" | tr -d ' \r\n' | tr A-F a-f)
-        if [ -n "$$k" ]; then
-          printf %s "$$k" | grep -Eq '^[0-9a-f]{32}$$' || { echo "VLAB_GUAC_KEY must be 32 hex digits (openssl rand -hex 16)" >&2; exit 1; }
-          printf %s "$$k" > "$$f"
-        elif [ ! -s "$$f" ]; then
-          head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n' > "$$f"
-          echo "vlab: made a new Guacamole key in the vlab-guac volume"
-        fi
-        chmod 644 "$$f"
-
   vlab-engine:
     image: ${VLAB_ENGINE_IMAGE:-vlab-engine:dev}
     build:
@@ -49,25 +24,19 @@ services:
       args:
         WEB_UI: "0"
     restart: unless-stopped
-    depends_on:
-      vlab-guac-key:
-        condition: service_completed_successfully
     environment:
       PEGAPROX_BEHIND_PROXY: "1"            # plain HTTP behind vlab-proxy; VNC websocket on the same port
       PEGAPROX_HOST: "0.0.0.0"              # reachable from vlab-proxy (the port is not published)
       PEGAPROX_TRUSTED_PROXIES: "172.16.0.0/12,192.168.0.0/16,10.0.0.0/8"   # X-Forwarded-For from the proxy
       PEGAPROX_HTTP_PORT: "-1"
-      VLAB_GUAC_BUILTIN: ${VLAB_GUACAMOLE:-1}               # the bundled Guacamole as a gateway (0: disabled)
       VLAB_PROFILE: ${VLAB_PROFILE:-}                       # optional: general | small_lab | university | research (first start only)
       VLAB_FEATURES: ${VLAB_FEATURES:-}                     # optional: fpga,gpuai
-      VLAB_GUAC_KEY_FILE: /etc/vlab/guac/json-secret-key
       VLAB_HOSTNAME: ${VLAB_HOSTNAME:-vlab.local}           # the gateway's address as shown in the console
       VLAB_HTTPS_PORT: ${VLAB_HTTPS_PORT:-443}
       TZ: ${TZ:-Asia/Seoul}
     volumes:
       - vlab-config:/app/config             # database (encrypted), master key, settings - back this up
       - vlab-logs:/app/logs
-      - vlab-guac:/etc/vlab/guac:ro
     expose:
       - "5000"
     networks: [vlab]
@@ -88,42 +57,10 @@ services:
       - vlab-tls:/etc/vlab/tls              # tls.crt + tls.key; replace with your own certificate
     networks: [vlab]
 
-  guacd:
-    image: guacamole/guacd:${VLAB_GUAC_VERSION:-1.6.0}
-    restart: unless-stopped
-    deploy:
-      replicas: ${VLAB_GUACAMOLE:-1}        # 0: browser RDP off
-    environment:
-      TZ: ${TZ:-Asia/Seoul}
-    networks: [vlab]                        # needs to reach the desktops' RDP port (3389)
-
-  guacamole:
-    image: guacamole/guacamole:${VLAB_GUAC_VERSION:-1.6.0}
-    restart: unless-stopped
-    deploy:
-      replicas: ${VLAB_GUACAMOLE:-1}
-    depends_on:
-      guacd:
-        condition: service_started
-      vlab-guac-key:
-        condition: service_completed_successfully
-    environment:
-      GUACD_HOSTNAME: guacd
-      JSON_ENABLED: "true"                  # guacamole-auth-json, the only login: links signed by the engine
-      REMOTE_IP_VALVE_ENABLED: "true"       # client address from vlab-proxy's X-Forwarded-For
-      TZ: ${TZ:-Asia/Seoul}
-    volumes:
-      - vlab-guac:/etc/vlab/guac:ro
-    # JSON_SECRET_KEY from the shared key file, then the image's own start
-    command: ["sh", "-c", "export JSON_SECRET_KEY=$$(cat /etc/vlab/guac/json-secret-key) && exec /opt/guacamole/bin/entrypoint.sh"]
-    expose:
-      - "8080"                              # not published: reached through vlab-proxy /guacamole/
-    networks: [vlab]
-
   # --- Warpgate 접근 게이트웨이(bastion) — 선택(기본 꺼짐) --------------------------------
   # VLAB_WARPGATE=1 로 켠다. 모든 데스크톱 RDP/SSH/VNC를 Warpgate 하나로 중계해 대상 IP를
-  # 숨기고 세션을 녹화하며, 접속할 때 비밀번호를 저장·전달하지 않는다(1회용 티켓). Guacamole는
-  # 그대로 두므로 둘 다 켤 수 있다(전환식). 켠 뒤 Warpgate 관리자 UI(https://<host>:8888)에서
+  # 숨기고 세션을 녹화하며, 접속할 때 비밀번호를 저장·전달하지 않는다(1회용 티켓). 이 제거 커밋에서는
+  # Guacamole를 걷어냈으므로 웹 RDP/SSH는 Warpgate가 담당한다. 켠 뒤 Warpgate 관리자 UI(https://<host>:8888)에서
   # 관리자 API 토큰을 만들어 MOAVI Desk 콘솔 > 플랫폼 설정 > Warpgate 에 붙여넣어야 연동된다.
   #
   # warpgate-setup: 첫 기동 때만 /data/warpgate.yaml 을 unattended-setup으로 만든다(이미
@@ -173,5 +110,4 @@ volumes:
   vlab-config:
   vlab-logs:
   vlab-tls:
-  vlab-guac:                                # the shared Guacamole key
   warpgate-data:                            # Warpgate 데이터·설정·세션 녹화 (VLAB_WARPGATE=1)

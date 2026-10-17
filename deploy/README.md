@@ -6,9 +6,7 @@ Linux 서버 한 대에 `docker compose up` 한 번으로 설치한다. 시험�
 |---|---|---|
 | `vlab-proxy` | 콘솔 화면, HTTPS(443), `/api` 를 엔진으로 전달 (VNC 웹소켓 포함) | 이 저장소 |
 | `vlab-engine` | vLAB 엔진 (화면 없이 API 만, `WEB_UI=0`) | `makus-vlab` |
-| `guacd`, `guacamole` | 브라우저 RDP — Apache Guacamole 1.6 + guacamole-auth-json, 같은 443 의 `/guacamole/` (끄기: `VLAB_GUACAMOLE=0`) | 공식 이미지 |
-| `vlab-guac-key` | 시작할 때 한 번 돌고 끝남 — Guacamole 공유 키를 `vlab-guac` 볼륨에 둔다 | `alpine` |
-| `warpgate`, `warpgate-setup` | 접근 게이트웨이(bastion) — 데스크톱 RDP/SSH/VNC를 한 곳으로 중계, 1회용 티켓·세션 녹화·비밀번호 비저장 (켜기: `VLAB_WARPGATE=1`, 기본 꺼짐) | 공식 이미지 |
+| `warpgate`, `warpgate-setup` | 접근 게이트웨이(bastion) — 데스크톱 RDP/SSH/VNC를 한 곳으로 중계, 웹 RDP/SSH·1회용 티켓·세션 녹화·비밀번호 비저장 (켜기: `VLAB_WARPGATE=1`) | 공식 이미지 |
 
 사용자 PC 에서 열어야 하는 포트는 **443 하나**다. SPICE 를 쓰면 사용자 PC → Proxmox 노드 **3128**(spiceproxy)도 열어야 한다.
 엔진 → Proxmox 는 **8006**(API).
@@ -29,7 +27,7 @@ git clone <makus-vlab-console 저장소> makus-vlab-console
 cd ~/vlab/makus-vlab-console/deploy
 echo "VLAB_HOSTNAME=vlab.lab.example" > .env      # 사용자가 접속할 이름
 docker compose up -d --build
-docker compose ps                                  # vlab-proxy·vlab-engine·guacd·guacamole running (vlab-guac-key 는 exited 0)
+docker compose ps                                  # vlab-proxy·vlab-engine (+ VLAB_WARPGATE=1 이면 warpgate) running
 ```
 
 브라우저로 `https://vlab.lab.example` 을 연다. 처음에는 자체 서명 인증서라 경고가 나온다 → 아래 "인증서 바꾸기".
@@ -51,31 +49,15 @@ docker compose ps                                  # vlab-proxy·vlab-engine·gu
 `VLAB_FEATURES=gpuai,fpga`(더할 묶음, 쉼표)를 넣으면 엔진이 처음 한 번 그 값으로 정하고 첫 설정의 프로필 화면을 건너뛴다.
 이미 고른 뒤에는 `.env` 를 바꿔도 덮어쓰지 않는다(콘솔에서 바꾼다).
 
-## 브라우저 RDP (Guacamole)
-설치 묶음에 Guacamole 이 같이 들어 있어서, 위의 `docker compose up -d` 로 함께 올라간다. 따로 할 일은 없다.
-같은 443 의 `/guacamole/` 경로로 나가므로 더 열 포트도 없다. guacd 컨테이너 → 데스크톱 **3389** 만 열려 있으면 된다.
+## 브라우저 RDP · SSH
+번들 Guacamole 는 이 제거 커밋에서 걷어냈다. 브라우저 RDP·브라우저 SSH 는 Warpgate 가 맡는다(아래).
+Warpgate 를 켜지 않으면 브라우저 RDP 가 없다 — 이 커밋은 Warpgate 웹 RDP 를 실클러스터에서 검증하고
+`web_rdp_provider=warpgate` 로 바꾼 **뒤에만** 적용한다. 되돌리기: 이 커밋을 `git revert`.
 
-- **공유 키**: 첫 시작 때 `vlab-guac-key` 가 16진수 32자 키를 만들어 `vlab-guac` 볼륨에 둔다. 엔진과 guacamole 이 같은 파일을 읽는다.
-  정해진 키를 쓰려면 `.env` 에 `VLAB_GUAC_KEY=<16진수 32자>` (`openssl rand -hex 16`) 를 넣는다 — 볼륨의 키보다 앞선다.
-- **게이트웨이 등록**: 엔진이 시작할 때 **게이트웨이** 화면에 "MOAVI Desk 내장 Guacamole" 을 스스로 등록하고 키를 넣는다
-  (표시 주소 `VLAB_HOSTNAME`, 포트 `VLAB_HTTPS_PORT`/443). 사용자에게 주는 링크는 사용자가 콘솔에 들어온 주소 그대로
-  `https://<그 주소>/guacamole/?data=…` (5분짜리 서명 링크)라서, IP 로 들어오든 이름으로 들어오든 맞는다.
-  이 게이트웨이의 키는 콘솔에서 바꾸지 않는다 — 엔진이 다시 시작할 때 볼륨의 키로 되돌린다.
-- 포털에서 외부 데스크톱의 **브라우저로 연결** 을 눌러 확인한다. Guacamole 자체 로그인 화면은 쓰지 않는다 — 엔진이 서명한 링크로만 들어간다.
-
-키 바꾸기 (`.env` 의 `VLAB_GUAC_KEY` 를 새 값으로 한 뒤):
-```bash
-docker compose up -d --force-recreate vlab-guac-key vlab-engine guacamole
-```
-
-**끄기** (브라우저 RDP 를 쓰지 않는 현장): `.env` 에 `VLAB_GUACAMOLE=0` 을 넣고 `docker compose up -d --remove-orphans`.
-guacd·guacamole 컨테이너가 만들어지지 않고(이미 있으면 내려간다), 내장 게이트웨이는 "사용 안 함" 이 된다. 다시 켜려면 줄을 지우고 `docker compose up -d`.
-별도로 둔 Guacamole 을 쓰려면 끈 다음 **게이트웨이** 화면에서 그 서버(주소·포트·공유 키)를 추가한다.
-
-## Warpgate 접근 게이트웨이(bastion) — 선택
+## Warpgate 접근 게이트웨이(bastion)
 모든 데스크톱 RDP/SSH/VNC 를 Warpgate(Apache-2.0) 한 곳으로 중계한다. 대상 IP 가 사용자에게 숨고,
 세션이 녹화되며, 접속할 때 **사용자·데스크톱 비밀번호를 저장·전달하지 않는다**(그 사용자+그 대상에만
-쓸 수 있는 1회용·단시간 티켓). Guacamole/MS RD 게이트웨이와 함께 켤 수 있다(전환식). 기본은 꺼짐.
+쓸 수 있는 1회용·단시간 티켓). 번들 Guacamole 를 걷어낸 뒤에는 브라우저 RDP/SSH 도 Warpgate 가 맡으므로 `VLAB_WARPGATE=1` 이 필요하다.
 
 1. `.env` 에 다음을 넣고 `docker compose up -d`:
    ```
@@ -113,15 +95,14 @@ VS Code Remote-SSH 로 데스크톱에 평소처럼 붙되 Warpgate를 거친다
 **끄기**: `.env` 에서 `VLAB_WARPGATE=0` (또는 줄 삭제) 후 `docker compose up -d --remove-orphans`.
 `warpgate-data` 볼륨(설정·세션 녹화)은 남는다.
 
-### 공존·전환(cutover) 체크리스트
-Warpgate는 **추가(additive)** 이고, 브라우저 RDP는 실제 Warpgate+클러스터에서 검증되기 전까지
-**Guacamole가 기본**이다(둘 다 꺼지는 상태 없음). 전환은 사용자가 아래를 확인한 **뒤에만** 한다:
+### 전환(cutover) — 이 제거 커밋의 전제와 롤백
+이 커밋은 **전환이 끝난 뒤의 상태**다. 적용 전에 다음이 모두 끝나 있어야 한다:
 1. 실클러스터 검증(엔진 `docs/warpgate-gateway.md` 4-3): 브라우저 RDP·네이티브 RDP·네이티브 SSH·
    브라우저 SSH·VNC·세션 녹화 재생·직접 접속 차단·1회용 티켓·비밀번호 비저장·디렉터리 로그인.
-2. 통과하면 콘솔 플랫폼 설정 > Warpgate 에서 `web_rdp_provider` 를 `warpgate` 로 바꾼다.
-3. 그 뒤에야 Guacamole·`/ssh`·rdpGW 제거 커밋(검증 후 전용, 별도 커밋)을 적용한다.
-- **롤백**: 문제가 생기면 `web_rdp_provider` 를 `guac` 로 되돌리고(즉시 Guacamole 복귀), 제거 커밋을
-  적용했다면 `git revert`. `VLAB_GUACAMOLE=1` 이면 Guacamole는 언제든 되살아난다.
+2. 콘솔 플랫폼 설정 > Warpgate 에서 `web_rdp_provider` 를 `warpgate` 로 바꿔 둔다.
+3. 엔진의 `/ssh` 제거 커밋(별도)도 같이 적용한다.
+- **롤백**: 이 커밋을 `git revert` 하고 `docker compose up -d` 하면 번들 Guacamole(guacd·guacamole·
+  vlab-guac-key·`/guacamole/`)가 돌아온다. 엔진에서 `web_rdp_provider` 를 `guac` 로 되돌린다.
 
 ## 데스크톱 직접 접속 차단 (Proxmox 보안 그룹)
 사용자가 데스크톱 안에서 IP 를 알아내 원격 데스크톱·SSH 로 직접 붙는 길을 막아, 모든 접속이 MOAVI Desk
@@ -191,9 +172,6 @@ docker run --rm -v vlab_vlab-config:/data -v "$PWD":/backup alpine \
 | 로그인 후 저장할 때 `CSRF validation failed` | 프록시가 Host 를 바꾸고 있다. 앞에 다른 프록시(L4/L7)를 두면 원래 Host 를 그대로 넘겨야 한다 |
 | 콘솔 화면이 "연결이 끊어졌습니다" | VM 이 켜져 있는지, 엔진 → 노드 8006 이 열려 있는지. `docker compose logs vlab-engine` |
 | SPICE 파일이 열리지 않음 | virt-viewer 설치, 사용자 PC → 노드 3128 |
-| 브라우저 RDP 가 502 | Guacamole 이 안 떠 있다: `.env` 에 `VLAB_GUACAMOLE=0` 이 있는지, `docker compose logs vlab-guac-key guacamole` (`VLAB_GUAC_KEY` 형식이 틀리면 키 단계에서 멈춘다) |
-| 브라우저 RDP 링크가 로그인 화면/거부 | 엔진과 guacamole 의 키가 다르다(키를 바꾼 뒤 둘 다 다시 만들지 않음 — 위 "키 바꾸기"), 또는 서버 시계가 틀리다(링크 5분 유효) |
-| Guacamole 화면 뒤 "연결 오류" | guacd → 데스크톱 3389, 데스크톱의 RDP 허용·NLA 설정. `docker compose logs guacd` |
 | Warpgate 연결 테스트 실패 | base URL(`https://<호스트>:8888`)·API 토큰이 맞는지, `VLAB_WARPGATE=1` 로 떠 있는지. `docker compose logs warpgate warpgate-setup` (`VLAB_WARPGATE_ADMIN_PASSWORD` 가 없으면 setup 이 멈춘다) |
 | Warpgate 연결 뒤 "연결 오류" | Warpgate → 데스크톱 3389/22/VNC 가 닿는지(같은 `vlab` 네트워크·방화벽 relay), RDP 는 데스크톱의 NLA 설정 확인 |
 | 웹 IDE 가 포털로 돌아옴(`?ide=expired`) | 링크는 1분 · 한 번만. 포털에서 다시 "열기". IDE 가 유휴 시간으로 꺼졌으면 다시 시작 |

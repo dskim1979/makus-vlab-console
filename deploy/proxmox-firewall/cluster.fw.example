@@ -18,8 +18,8 @@
 #
 # ipset: 데스크톱에 접속을 걸어도 되는 곳만 넣는다.
 #   moavi-relay = MOAVI Desk 서버(들)와 등록한 게이트웨이(Warpgate bastion, MS RD 게이트웨이,
-#   별도 Guacamole 등). 내장 Guacamole·웹 IDE 는 vlab-engine/vlab-proxy 와 같은 호스트이므로
-#   그 주소만으로 충분하다.
+#   별도 Guacamole 등). 웹 IDE 는 vlab-engine/vlab-proxy 와 같은 호스트이므로 그 주소만으로 충분하다
+#   (번들 Guacamole 는 제거됨 — 브라우저 RDP/SSH 는 Warpgate).
 #   Warpgate(bastion)를 쓰면 모든 RDP/SSH/VNC가 Warpgate 한 곳에서만 들어오므로, moavi-relay 를
 #   Warpgate 주소 하나로 좁혀 데스크톱 노출을 최소화할 수 있다.
 
