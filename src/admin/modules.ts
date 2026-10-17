@@ -99,7 +99,8 @@ export const MODULES: AdminModule[] = [
       { id: 'gpujobs', label: { ko: 'GPU 작업', en: 'GPU jobs' }, phase: 1, feature: ['gpuai'], tabs: [
         T('queue', '작업 큐', 'Job queue', 'accel/gpuqueue'), T('quotas', '할당량', 'Quotas', 'accel/quotas'),
         T('usage', 'GPU-시간', 'GPU-hours', 'accel/gpuusage'), T('ide', '웹 IDE', 'Web IDE', 'accel/ide')] },
-      { id: 'boards', label: { ko: '보드 LAB(JTAG)', en: 'Board lab (JTAG)' }, phase: 1, feature: ['fpga'], render: 'accel/boards' },
+      { id: 'boards', label: { ko: '보드 LAB(JTAG)', en: 'Board lab (JTAG)' }, phase: 1, feature: ['fpga'], tabs: [
+        T('boards', '보드', 'Boards', 'accel/boards'), T('gateways', 'JTAG 게이트웨이', 'JTAG gateways', 'accel/jtag-gateways')] },
       { id: 'buildfarm', label: { ko: '빌드 팜', en: 'Build farm' }, phase: 1, feature: ['fpga'], tabs: [
         T('farm', '작업 큐', 'Job queue', 'accel/buildfarm'), T('ci', 'CI 연동', 'CI', 'accel/ci'), T('results', '결과물 보관', 'Results kept', 'accel/artifacts')] },
       { id: 'licenses', label: { ko: '라이선스 서버', en: 'License servers' }, phase: 1, feature: ['fpga'], render: 'accel/licenses' },

@@ -1,5 +1,7 @@
 import { api } from '../api/client';
 import { nextApi } from '../api/next';
+import type { BoardConn, MyBoard } from '../api/next';
+import { useState } from 'react';
 import { FOLDER_KEYS, folderName, sizeText, storageApi, storageCodeText } from '../api/storage';
 import { BuildJobsPanel } from '../admin/pages/NextPages';
 import { useFeatures } from '../features';
@@ -55,6 +57,7 @@ export function ResourcesPage() {
           )}
         </LoadState>
       )}
+      {on('fpga') && <MyBoardsPanel />}
       {on('gpuai') && <MyGpuCard />}
       {folders.state === 'ok' && folders.data.length > 0 && (
         <section className="panel">
@@ -97,5 +100,82 @@ export function ResourcesPage() {
       {on('fpga') && jobs.state === 'ok' && jobs.data.pools.length > 0 && <BuildJobsPanel pools={jobs.data.pools} />}
       <SshAccessPanel />
     </main>
+  );
+}
+
+// 내 보드 (JTAG): boards lent to me. A network board (hw_server / XVC / Quartus jtagd) is dialled from the
+// tool inside the desktop, so any display protocol works; a USB board is on the desktop already.
+// The card shows the values with copy buttons; the how-to stays folded.
+function MyBoardsPanel() {
+  const { lang, pick } = useI18n();
+  const L = (ko: string, en: string) => pick({ ko, en });
+  const boards = useLoad(nextApi.myBoards);
+  if (boards.state !== 'ok' || boards.data.length === 0) return null;
+  return (
+    <section className="panel">
+      <div className="panel-head">
+        <span className="stat-icon tone-blue"><Icon name="fpga" size={18} /></span>
+        <div>
+          <h2 className="section-title">{L('내 보드 (JTAG)', 'My boards (JTAG)')}</h2>
+          <p className="muted small" style={{ margin: 0 }}>{L('데스크톱 안의 Vivado · Quartus에서 접속합니다.', 'Connect from Vivado or Quartus in your desktop.')}</p>
+        </div>
+      </div>
+      {boards.data.map((b: MyBoard) => (
+        <div key={b.id} className="folder-list">
+          <div className="strong">{b.name}
+            {b.kind && <span className="muted small" style={{ marginLeft: 8 }}>{b.kind}</span>}
+            {b.desktop && <span className="chip" style={{ marginLeft: 8 }}>{b.desktop.name}</span>}
+            {b.lease_until && <span className="muted small" style={{ marginLeft: 8 }}>{L('반납', 'until')} {new Date(b.lease_until).toLocaleString(lang === 'ko' ? 'ko-KR' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' })}</span>}
+          </div>
+          {b.available === false && <div className="alert small error" role="alert">{L('JTAG 게이트웨이가 응답하지 않습니다. 잠시 뒤 다시 시도하세요.', 'The JTAG gateway is not answering. Try again shortly.')}</div>}
+          {b.connection ? <BoardConnView c={b.connection} L={L} />
+            : <p className="muted small">{L('USB로 데스크톱에 연결되어 있습니다.', 'Attached to the desktop over USB.')}</p>}
+        </div>
+      ))}
+    </section>
+  );
+}
+
+const PROTO: Record<BoardConn['protocol'], string> = { hw_server: 'hw_server', xvc: 'XVC', quartus: 'Quartus jtagd' };
+
+function CopyText({ text, L }: { text: string; L: (ko: string, en: string) => string }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <span className="folder-paths">
+      <code className="code" style={{ whiteSpace: 'pre-wrap' }}>{text}</code>
+      <button type="button" className="btn-ghost small-btn" onClick={() => { void navigator.clipboard?.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }, () => setCopied(false)); }}>
+        {copied ? L('복사됨', 'Copied') : L('복사', 'Copy')}</button>
+    </span>
+  );
+}
+
+function BoardConnView({ c, L }: { c: BoardConn; L: (ko: string, en: string) => string }) {
+  // the engine sends the Tcl lines (with the cable serial); an older engine does not
+  const tcl = c.tcl?.length ? c.tcl.join('\n') : c.protocol === 'hw_server' ? `connect_hw_server -url ${c.endpoint}`
+    : c.protocol === 'xvc' ? `open_hw_target -xvc_url ${c.endpoint}` : `jtagconfig --addserver ${c.host} <password>`;
+  const steps = c.protocol === 'hw_server'
+    ? [L('Hardware Manager › Open New Target', 'Hardware Manager › Open New Target'),
+      L(`Remote server: ${c.endpoint}`, `Remote server: ${c.endpoint}`),
+      c.cable_serial ? L(`케이블 ${c.cable_serial} 선택`, `Pick cable ${c.cable_serial}`) : L('케이블 선택', 'Pick the cable')]
+    : c.protocol === 'xvc'
+      ? [L('Hardware Manager › Open New Target (Local server)', 'Hardware Manager › Open New Target (Local server)'),
+        L(`localhost 오른쪽 클릭 › Add Xilinx Virtual Cable: ${c.endpoint}`, `Right-click localhost › Add Xilinx Virtual Cable: ${c.endpoint}`)]
+      : [L('Programmer › Hardware Setup › JTAG Settings', 'Programmer › Hardware Setup › JTAG Settings'),
+        L(`Add Server: ${c.host}, 관리자에게 받은 암호`, `Add Server: ${c.host}, the password from your admin`),
+        ...(c.cable_serial ? [L(`케이블 ${c.cable_serial} 선택`, `Pick cable ${c.cable_serial}`)] : [])];
+  return (
+    <div className="folder-item">
+      <span className="strong">{PROTO[c.protocol]}{c.label ? ` · ${c.label}` : ''}</span>
+      <span className="folder-paths">
+        <span><span className="muted small">{L('서버 ', 'Server ')}</span><CopyText text={c.endpoint} L={L} /></span>
+        {c.cable_serial && <span><span className="muted small">{L('케이블 ', 'Cable ')}</span><CopyText text={c.cable_serial} L={L} /></span>}
+        {c.uart && <span><span className="muted small">UART </span><CopyText text={c.uart} L={L} /></span>}
+        <details className="small">
+          <summary>{c.protocol === 'quartus' ? L('Quartus에서 여는 법', 'Open in Quartus') : L('Vivado에서 여는 법', 'Open in Vivado')}</summary>
+          <ol style={{ margin: '4px 0', paddingLeft: 20 }}>{steps.map((s) => <li key={s}>{s}</li>)}</ol>
+          <span><span className="muted small">Tcl </span><CopyText text={tcl} L={L} /></span>
+        </details>
+      </span>
+    </div>
   );
 }

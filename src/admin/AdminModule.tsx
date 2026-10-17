@@ -32,6 +32,7 @@ import { UsersPage } from './pages/UsersPage';
 import { AccelChecksPage } from './pages/AccelChecksPage';
 import { EnvCatalogPage } from './pages/EnvCatalogPage';
 import { GpuQueuePage, GpuQuotasPage, GpuUsagePage, IdeSessionsPage } from './pages/ResearchPages';
+import { JtagGatewaysPage } from './pages/JtagGatewayPages';
 import { BoardsPage, BuildFarmPage, CardUsagePage, DepartmentsPage, ExternalDesktopsPage, GoldenImagesPage, LicenseServersPage, SignupsPage, UsbLibraryPage } from './pages/NextPages';
 
 // Pages that exist so far; every other menu entry shows its planned phase.
@@ -76,6 +77,7 @@ function pageBody(key: string, subId?: string) {
   if (key === 'users/signups') return <SignupsPage />;
   if (key === 'users/departments') return <DepartmentsPage />;
   if (key === 'accel/boards') return <BoardsPage />;
+  if (key === 'accel/jtag-gateways') return <JtagGatewaysPage />;
   if (key === 'accel/buildfarm') return <BuildFarmPage />;
   if (key === 'accel/ci') return <CiLinksPage />;
   if (key === 'accel/artifacts') return <ArtifactSettingsPage />;
