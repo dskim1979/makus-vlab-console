@@ -44,13 +44,26 @@ export type GoldenImage = {
 };
 export type RolloutResult = { replaced: { name: string; old_vmid: number; new_vmid: number; user: string | null; old_deleted: boolean }[];
   skipped: string[]; failed: { name: string; error: string } | null };
+// target 'usb': USB-JTAG passthrough to the desktop VM (slot usb4, the desktop runs on the board's node).
+// target 'network': the JTAG cable is shared over TCP (Xilinx hw_server / XVC, Intel Quartus jtagd); lending
+// records the grant and hands out host:port, the VM config is not touched, any display protocol works.
+export type BoardTarget = 'usb' | 'network';
+export type BoardProtocol = 'hw_server' | 'xvc' | 'quartus';
+export const BOARD_PORTS: Record<BoardProtocol, number> = { hw_server: 3121, xvc: 2542, quartus: 1309 };
+export type BoardConn = { target: 'network'; protocol: BoardProtocol; host: string; port: number | null; endpoint: string; label: string; howto: string };
 export type Board = {
   id: string; name: string; cluster_id: string; node: string; usb: string; kind: string; notes: string;
+  target?: BoardTarget; host?: string; port?: number | null; protocol?: BoardProtocol | ''; label?: string;
   attached_desktop: string | null; attached_vmid: number | null; attached_by: string; attached_at: string | null;
   lease_user?: string; lease_until?: string | null;
   desktop: { id: string; name: string; assigned_user: string | null } | null;
+  connection?: BoardConn | null;
 };
-export type BoardInput = { name: string; cluster_id: string; node: string; usb: string; kind: string; notes: string };
+export type BoardInput = { name: string; cluster_id: string; node: string; usb: string; kind: string; notes: string;
+  target?: BoardTarget; host?: string; port?: number | null; protocol?: BoardProtocol; label?: string };
+// 포털 › 내 자원: a board lent to me (GET /api/vlab/me/boards)
+export type MyBoard = { id: string; name: string; kind: string; target: BoardTarget; desktop: { id: string; name: string } | null;
+  lease_until: string | null; connection: BoardConn | null };
 export type FarmDesktop = { id: string; name: string; status: string; assigned_user: string | null; in_session: boolean; cpu: number; maxcpu?: number; mem: number; maxmem?: number };
 export type FarmPool = { id: string; name: string; cluster_id: string; total: number; running: number; in_use: number; free: number; cpu_pct: number; mem_used: number; mem_total: number; desktops: FarmDesktop[];
   gpus_per_vm?: number; gpu_kind?: string; max_minutes?: number; runtime?: Runtime };
@@ -178,6 +191,7 @@ const realNextApi = {
   myExternalGuac: async (id: string) => call<{ url: string }>('GET', `/api/vlab/me/external/${enc(id)}/guac`),
   // pools[].workdir: the user's scratch folder when build jobs start there (each job in <workdir>/<job id>), else ''
   myJobs: async () => call<{ jobs: BuildJob[]; pools: JobPool[] }>('GET', '/api/vlab/me/build-jobs'),
+  myBoards: async () => (await call<{ boards: MyBoard[] }>('GET', '/api/vlab/me/boards')).boards,
   mySubmitJob: async (b: JobInput) => (await call<{ job: BuildJob }>('POST', '/api/vlab/me/build-jobs', b)).job,
   myCancelJob: async (id: string) => { await call('POST', `/api/vlab/me/build-jobs/${enc(id)}/cancel`); },
 
@@ -277,7 +291,25 @@ const boards: Board[] = [
     attached_vmid: null, attached_by: '', attached_at: null, desktop: null },
   { id: 'brd_3', name: 'Kria KV260 #2', cluster_id: 'c1', node: 'pve1', usb: '0403:6011', kind: 'KV260', notes: '', attached_desktop: null,
     attached_vmid: null, attached_by: '', attached_at: null, desktop: null },
+  { id: 'brd_4', name: 'VCU118 (hw_server)', cluster_id: 'c1', node: '', usb: '', kind: 'VCU118', notes: '랩 서버 jtag01에 연결', target: 'network',
+    host: 'jtag01.lab.local', port: 3121, protocol: 'hw_server', label: '랙 B-2', attached_desktop: 'd2', attached_vmid: 302,
+    attached_by: 'admin', attached_at: iso(120), desktop: { id: 'd2', name: 'board-lab-zcu102', assigned_user: 'alice' } },
+  { id: 'brd_5', name: 'Agilex 7 (jtagd)', cluster_id: 'c1', node: '', usb: '', kind: 'Agilex 7', notes: '', target: 'network',
+    host: 'jtag01.lab.local', port: 1309, protocol: 'quartus', label: '', attached_desktop: null,
+    attached_vmid: null, attached_by: '', attached_at: null, desktop: null },
 ];
+// what the engine's _board_conn answers (pegaprox/api/vlab_next.py)
+function mockConn(b: Board): BoardConn | null {
+  if (b.target !== 'network' || !b.host) return null;
+  const protocol = (b.protocol || 'hw_server') as BoardProtocol;
+  const endpoint = b.port ? `${b.host}:${b.port}` : b.host;
+  const howto = {
+    hw_server: `Vivado Hardware Manager > Open Target > Open New Target > Remote server: ${endpoint} (hw_server). Or: connect_hw_server -url ${endpoint}`,
+    xvc: `Vivado Hardware Manager > Open New Target > Add Xilinx Virtual Cable (XVC): ${endpoint}. Or: open_hw_target -xvc_url ${endpoint}`,
+    quartus: `Quartus Programmer > Hardware Setup > JTAG Settings > Add Server: ${b.host} (jtagd ${endpoint}). Or: jtagconfig --addserver ${b.host} <password>  (the cable host ran jtagconfig --enableremote).`,
+  }[protocol];
+  return { target: 'network', protocol, host: b.host, port: b.port ?? null, endpoint, label: b.label ?? '', howto };
+}
 const GB = 1024 ** 3;
 const farm: FarmPool[] = [
   { id: 'p_farm', name: 'FPGA 빌드 팜', cluster_id: 'c1', total: 6, running: 5, in_use: 4, free: 2, cpu_pct: 63.5, mem_used: 312 * GB, mem_total: 384 * GB,
@@ -469,12 +501,23 @@ const mockNextApi: NextApi = {
     return delay({ created, failed: null });
   },
 
-  boards: () => delay(boards.map((b) => ({ ...b }))),
-  saveBoard: (id, b) => {
-    if (!/^([0-9a-f]{4}:[0-9a-f]{4}|\d+-\d+(\.\d+)*)$/.test(b.usb)) return fail(400, 'usb: vendor:product (03fd:0008) or a port path (1-2.3)');
-    if (id) { const x = boards.find((y) => y.id === id)!; Object.assign(x, b); return delay({ ...x }); }
-    const x: Board = { id: nid('brd'), ...b, attached_desktop: null, attached_vmid: null, attached_by: '', attached_at: null, desktop: null };
-    boards.push(x); return delay({ ...x });
+  boards: () => delay(boards.map((b) => ({ ...b, connection: mockConn(b) }))),
+  saveBoard: (id, input) => {
+    let b: BoardInput = { ...input, target: input.target ?? 'usb' };
+    if (b.target === 'network') {
+      if (!b.host || !/^[A-Za-z0-9._-]+$/.test(b.host)) return fail(400, 'host: the cable host MOAVI Desk VMs reach over the network');
+      const protocol = b.protocol ?? 'hw_server';
+      const port = b.port || BOARD_PORTS[protocol];
+      if (!(port >= 1 && port <= 65535)) return fail(400, 'port: 1-65535');
+      b = { ...b, protocol, port, usb: '', node: '' };
+    } else {
+      if (!/^([0-9a-f]{4}:[0-9a-f]{4}|\d+-\d+(\.\d+)*)$/.test(b.usb)) return fail(400, 'usb: vendor:product (03fd:0008) or a port path (1-2.3)');
+      b = { ...b, host: '', port: null, protocol: undefined, label: '' };
+    }
+    const withConn = (x: Board) => ({ ...x, connection: mockConn(x) });
+    if (id) { const x = boards.find((y) => y.id === id)!; Object.assign(x, b, { protocol: b.protocol ?? '' }); return delay(withConn(x)); }
+    const x: Board = { id: nid('brd'), ...b, protocol: b.protocol ?? '', attached_desktop: null, attached_vmid: null, attached_by: '', attached_at: null, desktop: null };
+    boards.push(x); return delay(withConn(x));
   },
   deleteBoard: (id) => {
     const x = boards.find((y) => y.id === id); if (x?.attached_desktop) return fail(409, 'Detach the board first');
@@ -550,6 +593,9 @@ const mockNextApi: NextApi = {
   },
   route: () => delay({ desktop: { id: 'd1', name: 'eda-server-02' }, sessions: 3, limit: 10 }),
   myExternalGuac: () => delay({ url: 'https://guac.univ.ac.kr:8443/guacamole/?data=mock' }),
+  myBoards: () => delay(boards.filter((b) => b.attached_desktop && (b.lease_user || b.desktop?.assigned_user) === 'alice').map((b) => ({
+    id: b.id, name: b.name, kind: b.kind, target: b.target ?? 'usb', desktop: b.desktop ? { id: b.desktop.id, name: b.desktop.name } : null,
+    lease_until: b.lease_until ?? null, connection: mockConn(b) }))),
   myJobs: () => delay({ jobs: jobs.filter((j) => j.username === 'alice').map((j) => ({ ...j })), pools: [{ id: 'p_farm', name: 'FPGA 빌드 팜', workdir: '/nas/scratch/alice', gpus_per_vm: 0 },
     { id: 'p_gpu', name: 'A100 학습 팜', workdir: '/nas/scratch/alice', gpus_per_vm: 4, gpu_kind: 'A100', max_minutes: 2880, runtime: 'docker' }] }),
   mySubmitJob: (b) => {

@@ -4,7 +4,8 @@ import { Link } from 'react-router-dom';
 import { adminApi } from '../../api/admin';
 import { envApi } from '../../api/envmig';
 import { nextApi } from '../../api/next';
-import type { Board, BuildJob, CardRow, ClientSettings, Department, ExternalDesktop, Gateway, GatewayKind, GoldenImage, JobPool, JobStatus, LicenseServer, RolloutResult, Signup, SignupSettings, SignupStatus, UsbCategory, UsbDevice, VerifyMode } from '../../api/next';
+import { BOARD_PORTS } from '../../api/next';
+import type { Board, BoardProtocol, BoardTarget, BuildJob, CardRow, ClientSettings, Department, ExternalDesktop, Gateway, GatewayKind, GoldenImage, JobPool, JobStatus, LicenseServer, RolloutResult, Signup, SignupSettings, SignupStatus, UsbCategory, UsbDevice, VerifyMode } from '../../api/next';
 import { researchApi, waitText } from '../../api/research';
 import { Dialog } from '../../components/Dialog';
 import { Icon } from '../../components/Icon';
@@ -847,8 +848,8 @@ export function BoardsPage() {
     <LoadState value={boards} retry={boards.reload}>
       {(list) => (
         <>
-          <Intro>{L('FPGA 보드의 JTAG 케이블(USB)을 데스크톱 VM에 연결해, 보드 앞에 가지 않고 자리에서 시험합니다. 데스크톱은 보드가 꽂힌 노드에서 돌아야 합니다. 케이블이 여러 개면 포트 경로(1-4.2)로 지정하세요.',
-            'Pass a board\'s JTAG cable (USB) through to a desktop VM so people test from their seat. The desktop must run on the board\'s node; use a port path (1-4.2) when several cables are alike.')}</Intro>
+          <Intro>{L('FPGA 보드의 JTAG를 데스크톱에 빌려줘, 보드 앞에 가지 않고 자리에서 시험합니다. 권장: 네트워크 — 케이블을 랩 서버에 꽂고 hw_server · XVC · Quartus jtagd로 공유하면 VM 설정을 바꾸지 않고 RDP · Warpgate · SPICE 어디서나 씁니다. USB 패스스루는 데스크톱이 보드가 꽂힌 노드에서 돌아야 하고, 케이블이 여러 개면 포트 경로(1-4.2)로 지정합니다.',
+            'Lend a board\'s JTAG to a desktop so people test from their seat. Recommended: network - plug the cable into a lab server and share it with hw_server, XVC or Quartus jtagd; the VM is not changed and it works over RDP, Warpgate or SPICE. USB passthrough needs the desktop on the board\'s node; use a port path (1-4.2) when several cables are alike.')}</Intro>
           <div className="toolbar">
             <button type="button" className="btn primary" onClick={() => setEditing('new')}><Icon name="plus" size={16} />{L('보드 추가', 'Add board')}</button>
             <button type="button" className="btn" onClick={boards.reload}><Icon name="refresh" size={16} />{L('새로 고침', 'Refresh')}</button>
@@ -858,16 +859,22 @@ export function BoardsPage() {
             { label: L('연결됨', 'Attached'), value: String(list.filter((b) => b.attached_desktop).length), tone: 'ok' },
             { label: L('빈 보드', 'Free'), value: String(list.filter((b) => !b.attached_desktop).length) },
             { label: L('기한 대여', 'On a loan'), value: String(list.filter((b) => b.lease_until).length) },
+            { label: L('네트워크', 'Network'), value: String(list.filter((b) => b.target === 'network').length) },
           ]} />
           <NoticeBar notice={notice} />
           {list.length === 0 ? <div className="empty"><p>{L('등록된 보드가 없습니다.', 'No boards yet.')}</p></div> : (
             <div className="table-scroll"><table className="table compact-head">
-              <thead><tr><th>{L('보드', 'Board')}</th><th>{L('노드', 'Node')}</th><th>USB</th><th>{L('연결된 데스크톱', 'Desktop')}</th><th>{L('사용자', 'User')}</th><th>{L('연결 시각', 'Since')}</th><th>{L('반납 예정', 'Returns')}</th><th className="actions" /></tr></thead>
+              <thead><tr><th>{L('보드', 'Board')}</th><th>{L('방식', 'Kind')}</th><th>{L('노드', 'Node')}</th><th>{L('USB · 주소', 'USB / address')}</th><th>{L('연결된 데스크톱', 'Desktop')}</th><th>{L('사용자', 'User')}</th><th>{L('연결 시각', 'Since')}</th><th>{L('반납 예정', 'Returns')}</th><th className="actions" /></tr></thead>
               <tbody>{list.map((b) => (
                 <tr key={b.id}>
                   <td className="strong">{b.name}{b.kind && <div className="muted small">{b.kind}{b.notes ? ` · ${b.notes}` : ''}</div>}</td>
-                  <td>{b.node}</td>
-                  <td><code className="code">{b.usb}</code></td>
+                  <td>{b.target === 'network'
+                    ? <span className="chip chip-accent">{L('네트워크', 'Network')} · {PROTO_TEXT[(b.protocol || 'hw_server') as BoardProtocol]}</span>
+                    : <span className="chip">USB</span>}</td>
+                  <td>{b.target === 'network' ? <span className="muted">-</span> : b.node}</td>
+                  <td>{b.target === 'network'
+                    ? <><code className="code">{b.connection?.endpoint ?? `${b.host}:${b.port ?? ''}`}</code>{b.label && <div className="muted small">{b.label}</div>}</>
+                    : <code className="code">{b.usb}</code>}</td>
                   <td>{b.desktop ? b.desktop.name : <span className="chip chip-free">{L('비어 있음', 'free')}</span>}</td>
                   <td>{b.lease_user || b.desktop?.assigned_user || '-'}</td>
                   <td className="muted small">{when(b.attached_at)}</td>
@@ -885,8 +892,8 @@ export function BoardsPage() {
                 </tr>))}</tbody>
             </table></div>
           )}
-          <p className="muted small">{L('연결은 데스크톱 VM의 USB 슬롯 usb4를 씁니다. 보드 전원을 껐다 켜면 분리 후 다시 연결하세요. 케이블이 불안정하면 보드 쪽 hw_server에 원격으로 붙는 방법도 있습니다.',
-            'Attaching uses the desktop VM\'s usb4 slot. Re-attach after power-cycling a board. For flaky cables, connect to the board\'s hw_server over the network instead.')}</p>
+          <p className="muted small">{L('USB 보드는 데스크톱 VM의 USB 슬롯 usb4를 씁니다(보드 전원을 껐다 켜면 분리 후 다시 연결). 네트워크 보드는 VM을 바꾸지 않고 대여만 기록해 사용자 포털에 host:port와 사용법을 보여 줍니다. 데스크톱 VM이 케이블 호스트의 그 포트에 닿도록 방화벽 허용(데스크톱 → 랩 서버)을 더하고, 케이블 호스트는 연구자 자리 PC보다 인프라/랩 존의 공용 서버에 두세요. hw_server · XVC에는 인증이 없습니다.',
+            'USB boards use the desktop VM\'s usb4 slot (re-attach after power-cycling a board). Network boards leave the VM alone: the loan is recorded and the user\'s portal shows host:port and how to connect. Allow desktop VMs to reach the cable host\'s port (desktop -> lab server) and keep the cable host on a shared lab server rather than a researcher\'s own PC. hw_server and XVC have no authentication.')}</p>
           {editing && <BoardDialog board={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onDone={() => { setEditing(null); boards.reload(); }} />}
           {attaching && <AttachDialog board={attaching} onClose={() => setAttaching(null)} onDone={() => { setAttaching(null); boards.reload(); }} />}
         </>
@@ -895,6 +902,8 @@ export function BoardsPage() {
   );
 }
 
+const PROTO_TEXT: Record<BoardProtocol, string> = { hw_server: 'hw_server', xvc: 'XVC', quartus: 'Quartus jtagd' };
+
 function BoardDialog({ board, onClose, onDone }: { board: Board | null; onClose: () => void; onDone: () => void }) {
   const { L } = useL();
   const clusters = useLoad(adminApi.clusters);
@@ -902,29 +911,56 @@ function BoardDialog({ board, onClose, onDone }: { board: Board | null; onClose:
   const cid = cluster || (clusters.state === 'ok' ? clusters.data[0]?.id ?? '' : '');
   const nodes = useLoad(() => (cid ? adminApi.nodes(cid) : Promise.resolve([])), [cid]);
   const [name, setName] = useState(board?.name ?? '');
+  const [target, setTarget] = useState<BoardTarget>(board?.target ?? 'network');
   const [node, setNode] = useState(board?.node ?? '');
   const [usbId, setUsbId] = useState(board?.usb ?? '');
+  const [host, setHost] = useState(board?.host ?? '');
+  const [protocol, setProtocol] = useState<BoardProtocol>((board?.protocol || 'hw_server') as BoardProtocol);
+  const [port, setPort] = useState(board?.port ? String(board.port) : '');
+  const [label, setLabel] = useState(board?.label ?? '');
   const [kind, setKind] = useState(board?.kind ?? '');
   const [notes, setNotes] = useState(board?.notes ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function submit() {
     setBusy(true); setError(null);
-    try { await nextApi.saveBoard(board?.id ?? null, { name, cluster_id: cid, node, usb: usbId.toLowerCase(), kind, notes }); onDone(); } catch (e) { setError(errText(e)); } finally { setBusy(false); }
+    const body = target === 'network'
+      ? { name, cluster_id: cid, node: '', usb: '', kind, notes, target, host: host.trim(), protocol, port: port ? Number(port) : BOARD_PORTS[protocol], label }
+      : { name, cluster_id: cid, node, usb: usbId.toLowerCase(), kind, notes, target };
+    try { await nextApi.saveBoard(board?.id ?? null, body); onDone(); } catch (e) { setError(errText(e)); } finally { setBusy(false); }
   }
+  const ready = !!name && (target === 'network' ? !!host.trim() : !!node && !!usbId);
   return (
-    <Dialog open title={board ? L('보드 편집', 'Edit board') : L('보드 추가', 'Add board')} onClose={onClose} onSubmit={submit} submitLabel={L('저장', 'Save')} busy={busy || !name || !node || !usbId} error={error}>
+    <Dialog open title={board ? L('보드 편집', 'Edit board') : L('보드 추가', 'Add board')} onClose={onClose} onSubmit={submit} submitLabel={L('저장', 'Save')} busy={busy || !ready} error={error}>
       <label><span>{L('이름', 'Name')}</span><input id="brd-name" value={name} maxLength={80} placeholder="ZCU102 #1" onChange={(e) => setName(e.target.value)} /></label>
+      <div className="segmented" role="tablist">
+        <button type="button" role="tab" id="brd-target-network" className={target === 'network' ? 'on' : ''} aria-selected={target === 'network'} onClick={() => setTarget('network')}>{L('네트워크 JTAG (권장)', 'Network JTAG (recommended)')}</button>
+        <button type="button" role="tab" id="brd-target-usb" className={target === 'usb' ? 'on' : ''} aria-selected={target === 'usb'} onClick={() => setTarget('usb')}>{L('USB 패스스루', 'USB passthrough')}</button>
+      </div>
       <div className="form-row form-row-wide">
         <label><span>{L('클러스터', 'Cluster')}</span>
           <select id="brd-cluster" value={cid} onChange={(e) => setCluster(e.target.value)}>{(clusters.state === 'ok' ? clusters.data : []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-        <label><span>{L('꽂힌 노드', 'Node')}</span>
+        {target === 'usb' && <label><span>{L('꽂힌 노드', 'Node')}</span>
           <select id="brd-node" value={node} onChange={(e) => setNode(e.target.value)}>
             <option value="">{L('고르세요', 'Pick one')}</option>
             {(nodes.state === 'ok' ? nodes.data : []).map((n) => <option key={n.node} value={n.node}>{n.node}</option>)}
-          </select></label>
+          </select></label>}
       </div>
-      <label><span>{L('USB (VID:PID 또는 포트 경로)', 'USB (vid:pid or port path)')}</span><input id="brd-usb" value={usbId} placeholder="03fd:0008 · 1-4.2" onChange={(e) => setUsbId(e.target.value.trim())} /></label>
+      {target === 'usb'
+        ? <label><span>{L('USB (VID:PID 또는 포트 경로)', 'USB (vid:pid or port path)')}</span><input id="brd-usb" value={usbId} placeholder="03fd:0008 · 1-4.2" onChange={(e) => setUsbId(e.target.value.trim())} /></label>
+        : <>
+          <div className="form-row form-row-wide">
+            <label><span>{L('프로토콜', 'Protocol')}</span>
+              <select id="brd-protocol" value={protocol} onChange={(e) => setProtocol(e.target.value as BoardProtocol)}>
+                {(Object.keys(BOARD_PORTS) as BoardProtocol[]).map((p) => <option key={p} value={p}>{PROTO_TEXT[p]} ({BOARD_PORTS[p]})</option>)}
+              </select></label>
+            <label><span>{L('포트', 'Port')}</span><input id="brd-port" inputMode="numeric" value={port} placeholder={String(BOARD_PORTS[protocol])} onChange={(e) => setPort(e.target.value.replace(/\D/g, '').slice(0, 5))} /></label>
+          </div>
+          <label><span>{L('케이블 호스트 (호스트 이름 또는 IP)', 'Cable host (name or IP)')}</span><input id="brd-host" value={host} maxLength={255} placeholder="jtag01.lab.local" onChange={(e) => setHost(e.target.value.trim())} /></label>
+          <label><span>{L('표시 이름 (선택)', 'Label (optional)')}</span><input id="brd-label" value={label} maxLength={80} placeholder={L('랙 B-2 · 케이블 1', 'rack B-2 · cable 1')} onChange={(e) => setLabel(e.target.value)} /></label>
+          <p className="muted small">{L('데스크톱 VM이 이 호스트의 포트에 닿아야 합니다(방화벽 허용: 데스크톱 → 케이블 호스트). 케이블 호스트는 연구자 자리 PC보다 랩 존의 공용 서버를 권장합니다.',
+            'Desktop VMs must reach this host\'s port (allow desktop -> cable host). Prefer a shared lab server over a researcher\'s own PC.')}</p>
+        </>}
       <label><span>{L('보드 종류', 'Kind')}</span><input id="brd-kind" value={kind} maxLength={80} placeholder="ZCU102 · VCK190 · KV260" onChange={(e) => setKind(e.target.value)} /></label>
       <label><span>{L('메모', 'Notes')}</span><input id="brd-notes" value={notes} maxLength={300} onChange={(e) => setNotes(e.target.value)} /></label>
     </Dialog>
@@ -938,7 +974,8 @@ function AttachDialog({ board, onClose, onDone }: { board: Board; onClose: () =>
   const [until, setUntil] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const list = desks.state === 'ok' ? desks.data.filter((d) => (!d.cluster_id || d.cluster_id === board.cluster_id) && d.node === board.node) : [];
+  const net = board.target === 'network';
+  const list = desks.state === 'ok' ? desks.data.filter((d) => (!d.cluster_id || d.cluster_id === board.cluster_id) && (net || d.node === board.node)) : [];
   const chosen = list.find((d) => d.id === desk);
   const later = (days: number) => { const t = new Date(Date.now() + days * 86400000); t.setHours(18, 0, 0, 0);
     return new Date(t.getTime() - t.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
@@ -949,7 +986,9 @@ function AttachDialog({ board, onClose, onDone }: { board: Board; onClose: () =>
   }
   return (
     <Dialog open title={L(`${board.name} 연결`, `Attach ${board.name}`)} onClose={onClose} onSubmit={submit} submitLabel={L('연결', 'Attach')} busy={busy || !desk} error={error}>
-      <p className="muted small">{L(`${board.node} 노드의 데스크톱만 보입니다.`, `Desktops on ${board.node} only.`)}</p>
+      <p className="muted small">{net
+        ? L(`네트워크 보드(${board.host}:${board.port ?? ''})는 VM 설정을 바꾸지 않습니다. 사용자 포털에 접속 주소와 사용법이 표시됩니다.`, `A network board (${board.host}:${board.port ?? ''}) leaves the VM alone; the user's portal shows the address and how to connect.`)
+        : L(`${board.node} 노드의 데스크톱만 보입니다.`, `Desktops on ${board.node} only.`)}</p>
       <label><span>{L('데스크톱', 'Desktop')}</span>
         <select id="att-desk" value={desk} onChange={(e) => setDesk(e.target.value)}>
           <option value="">{L('고르세요', 'Pick one')}</option>
