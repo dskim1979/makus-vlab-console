@@ -20,13 +20,13 @@ export function WarpgatePage() {
   const cfg = useLoad(warpgateApi.get);
   const c = cfg.state === 'ok' ? cfg.data.config : null;
   return (
-    <SettingsShell sections={[{ id: 'warpgate', title: 'Warpgate' }, { id: 'sessions', title: L('세션 녹화', 'Session recordings') }]}
+    <SettingsShell sections={[{ id: 'warpgate', title: L('보안 게이트웨이', 'Security gateway') }, { id: 'sessions', title: L('세션 녹화', 'Session recordings') }]}
       status={
         <SettingsStatus items={[
           { label: L('사용', 'Enabled'), value: c ? (c.enabled ? L('켜짐', 'on') : L('꺼짐', 'off')) : '-', tone: c?.enabled ? 'ok' : 'off' },
           { label: L('연결', 'Connection'), value: c ? (c.last_ok === true ? L('정상', 'ok') : c.last_ok === false ? L('오류', 'error') : L('확인 전', 'unchecked')) : '-', tone: c?.last_ok === true ? 'ok' : c?.last_ok === false ? 'warn' : undefined },
           { label: L('동기화된 대상', 'Targets'), value: cfg.state === 'ok' ? String(cfg.data.targets) : '-' },
-          { label: L('앱·RDP 파일', 'App / RDP file'), value: c ? (c.rdp_via_warpgate ? 'Warpgate' : L('직접', 'direct')) : '-' },
+          { label: L('앱·RDP 파일', 'App / RDP file'), value: c ? (c.rdp_via_warpgate ? L('보안 게이트웨이', 'Security gateway') : L('직접', 'direct')) : '-' },
         ]} />}>
       <LoadState value={cfg} retry={cfg.reload}>{(d) => <WarpgateForm initial={d.config} onSaved={cfg.reload} />}</LoadState>
     </SettingsShell>
@@ -74,7 +74,7 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
   return (
     <>
       <SettingsSection id="warpgate" title="Warpgate"
-        desc={L('데스크톱 RDP·SSH·VNC를 보안 게이트웨이(Warpgate) 한 곳으로 중계합니다.', 'Relays desktop RDP, SSH and VNC through one Warpgate.')}>
+        desc={L('데스크톱 RDP·SSH·VNC를 보안 게이트웨이 한 곳으로 중계합니다.', 'Relays desktop RDP, SSH and VNC through one Warpgate.')}>
         <label className="check"><input id="wg-on" type="checkbox" checked={f.enabled} onChange={(e) => setF({ ...f, enabled: e.target.checked })} />
           <span>{L('보안 게이트웨이 사용', 'Use Warpgate')}</span></label>
 
@@ -83,7 +83,7 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
 
         <label><span>{L('관리자 API 토큰', 'Admin API token')}</span>
           <input id="wg-token" type="password" autoComplete="off" value={token}
-            placeholder={f.has_token ? L('저장됨 — 바꿀 때만 입력', 'Saved; type only to change') : L('Warpgate 관리자 UI에서 발급', 'Issue it in the Warpgate admin UI')}
+            placeholder={f.has_token ? L('저장됨 — 바꿀 때만 입력', 'Saved; type only to change') : L('보안 게이트웨이 관리 화면에서 발급', 'Issue it in the Warpgate admin UI')}
             onChange={(e) => setToken(e.target.value)} />
           <small className="muted">{L('봉인 저장, 다시 표시하지 않음', 'Stored sealed, never shown again')}</small></label>
 
@@ -125,7 +125,7 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
               'When Warpgate is down - connects are refused by default. Allow the direct path only briefly during an outage; it fails anyway where direct access is blocked.')}</li>
             <li>{L('RDP 로그인 — 자동 로그인하지 않고 데스크톱 로그온 화면을 띄웁니다. 사용자는 본인 계정으로 들어갑니다. NLA 서비스 계정은 네트워크 수준 인증용이며 사용자 비밀번호가 아닙니다. NLA를 끈 데스크톱이면 비워 두세요.',
               'RDP sign-in - no auto logon; the desktop\'s logon screen asks for the user\'s own account. The NLA service account only passes network-level auth and is not a user password. Leave it empty if NLA is off.')}</li>
-            <li>{L('API 토큰 — Warpgate 관리자 UI에서 관리자 역할 토큰을 만드세요. 자체 서명 인증서면 TLS 검증을 끄세요.',
+            <li>{L('API 토큰 — 보안 게이트웨이 관리 화면에서 관리자 역할 토큰을 만드세요. 자체 서명 인증서면 TLS 검증을 끄세요.',
               'API token - create an admin-role token in the Warpgate admin UI. Turn TLS verification off for a self-signed certificate.')}</li>
           </ul>
         </details>

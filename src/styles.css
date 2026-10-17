@@ -1541,6 +1541,8 @@ fieldset.plain:disabled { opacity: .55; }
 .bundle-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: .6rem; }
 .features-detail summary { cursor: pointer; font-weight: 600; }
 .group-list { display: flex; flex-direction: column; gap: .45rem; margin: .6rem 0; }
+.group-list label.check { display: flex; align-items: flex-start; gap: .5rem; }
+.group-list label.check input { flex: none; margin-top: .2rem; }
 .preview-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
 .features-preview { margin: 0; }
 
