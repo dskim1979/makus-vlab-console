@@ -43,7 +43,7 @@ function SshAccessBody() {
     : code === 'BAD_PUBLIC_KEY'
       ? L('OpenSSH 공개키 한 줄(ssh-ed25519 ...)을 넣으세요.', 'Paste one OpenSSH public key line (ssh-ed25519 ...).')
       : code === 'WG_OFF' || code === 'WG_API' || code === 'WG_UNREACHABLE'
-        ? L('지금은 Warpgate에 공개키를 등록할 수 없습니다. 잠시 뒤 다시 시도하거나 관리자에게 문의하세요.', 'The key cannot be registered with Warpgate right now. Try again later or contact your administrator.')
+        ? L('지금은 공개키를 등록할 수 없습니다. 잠시 뒤 다시 시도하세요.', 'The key cannot be registered with Warpgate right now. Try again later or contact your administrator.')
         : L('공개키를 등록하지 못했습니다.', 'Could not add the public key.');
 
   async function add() {
@@ -67,8 +67,8 @@ function SshAccessBody() {
       <div className="panel-head">
         <span className="stat-icon tone-blue"><Icon name="shield" size={18} /></span>
         <div>
-          <h2 className="section-title">{L('SSH 키 · 내 도구로 접속 (Warpgate)', 'SSH keys · connect with your tools (Warpgate)')}</h2>
-          <p className="muted small" style={{ margin: 0 }}>{L('내 SSH 도구로 Warpgate를 거쳐 데스크톱에 접속합니다.', 'Reach your desktops with your own SSH tools, through Warpgate.')}</p>
+          <h2 className="section-title">{L('SSH 키 · 내 도구로 접속', 'SSH keys · connect with your tools (Warpgate)')}</h2>
+          <p className="muted small" style={{ margin: 0 }}>{L('내 SSH 도구로 보안 게이트웨이를 거쳐 데스크톱에 접속합니다.', 'Reach your desktops with your own SSH tools, through Warpgate.')}</p>
         </div>
       </div>
 
@@ -123,7 +123,7 @@ function SshAccessBody() {
               <li><b>PuTTY</b> — {L('Host·Port 와 User 값, SSH › Auth 에 개인키(.ppk)', 'Host, Port and the User value; SSH › Auth = your private key (.ppk)')}</li>
               <li><b>WinSCP</b> — {L('SFTP, PuTTY 와 같은 값', 'SFTP, the same values as PuTTY')}</li>
               <li>{L('공개키만 등록합니다. 개인키는 PC 밖으로 보내지 마세요.', 'Register only the public key; the private key stays on your PC.')}</li>
-              <li>{L('파일 전송은 풀 정책을 따르고 Warpgate가 기록합니다.', 'File transfers follow the pool policy and are recorded by Warpgate.')}</li>
+              <li>{L('파일 전송은 풀 정책을 따르고 보안 게이트웨이가 기록합니다.', 'File transfers follow the pool policy and are recorded by Warpgate.')}</li>
             </ul>
           </details>
         </div>

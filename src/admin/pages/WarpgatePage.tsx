@@ -75,9 +75,9 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
   return (
     <>
       <SettingsSection id="warpgate" title="Warpgate"
-        desc={L('데스크톱 RDP·SSH·VNC를 Warpgate 한 곳으로 중계합니다.', 'Relays desktop RDP, SSH and VNC through one Warpgate.')}>
+        desc={L('데스크톱 RDP·SSH·VNC를 보안 게이트웨이(Warpgate) 한 곳으로 중계합니다.', 'Relays desktop RDP, SSH and VNC through one Warpgate.')}>
         <label className="check"><input id="wg-on" type="checkbox" checked={f.enabled} onChange={(e) => setF({ ...f, enabled: e.target.checked })} />
-          <span>{L('Warpgate 사용', 'Use Warpgate')}</span></label>
+          <span>{L('보안 게이트웨이 사용', 'Use Warpgate')}</span></label>
 
         <label><span>{L('Base URL', 'Base URL')}</span>
           <input id="wg-url" value={f.base_url} placeholder="https://warpgate.lab.example:8888" onChange={(e) => setF({ ...f, base_url: e.target.value.trim() })} /></label>
@@ -102,10 +102,10 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
           <small className="muted">{L('검증 전에는 Guacamole 유지', 'Keep Guacamole until verified')}</small></label>
 
         <label className="check"><input id="wg-rdp-via" type="checkbox" checked={!!f.rdp_via_warpgate} onChange={(e) => setF({ ...f, rdp_via_warpgate: e.target.checked })} />
-          <span>{L('전용 앱·RDP 파일을 Warpgate 경유로', 'Windows app / RDP file through Warpgate')}</span></label>
+          <span>{L('전용 앱·RDP 파일을 보안 게이트웨이 경유로', 'Windows app / RDP file through Warpgate')}</span></label>
 
         <label className="check"><input id="wg-fallback" type="checkbox" checked={!!f.allow_direct_fallback} onChange={(e) => setF({ ...f, allow_direct_fallback: e.target.checked })} />
-          <span>{L('Warpgate 장애 시 직접 접속 허용', 'Allow direct access when Warpgate is down')}</span></label>
+          <span>{L('보안 게이트웨이 장애 시 직접 접속 허용', 'Allow direct access when Warpgate is down')}</span></label>
         {f.allow_direct_fallback && (
           <div className="alert small error">{L('보안 약화: 장애 중에는 녹화·티켓 없이 직접 연결됩니다.', 'Weakens security: during an outage connects go direct, unrecorded.')}</div>
         )}
@@ -125,11 +125,11 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
         <details className="wg-more">
           <summary>{L('자세히', 'Details')}</summary>
           <ul className="muted small ssh-howto">
-            <li>{L('브라우저 RDP 제공 — 포털 "브라우저 RDP로 열기"가 이 설정을 따릅니다. Warpgate로 바꾸면 사용자는 Warpgate 화면에 로그인해 데스크톱을 엽니다.',
+            <li>{L('브라우저 RDP 제공 — 포털 "브라우저 RDP로 열기"가 이 설정을 따릅니다. 보안 게이트웨이로 바꾸면 사용자는 보안 게이트웨이 화면에 로그인해 데스크톱을 엽니다.',
               'Browser RDP served by - the portal\'s "Open in browser RDP" follows it. With Warpgate, users sign in to Warpgate and open the desktop there.')}</li>
-            <li>{L('앱·RDP 파일 — .rdp가 데스크톱 대신 Warpgate를 향하고, 사용자 이름에 1회용 티켓이 들어갑니다. 비밀번호는 없습니다.',
+            <li>{L('앱·RDP 파일 — .rdp가 데스크톱 대신 보안 게이트웨이를 향하고, 사용자 이름에 1회용 티켓이 들어갑니다. 비밀번호는 없습니다.',
               'App / RDP file - the .rdp points at Warpgate, with a single-use ticket as the user name and no password.')}</li>
-            <li>{L('장애 시 — 기본은 "Warpgate에 연결할 수 없습니다"로 막습니다. 직접 접속 허용은 장애 대응 중에만 잠깐 켜세요. 직접 접속을 막은 현장에서는 어차피 실패합니다.',
+            <li>{L('장애 시 — 기본은 "보안 게이트웨이에 연결할 수 없습니다"로 막습니다. 직접 접속 허용은 장애 대응 중에만 잠깐 켜세요. 직접 접속을 막은 현장에서는 어차피 실패합니다.',
               'When Warpgate is down - connects are refused by default. Allow the direct path only briefly during an outage; it fails anyway where direct access is blocked.')}</li>
             <li>{L('RDP 로그인 — 자동 로그인하지 않고 데스크톱 로그온 화면을 띄웁니다. 사용자는 본인 계정으로 들어갑니다. NLA 서비스 계정은 네트워크 수준 인증용이며 사용자 비밀번호가 아닙니다. NLA를 끈 데스크톱이면 비워 두세요.',
               'RDP sign-in - no auto logon; the desktop\'s logon screen asks for the user\'s own account. The NLA service account only passes network-level auth and is not a user password. Leave it empty if NLA is off.')}</li>
@@ -146,7 +146,7 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
       </SettingsSection>
 
       <SettingsSection id="sessions" title={L('세션 녹화', 'Session recordings')}
-        desc={L('Warpgate가 녹화한 세션을 다시 봅니다.', 'Review the sessions Warpgate recorded.')}>
+        desc={L('보안 게이트웨이가 녹화한 세션을 다시 봅니다.', 'Review the sessions Warpgate recorded.')}>
         <div className="toolbar">
           <button type="button" className="btn" disabled={!f.base_url} onClick={openSessions}><Icon name="globe" size={16} />{L('녹화 세션 열기', 'Open recorded sessions')}</button>
         </div>
