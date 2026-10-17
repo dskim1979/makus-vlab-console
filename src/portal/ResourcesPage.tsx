@@ -9,6 +9,7 @@ import { useLoad } from '../components/useLoad';
 import { useI18n } from '../i18n';
 import { UseChip } from '../components/WorkParts';
 import { MyGpuCard } from './WebIde';
+import { SshAccessPanel } from './SshAccessPanel';
 
 // 내 자원: accelerator cards, boards and desktops on loan to the user.
 export function ResourcesPage() {
@@ -94,6 +95,7 @@ export function ResourcesPage() {
         </section>
       )}
       {on('fpga') && jobs.state === 'ok' && jobs.data.pools.length > 0 && <BuildJobsPanel pools={jobs.data.pools} />}
+      <SshAccessPanel />
     </main>
   );
 }

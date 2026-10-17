@@ -97,8 +97,31 @@ guacd·guacamole 컨테이너가 만들어지지 않고(이미 있으면 내려�
 않는 모드(`interactive_logon`; NLA 가 필요하면 콘솔의 Warpgate 설정에 **서비스 계정**만 넣는다 —
 사용자 비밀번호가 아니다). 외부 OIDC/LDAP 로그인과 디렉터리 연동은 Warpgate `config.yaml` 에서 설정한다.
 
+### 연구자 네이티브 SSH (자기 도구로 접속)
+풀 정책에서 **"연구자 네이티브 SSH"** 를 켜면(브라우저 SSH와 별개), 연구자가 PuTTY·scp·WinSCP·
+VS Code Remote-SSH 로 데스크톱에 평소처럼 붙되 Warpgate를 거친다(대상 IP 숨김, 세션 녹화).
+- 포털 **내 자원 > SSH 키 · 접속** 에서 **공개키**를 등록한다(개인키는 올리지 않는다). MOAVI Desk
+  클라이언트는 공개키를 자동으로 올리고, `~/.ssh/config` 의 관리 블록(BEGIN/END MOAVI)에 데스크톱별
+  `Host moavi-<이름>` 항목을 써 준다. 그 뒤:
+  - **VS Code Remote-SSH**: 호스트 목록에서 `moavi-<이름>` 선택.
+  - **PuTTY/WinSCP**: 호스트에 Warpgate 주소·포트(기본 2222), 사용자 이름에 `내아이디:대상이름`(포털의
+    "User" 값 복사), 인증은 개인키.
+  - 터미널: `ssh moavi-<이름>`, 파일 전송 `scp 파일 moavi-<이름>:` (SFTP 정책·기록 적용).
+  - Warpgate는 점프 호스트가 아니라 사용자 이름으로 대상을 고른다(ProxyJump 아님). 엄격한 풀은 셸/
+    scp를 막고 브라우저 터미널만 허용하는 편이 안전하다(셸은 유출을 완전히 막지 못함).
+
 **끄기**: `.env` 에서 `VLAB_WARPGATE=0` (또는 줄 삭제) 후 `docker compose up -d --remove-orphans`.
 `warpgate-data` 볼륨(설정·세션 녹화)은 남는다.
+
+### 공존·전환(cutover) 체크리스트
+Warpgate는 **추가(additive)** 이고, 브라우저 RDP는 실제 Warpgate+클러스터에서 검증되기 전까지
+**Guacamole가 기본**이다(둘 다 꺼지는 상태 없음). 전환은 사용자가 아래를 확인한 **뒤에만** 한다:
+1. 실클러스터 검증(엔진 `docs/warpgate-gateway.md` 4-3): 브라우저 RDP·네이티브 RDP·네이티브 SSH·
+   브라우저 SSH·VNC·세션 녹화 재생·직접 접속 차단·1회용 티켓·비밀번호 비저장·디렉터리 로그인.
+2. 통과하면 콘솔 플랫폼 설정 > Warpgate 에서 `web_rdp_provider` 를 `warpgate` 로 바꾼다.
+3. 그 뒤에야 Guacamole·`/ssh`·rdpGW 제거 커밋(검증 후 전용, 별도 커밋)을 적용한다.
+- **롤백**: 문제가 생기면 `web_rdp_provider` 를 `guac` 로 되돌리고(즉시 Guacamole 복귀), 제거 커밋을
+  적용했다면 `git revert`. `VLAB_GUACAMOLE=1` 이면 Guacamole는 언제든 되살아난다.
 
 ## 데스크톱 직접 접속 차단 (Proxmox 보안 그룹)
 사용자가 데스크톱 안에서 IP 를 알아내 원격 데스크톱·SSH 로 직접 붙는 길을 막아, 모든 접속이 MOAVI Desk

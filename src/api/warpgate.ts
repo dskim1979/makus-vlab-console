@@ -22,6 +22,13 @@ export type WarpgateConnection = {
   full_address?: string; ssh?: string; browser_url: string;
 };
 
+export type SshKey = { id: string; label: string; openssh_public_key: string; date_added?: string | null; last_used?: string | null };
+export type SshConfigEntry = {
+  host: string; hostname: string; port: number; user: string; target_name: string;
+  ssh_command: string; config_snippet: string; desktop_id: string; desktop_name: string;
+};
+export type SshConfig = { enabled: boolean; warpgate_host?: string; ssh_port?: number; login?: string; entries: SshConfigEntry[]; managed_block?: string };
+
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
   const { status, data } = await request<T & { error?: string; code?: string }>(method, path, body);
   if (status < 200 || status >= 300) {
@@ -39,8 +46,12 @@ export type WarpgateApi = {
   save: (b: WarpgateInput) => Promise<WarpgateConfig>;
   test: () => Promise<{ ok: boolean; detail: string; config: WarpgateConfig }>;
   sessionsUrl: (sessionId?: string) => Promise<string>;
-  myStatus: () => Promise<{ enabled: boolean; protocols: WarpgateProto[] }>;
+  myStatus: () => Promise<{ enabled: boolean; protocols: WarpgateProto[]; web_rdp_provider: 'guac' | 'warpgate' }>;
   connect: (desktopId: string, protocol: WarpgateProto) => Promise<WarpgateConnection>;
+  sshKeys: () => Promise<{ enabled: boolean; keys: SshKey[] }>;
+  addSshKey: (label: string, openssh_public_key: string) => Promise<SshKey[]>;
+  deleteSshKey: (id: string) => Promise<SshKey[]>;
+  sshConfig: () => Promise<SshConfig>;
 };
 
 const realWarpgateApi: WarpgateApi = {
@@ -49,10 +60,15 @@ const realWarpgateApi: WarpgateApi = {
   test: () => call<{ ok: boolean; detail: string; config: WarpgateConfig }>('POST', `${A}/test`),
   sessionsUrl: async (sessionId) =>
     (await call<{ url: string }>('GET', `${A}/sessions${sessionId ? `?session_id=${enc(sessionId)}` : ''}`)).url,
-  myStatus: () => call<{ enabled: boolean; protocols: WarpgateProto[] }>('GET', '/api/vlab/me/warpgate'),
+  myStatus: () => call<{ enabled: boolean; protocols: WarpgateProto[]; web_rdp_provider: 'guac' | 'warpgate' }>('GET', '/api/vlab/me/warpgate'),
   connect: async (desktopId, protocol) =>
     (await call<{ type: string; connection: WarpgateConnection }>(
       'POST', `/api/vlab/me/desktops/${enc(desktopId)}/warpgate`, { protocol })).connection,
+  sshKeys: () => call<{ enabled: boolean; keys: SshKey[] }>('GET', '/api/vlab/me/ssh-keys'),
+  addSshKey: async (label, openssh_public_key) =>
+    (await call<{ keys: SshKey[] }>('POST', '/api/vlab/me/ssh-keys', { label, openssh_public_key })).keys,
+  deleteSshKey: async (id) => (await call<{ keys: SshKey[] }>('DELETE', `/api/vlab/me/ssh-keys/${enc(id)}`)).keys,
+  sshConfig: () => call<SshConfig>('GET', '/api/vlab/me/ssh-config'),
 };
 
 // --- mock --------------------------------------------------------------------------------
@@ -60,6 +76,8 @@ let mockCfg: WarpgateConfig = {
   base_url: '', ssh_port: 2222, rdp_port: 3389, vnc_port: 5900, verify_tls: false, enabled: false,
   rdp_nla_user: '', has_nla_password: false, has_token: false, last_check: null, last_ok: null, last_detail: '',
 };
+
+let mockKeys: SshKey[] = [];
 
 const mockWarpgateApi: WarpgateApi = {
   get: async () => ({ config: { ...mockCfg }, targets: mockCfg.enabled ? 3 : 0 }),
@@ -79,7 +97,7 @@ const mockWarpgateApi: WarpgateApi = {
     return { ok, detail: mockCfg.last_detail, config: { ...mockCfg } };
   },
   sessionsUrl: async (sessionId) => `${mockCfg.base_url || 'https://warpgate.example:8888'}/@warpgate/admin/sessions${sessionId ? `/${sessionId}` : ''}`,
-  myStatus: async () => ({ enabled: mockCfg.enabled, protocols: ['rdp', 'ssh', 'vnc'] }),
+  myStatus: async () => ({ enabled: mockCfg.enabled, protocols: ['rdp', 'ssh', 'vnc'], web_rdp_provider: 'guac' }),
   connect: async (_desktopId, protocol) => {
     const host = (mockCfg.base_url || 'https://warpgate.example:8888').replace(/^[a-z]+:\/\//, '').replace(/:\d+$/, '');
     const secret = 'TKT-MOCK-123';
@@ -90,6 +108,28 @@ const mockWarpgateApi: WarpgateApi = {
       ssh: protocol === 'ssh' ? `ssh ticket-${secret}@${host} -p ${port}` : undefined,
       browser_url: `${mockCfg.base_url || 'https://warpgate.example:8888'}/?warpgate-target=moavi-mock&warpgate-ticket=${secret}`,
     };
+  },
+  sshKeys: async () => ({ enabled: mockCfg.enabled, keys: [...mockKeys] }),
+  addSshKey: async (label, openssh_public_key) => {
+    if (/PRIVATE KEY/i.test(openssh_public_key) || !/^(ssh-|ecdsa-|sk-)/.test(openssh_public_key.trim())) {
+      throw new ApiError(400, 'openssh_public_key: OpenSSH 공개키 한 줄이어야 합니다');
+    }
+    mockKeys.push({ id: `key-${mockKeys.length + 1}`, label: label || 'MOAVI Desk', openssh_public_key, date_added: new Date().toISOString() });
+    return [...mockKeys];
+  },
+  deleteSshKey: async (id) => { mockKeys = mockKeys.filter((k) => k.id !== id); return [...mockKeys]; },
+  sshConfig: async () => {
+    const host = (mockCfg.base_url || 'https://warpgate.example:8888').replace(/^[a-z]+:\/\//, '').replace(/:\d+$/, '');
+    const mk = (id: string, name: string): SshConfigEntry => {
+      const target = `moavi-${name}-${id}`;
+      const user = `alice:${target}`;
+      return { host: `moavi-${name}`, hostname: host, port: mockCfg.ssh_port, user, target_name: target,
+        ssh_command: `ssh moavi-${name}`, desktop_id: id, desktop_name: name,
+        config_snippet: `Host moavi-${name}\n    HostName ${host}\n    Port ${mockCfg.ssh_port}\n    User ${user}\n` };
+    };
+    const entries = mockCfg.enabled ? [mk('d1', 'ai-box'), mk('d2', 'ubuntu-ws')] : [];
+    return { enabled: mockCfg.enabled, warpgate_host: host, ssh_port: mockCfg.ssh_port, login: 'alice',
+      entries, managed_block: entries.map((e) => e.config_snippet).join('\n').trim() };
   },
 };
 
