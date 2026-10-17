@@ -125,6 +125,8 @@ function MyBoardsPanel() {
             {b.desktop && <span className="chip" style={{ marginLeft: 8 }}>{b.desktop.name}</span>}
             {b.lease_until && <span className="muted small" style={{ marginLeft: 8 }}>{L('반납', 'until')} {new Date(b.lease_until).toLocaleString(lang === 'ko' ? 'ko-KR' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' })}</span>}
           </div>
+          {b.available === false && <div className="alert small error" role="alert">{L(`JTAG 게이트웨이${b.gateway ? `(${b.gateway.name})` : ''}가 지금 응답하지 않습니다. 관리자에게 알려졌습니다 — 잠시 뒤 다시 접속해 보세요.`,
+            `The JTAG gateway${b.gateway ? ` (${b.gateway.name})` : ''} is not answering right now. Your admin has been told - try again shortly.`)}</div>}
           {b.connection ? <BoardConnView c={b.connection} L={L} />
             : <p className="muted small">{L('USB로 데스크톱에 연결되어 있습니다. 데스크톱 안에서 그대로 쓰세요.', 'Attached to the desktop over USB; use it inside the desktop.')}</p>}
         </div>
@@ -139,7 +141,7 @@ function CopyText({ text, L }: { text: string; L: (ko: string, en: string) => st
   const [copied, setCopied] = useState(false);
   return (
     <span className="folder-paths">
-      <code className="code">{text}</code>
+      <code className="code" style={{ whiteSpace: 'pre-wrap' }}>{text}</code>
       <button type="button" className="btn-ghost small-btn" onClick={() => { void navigator.clipboard?.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }, () => setCopied(false)); }}>
         {copied ? L('복사됨', 'Copied') : L('복사', 'Copy')}</button>
     </span>
@@ -147,11 +149,14 @@ function CopyText({ text, L }: { text: string; L: (ko: string, en: string) => st
 }
 
 function BoardConnView({ c, L }: { c: BoardConn; L: (ko: string, en: string) => string }) {
-  const tcl = c.protocol === 'hw_server' ? `connect_hw_server -url ${c.endpoint}`
+  // the engine sends the Tcl lines (with the cable serial); an older engine does not
+  const tcl = c.tcl?.length ? c.tcl.join('\n') : c.protocol === 'hw_server' ? `connect_hw_server -url ${c.endpoint}`
     : c.protocol === 'xvc' ? `open_hw_target -xvc_url ${c.endpoint}` : `jtagconfig --addserver ${c.host} <password>`;
+  const pick = c.cable_serial ? L(` › 목록에서 시리얼 ${c.cable_serial}로 끝나는 케이블을 고르세요(다른 케이블은 다른 사람의 보드입니다)`,
+    ` › pick the cable whose name ends in ${c.cable_serial} (the other cables are other people's boards)`) : '';
   const steps = c.protocol === 'hw_server'
-    ? L(`Vivado › Hardware Manager › Open Target › Open New Target › Remote server 선택 › 호스트 ${c.host}, 포트 ${c.port ?? 3121}`,
-      `Vivado › Hardware Manager › Open Target › Open New Target › Remote server › host ${c.host}, port ${c.port ?? 3121}`)
+    ? L(`Vivado › Hardware Manager › Open Target › Open New Target › Remote server 선택 › 호스트 ${c.host}, 포트 ${c.port ?? 3121}${pick}`,
+      `Vivado › Hardware Manager › Open Target › Open New Target › Remote server › host ${c.host}, port ${c.port ?? 3121}${pick}`)
     : c.protocol === 'xvc'
       ? L(`Vivado › Hardware Manager › Open Target › Open New Target(Local server) 뒤, localhost를 오른쪽 클릭 › Add Xilinx Virtual Cable (XVC) › 호스트 ${c.host}, 포트 ${c.port ?? 2542}`,
         `Vivado › Hardware Manager › Open New Target (local server), then right-click localhost › Add Xilinx Virtual Cable (XVC) › host ${c.host}, port ${c.port ?? 2542}`)
@@ -162,7 +167,10 @@ function BoardConnView({ c, L }: { c: BoardConn; L: (ko: string, en: string) => 
       <span className="strong">{PROTO[c.protocol]}{c.label ? ` · ${c.label}` : ''}</span>
       <span className="folder-paths">
         <span><span className="muted small">{L('주소 ', 'Address ')}</span><CopyText text={c.endpoint} L={L} /></span>
+        {c.cable_serial && <span><span className="muted small">{L('케이블 ', 'Cable ')}</span><CopyText text={c.cable_serial} L={L} /></span>}
         <span><span className="muted small">Tcl </span><CopyText text={tcl} L={L} /></span>
+        {c.uart && <span><span className="muted small">{L('UART 콘솔 ', 'UART console ')}</span><CopyText text={c.uart} L={L} />
+          <span className="muted small"> {L('(telnet · PuTTY Raw로 접속)', '(telnet or PuTTY raw)')}</span></span>}
         <span className="muted small">{steps}</span>
       </span>
     </div>

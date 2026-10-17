@@ -5,6 +5,8 @@ import { adminApi } from '../../api/admin';
 import { envApi } from '../../api/envmig';
 import { nextApi } from '../../api/next';
 import { BOARD_PORTS } from '../../api/next';
+import { jtagApi } from '../../api/jtag';
+import { GatewayStateChip } from './JtagGatewayPages';
 import type { Board, BoardProtocol, BoardTarget, BuildJob, CardRow, ClientSettings, Department, ExternalDesktop, Gateway, GatewayKind, GoldenImage, JobPool, JobStatus, LicenseServer, RolloutResult, Signup, SignupSettings, SignupStatus, UsbCategory, UsbDevice, VerifyMode } from '../../api/next';
 import { researchApi, waitText } from '../../api/research';
 import { Dialog } from '../../components/Dialog';
@@ -864,16 +866,21 @@ export function BoardsPage() {
           <NoticeBar notice={notice} />
           {list.length === 0 ? <div className="empty"><p>{L('등록된 보드가 없습니다.', 'No boards yet.')}</p></div> : (
             <div className="table-scroll"><table className="table compact-head">
-              <thead><tr><th>{L('보드', 'Board')}</th><th>{L('방식', 'Kind')}</th><th>{L('노드', 'Node')}</th><th>{L('USB · 주소', 'USB / address')}</th><th>{L('연결된 데스크톱', 'Desktop')}</th><th>{L('사용자', 'User')}</th><th>{L('연결 시각', 'Since')}</th><th>{L('반납 예정', 'Returns')}</th><th className="actions" /></tr></thead>
+              <thead><tr><th>{L('보드', 'Board')}</th><th>{L('방식', 'Kind')}</th><th>{L('노드 · 게이트웨이', 'Node / gateway')}</th><th>{L('USB · 주소', 'USB / address')}</th><th>{L('연결된 데스크톱', 'Desktop')}</th><th>{L('사용자', 'User')}</th><th>{L('연결 시각', 'Since')}</th><th>{L('반납 예정', 'Returns')}</th><th className="actions" /></tr></thead>
               <tbody>{list.map((b) => (
                 <tr key={b.id}>
                   <td className="strong">{b.name}{b.kind && <div className="muted small">{b.kind}{b.notes ? ` · ${b.notes}` : ''}</div>}</td>
                   <td>{b.target === 'network'
                     ? <span className="chip chip-accent">{L('네트워크', 'Network')} · {PROTO_TEXT[(b.protocol || 'hw_server') as BoardProtocol]}</span>
                     : <span className="chip">USB</span>}</td>
-                  <td>{b.target === 'network' ? <span className="muted">-</span> : b.node}</td>
                   <td>{b.target === 'network'
-                    ? <><code className="code">{b.connection?.endpoint ?? `${b.host}:${b.port ?? ''}`}</code>{b.label && <div className="muted small">{b.label}</div>}</>
+                    ? (b.gateway ? <>{b.gateway.name} <GatewayStateChip state={b.gateway.state} /></> : <span className="muted">-</span>)
+                    : b.node}</td>
+                  <td>{b.target === 'network'
+                    ? <><code className="code">{b.connection?.endpoint ?? `${b.host}:${b.port ?? ''}`}</code>
+                      {b.cable_serial && <div className="small">{L('케이블', 'cable')} <code className="code">{b.cable_serial}</code></div>}
+                      {b.connection?.uart && <div className="muted small">UART {b.connection.uart}</div>}
+                      {b.label && <div className="muted small">{b.label}</div>}</>
                     : <code className="code">{b.usb}</code>}</td>
                   <td>{b.desktop ? b.desktop.name : <span className="chip chip-free">{L('비어 있음', 'free')}</span>}</td>
                   <td>{b.lease_user || b.desktop?.assigned_user || '-'}</td>
@@ -882,7 +889,9 @@ export function BoardsPage() {
                   <td className="actions">
                     {b.attached_desktop
                       ? <button type="button" className="btn small-btn" onClick={async () => { try { await nextApi.detachBoard(b.id); boards.reload(); } catch (e) { setNotice({ kind: 'error', text: errText(e) }); } }}>{L('분리', 'Detach')}</button>
-                      : <button type="button" className="btn small-btn primary" onClick={() => setAttaching(b)}>{L('연결', 'Attach')}</button>}
+                      : <button type="button" className="btn small-btn primary" disabled={b.available === false}
+                          title={b.available === false ? L('JTAG 게이트웨이가 응답하지 않아 대여할 수 없습니다.', 'The JTAG gateway is down; the board cannot be lent.') : undefined}
+                          onClick={() => setAttaching(b)}>{L('연결', 'Attach')}</button>}
                     <button type="button" className="btn-ghost small-btn" disabled={!!b.attached_desktop} onClick={() => setEditing(b)}>{L('편집', 'Edit')}</button>
                     <button type="button" className="btn-ghost small-btn danger" disabled={!!b.attached_desktop} onClick={async () => {
                       if (!confirm(L(`'${b.name}'을(를) 지울까요?`, `Delete '${b.name}'?`))) return;
@@ -920,16 +929,29 @@ function BoardDialog({ board, onClose, onDone }: { board: Board | null; onClose:
   const [label, setLabel] = useState(board?.label ?? '');
   const [kind, setKind] = useState(board?.kind ?? '');
   const [notes, setNotes] = useState(board?.notes ?? '');
+  const gateways = useLoad(jtagApi.list);
+  const gwList = gateways.state === 'ok' ? gateways.data.filter((g) => g.cluster_id === cid) : [];
+  // '' = a cable host address of its own; otherwise the JTAG gateway VM the cable is on
+  const [gatewayId, setGatewayId] = useState(board ? board.gateway_id ?? '' : 'auto');
+  const gid = gatewayId === 'auto' ? gwList[0]?.id ?? '' : gatewayId;
+  const gw = gwList.find((g) => g.id === gid);
+  const [serial, setSerial] = useState(board?.cable_serial ?? '');
+  const [uart, setUart] = useState(board?.uart_port ? String(board.uart_port) : '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function submit() {
     setBusy(true); setError(null);
-    const body = target === 'network'
-      ? { name, cluster_id: cid, node: '', usb: '', kind, notes, target, host: host.trim(), protocol, port: port ? Number(port) : BOARD_PORTS[protocol], label }
-      : { name, cluster_id: cid, node, usb: usbId.toLowerCase(), kind, notes, target };
+    const net = { name, cluster_id: cid, node: '', usb: '', kind, notes, target, protocol, label, cable_serial: serial.trim(), uart_port: uart ? Number(uart) : null };
+    const body = target === 'usb'
+      ? { name, cluster_id: cid, node, usb: usbId.toLowerCase(), kind, notes, target }
+      : gid
+        ? { ...net, gateway_id: gid, port: protocol === 'xvc' ? (port ? Number(port) : BOARD_PORTS.xvc) : null }
+        : { ...net, host: host.trim(), port: port ? Number(port) : BOARD_PORTS[protocol] };
     try { await nextApi.saveBoard(board?.id ?? null, body); onDone(); } catch (e) { setError(errText(e)); } finally { setBusy(false); }
   }
-  const ready = !!name && (target === 'network' ? !!host.trim() : !!node && !!usbId);
+  const ready = !!name && (target === 'usb' ? !!node && !!usbId : gid ? (protocol !== 'hw_server' || !!serial.trim()) : !!host.trim());
+  const freeCables = (gw?.cables ?? []).filter((c) => c.jtag && c.serial && (!c.board || c.serial === board?.cable_serial));
+  const digits = (v: string) => v.replace(/\D/g, '').slice(0, 5);
   return (
     <Dialog open title={board ? L('보드 편집', 'Edit board') : L('보드 추가', 'Add board')} onClose={onClose} onSubmit={submit} submitLabel={L('저장', 'Save')} busy={busy || !ready} error={error}>
       <label><span>{L('이름', 'Name')}</span><input id="brd-name" value={name} maxLength={80} placeholder="ZCU102 #1" onChange={(e) => setName(e.target.value)} /></label>
@@ -950,16 +972,35 @@ function BoardDialog({ board, onClose, onDone }: { board: Board | null; onClose:
         ? <label><span>{L('USB (VID:PID 또는 포트 경로)', 'USB (vid:pid or port path)')}</span><input id="brd-usb" value={usbId} placeholder="03fd:0008 · 1-4.2" onChange={(e) => setUsbId(e.target.value.trim())} /></label>
         : <>
           <div className="form-row form-row-wide">
+            <label><span>{L('JTAG 게이트웨이', 'JTAG gateway')}</span>
+              <select id="brd-gateway" value={gid} onChange={(e) => setGatewayId(e.target.value)}>
+                {gwList.map((g) => <option key={g.id} value={g.id}>{g.name} ({g.host}){g.state === 'down' ? L(' · 응답 없음', ' · down') : ''}</option>)}
+                <option value="">{L('게이트웨이 없이 주소 직접 입력', 'No gateway - type an address')}</option>
+              </select></label>
             <label><span>{L('프로토콜', 'Protocol')}</span>
               <select id="brd-protocol" value={protocol} onChange={(e) => setProtocol(e.target.value as BoardProtocol)}>
-                {(Object.keys(BOARD_PORTS) as BoardProtocol[]).map((p) => <option key={p} value={p}>{PROTO_TEXT[p]} ({BOARD_PORTS[p]})</option>)}
+                {(Object.keys(BOARD_PORTS) as BoardProtocol[]).map((p) => <option key={p} value={p}>{PROTO_TEXT[p]} ({gw && p === 'hw_server' ? gw.hw_port : gw && p === 'quartus' ? gw.jtagd_port : BOARD_PORTS[p]})</option>)}
               </select></label>
-            <label><span>{L('포트', 'Port')}</span><input id="brd-port" inputMode="numeric" value={port} placeholder={String(BOARD_PORTS[protocol])} onChange={(e) => setPort(e.target.value.replace(/\D/g, '').slice(0, 5))} /></label>
           </div>
-          <label><span>{L('케이블 호스트 (호스트 이름 또는 IP)', 'Cable host (name or IP)')}</span><input id="brd-host" value={host} maxLength={255} placeholder="jtag01.lab.local" onChange={(e) => setHost(e.target.value.trim())} /></label>
-          <label><span>{L('표시 이름 (선택)', 'Label (optional)')}</span><input id="brd-label" value={label} maxLength={80} placeholder={L('랙 B-2 · 케이블 1', 'rack B-2 · cable 1')} onChange={(e) => setLabel(e.target.value)} /></label>
-          <p className="muted small">{L('데스크톱 VM이 이 호스트의 포트에 닿아야 합니다(방화벽 허용: 데스크톱 → 케이블 호스트). 케이블 호스트는 연구자 자리 PC보다 랩 존의 공용 서버를 권장합니다.',
-            'Desktop VMs must reach this host\'s port (allow desktop -> cable host). Prefer a shared lab server over a researcher\'s own PC.')}</p>
+          {gid ? <>
+            {protocol !== 'xvc' && <label><span>{protocol === 'hw_server' ? L('케이블 시리얼 (필수)', 'Cable serial (required)') : L('케이블 이름 · 시리얼 (선택)', 'Cable name / serial (optional)')}</span>
+              <input id="brd-serial" list="brd-serials" value={serial} maxLength={64} placeholder="210251A08870" onChange={(e) => setSerial(e.target.value.trim())} />
+              <datalist id="brd-serials">{freeCables.map((c) => <option key={c.serial} value={c.serial}>{[c.manufacturer, c.product, c.port].filter(Boolean).join(' · ')}</option>)}</datalist></label>}
+            {protocol === 'hw_server' && <p className="muted small">{gw?.cables.length
+              ? L(`게이트웨이에서 읽은 JTAG 케이블 ${freeCables.length}개가 목록에 있습니다(이미 보드가 된 케이블은 빠짐). 한 케이블은 보드 하나에만 등록됩니다.`, `${freeCables.length} JTAG cables read from the gateway are in the list (cables already a board are left out). A cable is one board only.`)
+              : L('JTAG 게이트웨이 탭에서 "케이블 찾기"를 누르면 시리얼을 고를 수 있습니다. Vivado Hardware Manager 대상 이름 끝의 시리얼과 같습니다.', 'Press "Find cables" on the JTAG gateways tab to pick from a list. It is the serial at the end of the Vivado target name.')}</p>}
+            {protocol === 'xvc' && <label><span>{L('이 보드의 XVC 서버 포트 (게이트웨이)', "This board's XVC server port (on the gateway)")}</span>
+              <input id="brd-port" inputMode="numeric" value={port} placeholder={String(BOARD_PORTS.xvc)} onChange={(e) => setPort(digits(e.target.value))} /></label>}
+          </> : <div className="form-row form-row-wide">
+            <label><span>{L('케이블 호스트 (호스트 이름 또는 IP)', 'Cable host (name or IP)')}</span><input id="brd-host" value={host} maxLength={255} placeholder="jtag01.lab.local" onChange={(e) => setHost(e.target.value.trim())} /></label>
+            <label><span>{L('포트', 'Port')}</span><input id="brd-port" inputMode="numeric" value={port} placeholder={String(BOARD_PORTS[protocol])} onChange={(e) => setPort(digits(e.target.value))} /></label>
+          </div>}
+          <div className="form-row form-row-wide">
+            <label><span>{L('UART 포트 (ser2net, 선택)', 'UART port (ser2net, optional)')}</span><input id="brd-uart" inputMode="numeric" value={uart} placeholder="7001" onChange={(e) => setUart(digits(e.target.value))} /></label>
+            <label><span>{L('표시 이름 (선택)', 'Label (optional)')}</span><input id="brd-label" value={label} maxLength={80} placeholder={L('랙 B-2 · 케이블 1', 'rack B-2 · cable 1')} onChange={(e) => setLabel(e.target.value)} /></label>
+          </div>
+          <p className="muted small">{L('데스크톱 VM이 게이트웨이(또는 케이블 호스트)의 포트에 닿아야 합니다(방화벽 허용: 데스크톱 → 게이트웨이). 연구자 자리 PC보다 인프라/랩 존의 게이트웨이 VM을 권장합니다.',
+            'Desktop VMs must reach the gateway\'s (or cable host\'s) ports (allow desktop -> gateway). Prefer a gateway VM in the infra/lab zone over a researcher\'s own PC.')}</p>
         </>}
       <label><span>{L('보드 종류', 'Kind')}</span><input id="brd-kind" value={kind} maxLength={80} placeholder="ZCU102 · VCK190 · KV260" onChange={(e) => setKind(e.target.value)} /></label>
       <label><span>{L('메모', 'Notes')}</span><input id="brd-notes" value={notes} maxLength={300} onChange={(e) => setNotes(e.target.value)} /></label>
@@ -987,7 +1028,8 @@ function AttachDialog({ board, onClose, onDone }: { board: Board; onClose: () =>
   return (
     <Dialog open title={L(`${board.name} 연결`, `Attach ${board.name}`)} onClose={onClose} onSubmit={submit} submitLabel={L('연결', 'Attach')} busy={busy || !desk} error={error}>
       <p className="muted small">{net
-        ? L(`네트워크 보드(${board.host}:${board.port ?? ''})는 VM 설정을 바꾸지 않습니다. 사용자 포털에 접속 주소와 사용법이 표시됩니다.`, `A network board (${board.host}:${board.port ?? ''}) leaves the VM alone; the user's portal shows the address and how to connect.`)
+        ? L(`네트워크 보드(${board.connection?.endpoint ?? ''}${board.cable_serial ? `, 케이블 ${board.cable_serial}` : ''})는 VM 설정을 바꾸지 않습니다. 사용자 포털에 접속 주소와 사용법이 표시됩니다.`,
+          `A network board (${board.connection?.endpoint ?? ''}${board.cable_serial ? `, cable ${board.cable_serial}` : ''}) leaves the VM alone; the user's portal shows the address and how to connect.`)
         : L(`${board.node} 노드의 데스크톱만 보입니다.`, `Desktops on ${board.node} only.`)}</p>
       <label><span>{L('데스크톱', 'Desktop')}</span>
         <select id="att-desk" value={desk} onChange={(e) => setDesk(e.target.value)}>
