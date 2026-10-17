@@ -123,7 +123,9 @@ const mockWarpgateApi: WarpgateApi = {
       proto: protocol, host, port, username: `ticket-${secret}`,
       full_address: protocol === 'rdp' ? `${host}:${port}` : undefined,
       ssh: protocol === 'ssh' ? `ssh ticket-${secret}@${host} -p ${port}` : undefined,
-      browser_url: `${mockCfg.base_url || 'https://warpgate.example:8888'}/?warpgate-target=moavi-mock&warpgate-ticket=${secret}`,
+      // the engine never puts a ticket in a browser link: Warpgate opens no web session from a ticket
+      // for an RDP/SSH target, so the browser goes to Warpgate's web UI (sign in, open the desktop)
+      browser_url: `${mockCfg.base_url || 'https://warpgate.example:8888'}/@warpgate#/`,
     };
   },
   sshKeys: async () => ({ enabled: mockCfg.enabled, keys: [...mockKeys] }),
