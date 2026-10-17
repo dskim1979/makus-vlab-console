@@ -146,7 +146,7 @@ services:
     hostname: ${VLAB_DIRECTORY_HOSTNAME:-dc1}
     environment:
       VLAB_DIRECTORY_REALM: ${VLAB_DIRECTORY_REALM:-moavi.lan}          # DNS name of the domain
-      VLAB_DIRECTORY_DOMAIN: ${VLAB_DIRECTORY_DOMAIN:-MOAVI}            # NetBIOS name (MOAVIlice)
+      VLAB_DIRECTORY_DOMAIN: ${VLAB_DIRECTORY_DOMAIN:-MOAVI}            # NetBIOS name (MOAVI\alice)
       VLAB_DIRECTORY_HOSTNAME: ${VLAB_DIRECTORY_HOSTNAME:-dc1}
       VLAB_DIRECTORY_IP: ${VLAB_DIRECTORY_IP:-}                         # required: where the desktops reach it
       VLAB_DIRECTORY_ROLE: ${VLAB_DIRECTORY_ROLE:-primary}              # replica: a second DC on the HA partner

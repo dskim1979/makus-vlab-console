@@ -8,7 +8,7 @@
 FROM debian:12.8-slim
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
- && apt-get install -y --no-install-recommends samba winbind krb5-user ldb-tools smbclient dnsutils \
+ && apt-get install -y --no-install-recommends samba samba-ad-dc samba-ad-provision winbind krb5-user ldb-tools smbclient dnsutils \
         ca-certificates procps \
  && rm -rf /var/lib/apt/lists/* \
  && rm -f /etc/samba/smb.conf
