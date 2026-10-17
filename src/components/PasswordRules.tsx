@@ -34,10 +34,10 @@ export function policyProblems(pw: string, p: PasswordPolicy, L: L, names: strin
   if (p.special && !/[!@#$%^&*()_+\-=[\]{}|;:,.<>?]/.test(pw)) out.push(L('특수 문자', 'a symbol'));
   if (p.complexity) {
     const kinds = [/[A-Z]/, /[a-z]/, /[0-9]/, /[^A-Za-z0-9]/].filter((r) => r.test(pw)).length;
-    if (kinds < 3) out.push(L('대문자 · 소문자 · 숫자 · 기호 중 세 가지', 'three of upper, lower, digits, symbols'));
+    if (kinds < 3) out.push(L('3종류 이상', 'three kinds'));
     const low = pw.toLowerCase();
     const parts = names.flatMap((n) => (n || '').toLowerCase().split(/[\s,._\-#\t]+/)).filter((x) => x.length >= 3);
-    if (parts.some((x) => low.includes(x))) out.push(L('아이디 · 이름이 들어가지 않게', 'no username or name in it'));
+    if (parts.some((x) => low.includes(x))) out.push(L('아이디·이름 빼기', 'no username or name'));
   }
   return out;
 }
@@ -48,7 +48,7 @@ export function policyText(p: PasswordPolicy, L: L) {
   if (p.lowercase) parts.push(L('소문자', 'lower case'));
   if (p.numbers) parts.push(L('숫자', 'a digit'));
   if (p.special) parts.push(L('특수 문자', 'a symbol'));
-  if (p.complexity) parts.push(L('네 종류 중 세 가지 · 아이디 · 이름 제외', 'three kinds, no username or name'));
+  if (p.complexity) parts.push(L('3종류 이상 · 아이디 제외', 'three kinds, no username'));
   return parts.join(' · ');
 }
 
@@ -62,8 +62,8 @@ export function PasswordRules({ policy, pw, names = [] }: { policy: PasswordPoli
   return (
     <>
       <small className="muted">{L('규칙', 'Rule')}: {policyText(policy, L)}
-        {pw && (missing.length ? <span className="pw-missing"> — {L('남은 것', 'still missing')}: {missing.join(', ')}</span>
-          : <span className="pw-ok"> — {L('맞음', 'OK')}</span>)}</small>
+        {pw && (missing.length ? <span className="pw-missing"> · {L('남은 것', 'missing')}: {missing.join(', ')}</span>
+          : <span className="pw-ok"> ✓</span>)}</small>
       {policy.unified && <UnifiedNote domain={policy.domain} />}
     </>
   );
@@ -72,10 +72,10 @@ export function PasswordRules({ policy, pw, names = [] }: { policy: PasswordPoli
 export function UnifiedNote({ domain }: { domain?: string }) {
   const { pick } = useI18n();
   return (
-    <div className="alert info small" role="note">
-      {pick({ ko: `이 비밀번호로 포털과 데스크톱 모두 로그인합니다${domain ? ` (데스크톱에서는 ${domain}\\아이디)` : ''}.`,
-        en: `This one password signs you in to the portal and to the desktops${domain ? ` (${domain}\\username on a desktop)` : ''}.` })}
-    </div>
+    <small className="muted unified-note" role="note">
+      {pick({ ko: `포털과 데스크톱에 같은 비밀번호로 로그인합니다${domain ? ` · ${domain}\\아이디` : ''}`,
+        en: `One password for the portal and the desktops${domain ? ` · ${domain}\\username` : ''}` })}
+    </small>
   );
 }
 
@@ -85,11 +85,9 @@ export function accountErrorText(err: unknown, L: L): string {
   const e = err as ApiError & { body?: { code?: string; error?: string } };
   const code = e?.body && typeof e.body === 'object' ? e.body.code : undefined;
   if (code === 'PASSWORD_POLICY') return L(`비밀번호 규칙에 맞지 않습니다: ${e.message}`, `The password does not fit the rule: ${e.message}`);
-  if (code === 'PASSWORD_REFUSED') return L(`디렉터리가 이 비밀번호를 받지 않았습니다: ${e.message}. 다른 비밀번호를 정하세요.`,
-    `The directory refused this password: ${e.message}. Choose another one.`);
+  if (code === 'PASSWORD_REFUSED') return L(`디렉터리가 이 비밀번호를 거부했습니다: ${e.message}`, `The directory refused this password: ${e.message}`);
   if (e?.status === 503 || code === 'UNREACHABLE' || code === 'NO_SERVICE_ACCOUNT') {
-    return L('디렉터리(DC)에 연결할 수 없어 바꾸지 못했습니다. 포털과 데스크톱의 비밀번호는 그대로입니다. 잠시 뒤 다시 하거나 관리자에게 알리세요.',
-      'The directory (DC) could not be reached, so nothing changed - the portal and desktop password stay as they were. Try again later or tell the administrator.');
+    return L('디렉터리에 연결할 수 없어 바뀌지 않았습니다. 잠시 뒤 다시 하세요.', 'The directory is unreachable; nothing changed. Try again later.');
   }
   return (err as Error)?.message ?? String(err);
 }

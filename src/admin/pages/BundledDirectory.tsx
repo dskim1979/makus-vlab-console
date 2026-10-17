@@ -36,8 +36,7 @@ export function BundledDirectoryPanel() {
   });
   const rotate = () => run('rotate', async () => {
     await directoryApi.rotateJoin();
-    return L('가입 계정(vlab-join)의 비밀번호를 새로 정했습니다. 엔진 DB 에 봉인돼 있고 화면에는 나오지 않습니다.',
-      'vlab-join has a new password, sealed in the engine DB and never shown.');
+    return L('가입 계정 비밀번호를 새로 정했습니다.', 'vlab-join has a new password.');
   });
   async function showAccounts() {
     if (accounts) { setAccounts(null); return; }
@@ -65,16 +64,14 @@ export function BundledDirectoryPanel() {
         </div>
       </div>
       {notice && <div className={`alert small ${notice.kind === 'error' ? 'error' : 'info'}`} role="status">{notice.text}</div>}
-      {!d.service_account && <div className="alert error small">{L('엔진 서비스 계정(vlab-svc)의 비밀번호가 없습니다. vlab-directory 컨테이너가 떠 있는지 확인하세요.',
-        'No password for the engine service account (vlab-svc) - is the vlab-directory container up?')}</div>}
+      {!d.service_account && <div className="alert error small">{L('vlab-svc 비밀번호가 없습니다 · vlab-directory 컨테이너를 확인하세요', 'No vlab-svc password · check the vlab-directory container')}</div>}
       <p className="small">
         {L(`계정 ${d.accounts.total} · 정상 ${d.accounts.ok} · 문제 ${d.accounts.failed}`, `Accounts ${d.accounts.total} · ok ${d.accounts.ok} · problems ${d.accounts.failed}`)}
         <span className="muted"> · {L(`도메인 가입 데스크톱 ${d.joins.joined}/${d.joins.total}`, `Joined desktops ${d.joins.joined}/${d.joins.total}`)}</span>
         <span className="muted"> · {L('마지막 맞춤', 'Last reconcile')} {d.last_reconcile ? when(d.last_reconcile) : '-'}</span>
         {' '}<button type="button" className="btn-ghost small-btn" onClick={showAccounts}>{accounts ? L('계정 목록 닫기', 'Hide accounts') : L('계정 목록', 'Accounts')}</button>
       </p>
-      <p className="muted small">{L('비밀번호는 사용자가 정할 때(가입 · 비밀번호 찾기 · 내 계정) 그 자리에서 DC 로만 갑니다. 엔진은 어떤 사용자 비밀번호도 저장하지 않습니다. 관리자 계정은 DC 가 멈춰도 콘솔에 들어올 수 있도록 포털 계정으로 남습니다.',
-        'Passwords go to the DC only, at the moment the user sets them (sign-up, reset link, my account); the engine stores none. Administrators stay portal accounts so the console works when the DC does not.')}</p>
+      <p className="muted small">{L('비밀번호는 DC 에만 있고 엔진은 저장하지 않습니다.', 'Passwords live on the DC only; the engine keeps none.')}</p>
       {accounts && (
         <div className="table-scroll"><table className="table compact-head">
           <thead><tr><th>{L('아이디', 'User')}</th><th>{L('위치', 'Where')}</th><th>{L('결과', 'Result')}</th><th>{L('시각', 'At')}</th></tr></thead>
@@ -89,12 +86,13 @@ export function BundledDirectoryPanel() {
         </table></div>
       )}
       <details className="small">
-        <summary>{L('디렉터리 구조 · 가입 계정', 'Layout · join account')}</summary>
+        <summary>{L('자세히', 'Details')}</summary>
         <ul className="plain-list">
           <li>{L('사용자', 'Users')}: <code className="code">{d.users_dn}</code></li>
-          <li>{L('그룹 (부서마다 dep-…, 모두: moavi-users)', 'Groups (dep-… per department, everyone: moavi-users)')}: <code className="code">{d.groups_dn}</code></li>
+          <li>{L('그룹', 'Groups')}: <code className="code">{d.groups_dn}</code> · {L('부서마다 dep-…, 모두 moavi-users', 'dep-… per department, everyone in moavi-users')}</li>
           <li>{L('데스크톱', 'Desktops')}: <code className="code">{d.desktops_dn}</code></li>
-          <li>{L('풀 권한의 "AD 그룹" 에는 이 그룹 DN 을 넣습니다', 'An "AD group" pool grant takes these group DNs')}: <code className="code">{d.all_group_dn}</code></li>
+          <li>{L('풀 권한 "AD 그룹" 예', 'Pool grant "AD group", e.g.')}: <code className="code">{d.all_group_dn}</code></li>
+          <li>{L('관리자 계정은 포털 계정으로 남아 DC 가 멈춰도 콘솔에 들어옵니다.', 'Administrators stay portal accounts, so the console works when the DC does not.')}</li>
           <li>{L('가입 계정 vlab-join', 'Join account vlab-join')}: {d.join_account ? L('비밀번호 봉인됨', 'password sealed') : L('첫 가입 때 만듦', 'made at the first join')}
             {' '}<button type="button" className="btn-ghost small-btn" disabled={!!busy || !d.active} onClick={rotate}>{L('비밀번호 새로 정하기', 'New password')}</button></li>
         </ul>
@@ -122,17 +120,24 @@ function DirectorySettingsDialog({ initial, onClose, onSaved }: { initial: Bundl
   return (
     <Dialog open title={L('내장 디렉터리 설정', 'Bundled directory settings')} onClose={onClose} onSubmit={save} submitLabel={L('저장', 'Save')} busy={busy} error={error}>
       <label className="check"><input type="checkbox" checked={s.migrate_on_login} onChange={(e) => set('migrate_on_login', e.target.checked)} />
-        {L('기존 포털 계정은 다음 로그인 때 디렉터리로 옮김 (그때 입력한 비밀번호로)', 'Move existing portal accounts at their next sign-in (with the password typed then)')}</label>
+        {L('기존 포털 계정은 다음 로그인 때 옮김', 'Move existing portal accounts at their next sign-in')}</label>
       <label className="check"><input type="checkbox" checked={s.include_admins} onChange={(e) => set('include_admins', e.target.checked)} />
-        {L('관리자 계정도 디렉터리에 둠 (DC 가 멈추면 관리자도 못 들어옴)', 'Administrators too (they cannot sign in while the DC is down)')}</label>
-      <label className="field"><span>{L('데스크톱 이름 ({vmid} 포함, 15자 이내)', 'Desktop name ({vmid}, 15 characters at most)')}</span>
-        <input value={s.computer_name} onChange={(e) => set('computer_name', e.target.value)} /></label>
+        {L('관리자 계정도 디렉터리에 둠', 'Administrators too')}</label>
+      <label className="field"><span>{L('데스크톱 이름', 'Desktop name')}</span>
+        <input value={s.computer_name} onChange={(e) => set('computer_name', e.target.value)} />
+        <small className="muted">{L('{vmid} 포함 · 15자 이내', '{vmid} · up to 15')}</small></label>
       <label className="check"><input type="checkbox" checked={s.set_dns} onChange={(e) => set('set_dns', e.target.checked)} />
-        {L('가입할 때 데스크톱의 DNS 를 DC 로 바꿈 (끄면 DHCP 가 DC 를 DNS 로 줘야 함)', 'Point the desktop DNS at the DC when joining (off: DHCP must hand out the DC)')}</label>
-      <label className="field"><span>{L('DNS 서버 (비우면 DC 주소)', 'DNS servers (empty: the DC)')}</span>
+        {L('가입할 때 DNS 를 DC 로 바꿈', 'Point the desktop DNS at the DC')}</label>
+      <label className="field"><span>{L('DNS 서버', 'DNS servers')}</span>
         <input value={dns} placeholder={initial.ip} onChange={(e) => setDns(e.target.value)} disabled={!s.set_dns} /></label>
       <label className="check"><input type="checkbox" checked={s.rdp_group} onChange={(e) => set('rdp_group', e.target.checked)} />
-        {L('moavi-users 를 원격 데스크톱 사용자에 넣음 (Windows) / 로그인 허용 (Linux)', 'moavi-users in Remote Desktop Users (Windows) / permitted (Linux)')}</label>
+        {L('moavi-users 에 원격 로그인 허용', 'Let moavi-users sign in remotely')}</label>
+      <details className="small"><summary>{L('자세히', 'Details')}</summary>
+        <ul className="plain-list">
+          <li>{L('관리자도 디렉터리에 두면 DC 가 멈췄을 때 관리자도 로그인하지 못합니다.', 'Administrators in the directory cannot sign in while the DC is down.')}</li>
+          <li>{L('DNS 를 바꾸지 않으면 데스크톱 망 DHCP 가 DC 를 DNS 로 줘야 합니다. DNS 서버를 비우면 DC 주소를 씁니다.', 'Without it, DHCP must hand out the DC as DNS. Empty DNS servers: the DC.')}</li>
+          <li>{L('원격 로그인: Windows 는 원격 데스크톱 사용자 그룹, Linux 는 realm permit.', 'Remote sign-in: Remote Desktop Users on Windows, realm permit on Linux.')}</li>
+        </ul></details>
     </Dialog>
   );
 }
@@ -187,8 +192,13 @@ export function PoolDomainJoinPanel({ pool }: { pool: Pool }) {
         </div>
       </div>
       {notice && <div className={`alert small ${notice.kind === 'error' ? 'error' : 'info'}`} role="status">{notice.text}</div>}
-      <p className="muted small">{L(`게스트 에이전트로 가입합니다(Windows: Add-Computer, Linux: realm join). Windows 템플릿은 sysprep 으로 일반화해 두어야 합니다 — 같은 설치본을 복제한 VM 들은 SID 와 이름이 같습니다. Windows 는 재시작해야 가입이 적용됩니다. 가입한 데스크톱의 RDP 파일은 ${dom}\\아이디 로 로그인합니다.`,
-        `Joined through the guest agent (Windows: Add-Computer, Linux: realm join). Generalize Windows templates with sysprep - clones of one install share its SID and name. Windows applies the join after a restart. The RDP file of a joined desktop signs in as ${dom}\\user.`)}</p>
+      <p className="muted small">{L(`가입한 데스크톱에는 ${dom}\\아이디 로 로그인합니다.`, `Joined desktops sign in as ${dom}\\user.`)}</p>
+      <details className="small"><summary>{L('자세히', 'Details')}</summary>
+        <ul className="plain-list">
+          <li>{L('게스트 에이전트로 가입합니다: Windows 는 Add-Computer, Linux 는 realm join.', 'Through the guest agent: Add-Computer on Windows, realm join on Linux.')}</li>
+          <li>{L('Windows 템플릿은 sysprep 으로 일반화해 둡니다. 같은 설치본의 복제는 SID · 이름이 같습니다.', 'Generalize Windows templates with sysprep; clones of one install share SID and name.')}</li>
+          <li>{L('Windows 는 재시작해야 가입이 적용됩니다.', 'Windows applies the join after a restart.')}</li>
+        </ul></details>
       {list.length > 0 && (
         <div className="table-scroll"><table className="table compact-head">
           <thead><tr><th>{L('데스크톱', 'Desktop')}</th><th>{L('상태', 'State')}</th><th>{L('도메인 이름', 'Computer')}</th><th>{L('시각', 'At')}</th><th /></tr></thead>

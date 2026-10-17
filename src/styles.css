@@ -1588,6 +1588,7 @@ fieldset.plain:disabled { opacity: .55; }
 /* 내장 디렉터리 · AD 디렉터리 · 하나의 비밀번호 */
 .pw-missing { color: var(--warn); }
 .pw-ok { color: var(--ok); }
+.unified-note { display: block; margin-top: 2px; }
 .ad-split { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 12px; align-items: start; }
 .ad-tree { max-height: 70vh; overflow: auto; padding: 8px; }
 .ad-node-row { display: flex; align-items: center; gap: 2px; border-radius: 6px; }

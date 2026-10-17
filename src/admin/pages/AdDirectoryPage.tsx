@@ -73,8 +73,10 @@ export function AdDirectoryPage() {
   const changed = (text: string) => { setNotice({ kind: 'info', text }); load(); setTreeKey((k) => k + 1); };
 
   if (sources && sources.length === 0) {
-    return <div className="empty"><p>{L('연결된 디렉터리가 없습니다. 내장 디렉터리를 켜거나(설치 .env 의 VLAB_DIRECTORY=1) 운영 > 플랫폼 설정 > 도메인(AD/LDAP) 에서 기관 AD 를 설정하세요.',
-      'No directory yet. Turn on the bundled directory (VLAB_DIRECTORY=1) or set up your AD under Operations > Platform settings > Domain.')}</p></div>;
+    return <div className="empty"><p>{L('연결된 디렉터리가 없습니다.', 'No directory yet.')}</p>
+      <details className="small"><summary>{L('자세히', 'Details')}</summary>
+        {L('설치 .env 에 VLAB_DIRECTORY=1 을 넣어 내장 디렉터리를 켜거나, 운영 > 플랫폼 설정 > 도메인 에 기관 AD 를 설정합니다.',
+          'Set VLAB_DIRECTORY=1 in the install .env, or set up your AD under Operations > Platform settings > Domain.')}</details></div>;
   }
   return (
     <div className="ad-page">
@@ -91,8 +93,10 @@ export function AdDirectoryPage() {
         <button type="button" className="btn primary" disabled={!at} onClick={() => setMaking('user')}>{L('새 사용자', 'New user')}</button>
       </div>
       {notice && <div className={`alert small ${notice.kind === 'error' ? 'error' : 'info'}`} role="status">{notice.text}</div>}
-      <p className="muted small">{L('바꾸는 것은 곧바로 실제 디렉터리에 쓰이고 작업 기록에 남습니다. 내장 디렉터리의 포털 계정 · moavi-users · 부서 그룹은 사용자 · 부서 화면에서 바꿉니다. 여기서 무엇을 바꿔도 포털의 부서는 움직이지 않습니다.',
-        'Changes go straight to the directory and to the audit log. Portal accounts, moavi-users and department groups of the bundled directory are changed under Users / Departments. Nothing here moves a portal department.')}</p>
+      <p className="muted small">{L('바꾼 내용은 바로 디렉터리에 쓰이고 작업 기록에 남습니다.', 'Changes go straight to the directory and the audit log.')}</p>
+      <details className="small"><summary>{L('자세히', 'Details')}</summary>
+        {L('포털 계정 · moavi-users · 부서 그룹은 사용자 · 부서 화면에서 바꿉니다. 여기서 바꿔도 포털 부서는 그대로입니다.',
+          'Portal accounts, moavi-users and department groups are changed under Users / Departments. Portal departments never move from here.')}</details>
       <div className="ad-split">
         <aside className="panel ad-tree" aria-label={L('디렉터리 트리', 'Directory tree')}>
           {source && base && <TreeNode key={`${source}-${treeKey}`} source={source} node={{ dn: base, name: base, kind: 'container', description: '', managed: false }}
@@ -184,7 +188,7 @@ function ObjectDialog({ source, dn, onClose, onChanged, onDeleted }: { source: s
   const editable = o?.kind === 'user' ? ['displayName', 'givenName', 'sn', 'mail', 'title', 'department', 'description']
     : o?.kind === 'group' ? ['description', 'mail'] : o?.kind === 'ou' ? ['description'] : [];
   const label: Record<string, string> = { displayName: L('표시 이름', 'Display name'), givenName: L('이름', 'Given name'), sn: L('성', 'Surname'),
-    mail: L('메일', 'Mail'), title: L('직함', 'Title'), department: L('부서(속성)', 'Department (attribute)'), description: L('설명', 'Description') };
+    mail: L('메일', 'Mail'), title: L('직함', 'Title'), department: L('부서 속성', 'Department attribute'), description: L('설명', 'Description') };
   async function save() {
     if (!o) return;
     const changes = Object.fromEntries(editable.map((k) => [k, f[k] ?? '']));
@@ -201,7 +205,7 @@ function ObjectDialog({ source, dn, onClose, onChanged, onDeleted }: { source: s
       {o && (
         <>
           <p className="muted small"><code className="code">{o.dn}</code></p>
-          {o.managed && <div className="alert info small">{L('포털이 관리하는 항목이라 여기서는 볼 수만 있습니다. 사용자 · 부서 화면에서 바꾸세요.', 'Kept by the portal: read-only here. Change it under Users / Departments.')}</div>}
+          {o.managed && <div className="alert info small">{L('포털이 관리하는 항목 · 읽기 전용', 'Kept by the portal · read-only')}</div>}
           {o.kind === 'group' && <p className="small">{o.type === 'security' ? L('보안 그룹', 'Security group') : L('메일 그룹', 'Distribution group')} · {scopeText(o.scope, L)}{o.sam ? ` · ${o.sam}` : ''}</p>}
           {o.kind === 'user' && <p className="small">{o.sam}{o.upn ? ` · ${o.upn}` : ''} · <span className={o.enabled ? 'chip chip-ok' : 'chip chip-warn'}>{o.enabled ? L('사용', 'Enabled') : L('사용 중지', 'Disabled')}</span></p>}
           {editable.length > 0 && (
@@ -233,8 +237,8 @@ function ObjectDialog({ source, dn, onClose, onChanged, onDeleted }: { source: s
               </ul>
               {(o.nested_members?.length ?? 0) > 0 && <p className="small"><span className="muted">{L('하위 그룹을 통한 구성원', 'Through member groups')}: </span>{o.nested_members!.map(rdn).join(', ')}</p>}
               {!o.managed && <>
-                <label><span>{L('구성원 더하기 (이름 · 아이디 검색)', 'Add a member (search name or id)')}</span>
-                  <input value={add} onChange={(e) => setAdd(e.target.value)} /></label>
+                <label><span>{L('구성원 더하기', 'Add a member')}</span>
+                  <input value={add} placeholder={L('이름 · 아이디', 'Name or id')} onChange={(e) => setAdd(e.target.value)} /></label>
                 {found.length > 0 && <ul className="plain-list">{found.map((x) => (
                   <li key={x.dn}><button type="button" className="btn-ghost small-btn" disabled={busy}
                     onClick={() => act(async () => { await adApi.member(source, dn, x.dn, 'add'); setAdd(''); }, L(`${x.name} 을(를) 더했습니다.`, `${x.name} added.`))}>
@@ -276,16 +280,17 @@ function MakeDialog({ source, parent, what, onClose, onMade }: { source: string;
       {what === 'user' ? (
         <>
           <div className="form-row form-row-even">
-            <label><span>{L('로그인 아이디 (sAMAccountName, 20자 이내)', 'Sign-in id (sAMAccountName, ≤ 20)')}</span><input value={f.sam} onChange={set('sam')} required /></label>
+            <label><span>{L('로그인 아이디', 'Sign-in id')}</span><input value={f.sam} placeholder={L('20자 이내', 'up to 20')} onChange={set('sam')} required /></label>
             <label><span>{L('표시 이름', 'Display name')}</span><input value={f.display_name} onChange={set('display_name')} /></label>
             <label><span>{L('이름', 'Given name')}</span><input value={f.given_name} onChange={set('given_name')} /></label>
             <label><span>{L('성', 'Surname')}</span><input value={f.surname} onChange={set('surname')} /></label>
             <label><span>{L('메일', 'Mail')}</span><input value={f.mail} onChange={set('mail')} /></label>
             <label><span>{L('설명', 'Description')}</span><input value={f.description} onChange={set('description')} /></label>
           </div>
-          <label><span>{L('첫 비밀번호 (비우면 사용 중지로 만듦 · 저장하지 않음)', 'First password (empty: made disabled · never kept)')}</span>
+          <label><span>{L('첫 비밀번호', 'First password')}</span>
             <PasswordInput id="ad-new-pw" value={f.password} onChange={(v) => setF({ ...f, password: v })} generate /></label>
-          {f.password && <PasswordRules policy={pol} pw={f.password} names={names} />}
+          {f.password ? <PasswordRules policy={pol} pw={f.password} names={names} />
+            : <small className="muted">{L('비우면 사용 중지로 만듭니다', 'Empty: made disabled')}</small>}
         </>
       ) : (
         <>
