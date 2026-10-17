@@ -15,6 +15,17 @@ import { bytes, ClusterFrame, Meter, useCluster } from './ClusterPages';
 
 type Notice = { kind: 'info' | 'error'; text: string };
 
+// A job's retention: Proxmox sends 'keep-last=7,keep-daily=7' or, on newer versions, an object
+// { 'keep-last': 7, ... }. Shown as "7" for keep-last alone, else "last 7 · daily 7".
+function retention(v: unknown): string {
+  const pairs = typeof v === 'string'
+    ? v.split(',').map((x) => x.trim().split('=') as [string, string]).filter(([k, n]) => k && n)
+    : v && typeof v === 'object' ? Object.entries(v as Record<string, unknown>).map(([k, n]) => [k, String(n)] as [string, string]) : [];
+  if (!pairs.length) return '-';
+  if (pairs.length === 1 && pairs[0][0] === 'keep-last') return pairs[0][1];
+  return pairs.map(([k, n]) => `${k.replace('keep-', '')} ${n}`).join(' · ');
+}
+
 export function BackupPage() {
   const { current } = useCluster();
   const cid = current?.id;
@@ -126,7 +137,7 @@ function Jobs({ jobs, storages, pools, desktops, clusterId }: {
                     <td className="nowrap">{j.schedule}</td>
                     <td>{j.storage}</td>
                     <td className="small">{j.vmid || '-'}</td>
-                    <td className="small">{(j['prune-backups'] || '').replace('keep-last=', '') || '-'}</td>
+                    <td className="small">{retention(j['prune-backups'])}</td>
                     <td className="actions">{j.vlab_pool_id && <button type="button" className="btn-ghost danger" onClick={() => remove(j.id, j.vlab_pool || j.id)}>{t('bk.delete')}</button>}</td>
                   </tr>
                 ))}

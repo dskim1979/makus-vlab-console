@@ -66,7 +66,7 @@ export type BrandingSlot = 'logo' | 'loginLogo' | 'favicon';
 // --- backup (운영 > 백업) ---------------------------------------------------------
 export type BackupStorage = { storage: string; type: string; pbs: boolean; shared: boolean; status: string; used: number; total: number };
 export type BackupJob = { id: string; schedule?: string; storage?: string; vmid?: string; enabled?: number | boolean; mode?: string;
-  comment?: string; 'prune-backups'?: string; 'next-run'?: number; vlab_pool_id: string | null; vlab_pool: string | null };
+  comment?: string; 'prune-backups'?: string | Record<string, number | string>; 'next-run'?: number; vlab_pool_id: string | null; vlab_pool: string | null };
 export type VmBackup = { volid: string; ctime?: number; size?: number; notes?: string; storage?: string; format?: string; protected?: number | boolean };
 export type PbsServer = { id: string; name: string; host: string; port?: number; enabled?: boolean; connected?: boolean };
 
