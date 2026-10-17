@@ -94,7 +94,7 @@ VS Code Remote-SSH 로 데스크톱에 평소처럼 붙되 Warpgate를 거친다
   클라이언트는 공개키를 자동으로 올리고, `~/.ssh/config` 의 관리 블록(BEGIN/END MOAVI)에 데스크톱별
   `Host moavi-<이름>` 항목을 써 준다. 그 뒤:
   - **VS Code Remote-SSH**: 호스트 목록에서 `moavi-<이름>` 선택.
-  - **PuTTY/WinSCP**: 호스트에 Warpgate 주소·포트(기본 2222), 사용자 이름에 `내아이디:대상이름`(포털의
+  - **PuTTY/WinSCP**: 호스트에 Warpgate 주소·포트(기본 2222), 사용자 이름에 `moavi-내아이디:대상이름`(포털의
     "User" 값 복사), 인증은 개인키.
   - 터미널: `ssh moavi-<이름>`, 파일 전송 `scp 파일 moavi-<이름>:` (SFTP 정책·기록 적용).
   - Warpgate는 점프 호스트가 아니라 사용자 이름으로 대상을 고른다(ProxyJump 아님). 엄격한 풀은 셸/
