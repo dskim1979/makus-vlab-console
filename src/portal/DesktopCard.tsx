@@ -115,7 +115,8 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
                   <Icon name="download" size={16} />{t('portal.connectRdp')}
                 </button>
               )}
-              {d.protocols.includes('guac') && (
+              {/* with 보안 게이트웨이 on, its RDP item is the browser RDP: one entry, not two */}
+              {d.protocols.includes('guac') && !warpgate && (
                 <button type="button" role="menuitem" disabled={busy || !running}
                   onClick={() => { setMenu(false); onConnect('guac'); }}>
                   <Icon name="globe" size={16} />{t('portal.connectGuac')}
