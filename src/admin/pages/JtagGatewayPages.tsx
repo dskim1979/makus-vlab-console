@@ -46,10 +46,16 @@ export function JtagGatewaysPage() {
     <LoadState value={gws} retry={gws.reload}>
       {(list) => (
         <>
-          <p className="muted small page-intro">{L('JTAG 게이트웨이는 JTAG 케이블을 많이 꽂아 둔 작은 Linux VM입니다. hw_server · XVC · Quartus jtagd로 케이블을 네트워크에 내놓고, 연구자는 자기 데스크톱의 Vivado · Quartus에서 접속해 케이블 시리얼로 보드를 고릅니다. 케이블은 USB 장치 하나씩, 또는 PCIe USB 컨트롤러를 통째로(케이블이 많을 때 권장) 넘깁니다.',
-            'A JTAG gateway is a small Linux VM with many JTAG cables. It shares them with hw_server, XVC or Quartus jtagd; researchers connect from Vivado or Quartus in their own desktop and pick their board by cable serial. Pass cables one USB device at a time, or a whole PCIe USB controller (recommended with many cables).')}</p>
-          <div className="alert info small">{L('게이트웨이는 빌드하지 않습니다 — 프로그래밍 · 디버그 트래픽만 중계합니다. 합성 · 구현은 연구자 VM이나 빌드 팜에서 하고, 게이트웨이에는 Vivado Lab Edition만 설치하세요(전체 Vivado 아님). 2–4 vCPU, 4–8 GB면 충분하고, 병목은 CPU가 아니라 JTAG 클럭과 USB 대역폭이라 늘릴 때는 케이블을 PCIe USB 컨트롤러나 게이트웨이 VM 여러 대(대당 10–20개)로 나눕니다.',
-            'The gateway does not build - it only relays programming and debug traffic. Synthesis and implementation run in the researcher\'s VM or the build farm; install Vivado Lab Edition only on the gateway (never full Vivado). 2-4 vCPU and 4-8 GB are enough: the bottleneck is the JTAG clock and USB bandwidth, not CPU, so scale by splitting cables over several PCIe USB controllers or gateway VMs (about 10-20 cables each).')}</div>
+          <p className="muted small page-intro">{L('JTAG 케이블을 모아 hw_server · XVC · jtagd로 공유하는 VM입니다.', 'VMs that hold JTAG cables and share them over hw_server, XVC or jtagd.')}</p>
+          <details className="small">
+            <summary>{L('구성 안내', 'Setup notes')}</summary>
+            <ul style={{ margin: '4px 0', paddingLeft: 20 }}>
+              <li>{L('빌드하지 않고 프로그래밍 · 디버그만 중계합니다. 합성은 연구자 VM이나 빌드 팜에서.', 'Relays programming and debug only; synthesis runs in the researcher\'s VM or the build farm.')}</li>
+              <li>{L('Vivado Lab Edition만 설치. 2–4 vCPU, 4–8 GB.', 'Vivado Lab Edition only. 2-4 vCPU, 4-8 GB.')}</li>
+              <li>{L('케이블이 많으면 PCIe USB 컨트롤러를 통째로 넘깁니다.', 'With many cables, pass a whole PCIe USB controller.')}</li>
+              <li>{L('늘릴 때는 CPU 대신 컨트롤러 · 게이트웨이를 나눕니다. 게이트웨이당 10–20개.', 'Scale by splitting controllers and gateways, not CPU: 10-20 cables each.')}</li>
+            </ul>
+          </details>
           <div className="toolbar">
             <button type="button" className="btn primary" onClick={() => setEditing('new')}><Icon name="plus" size={16} />{L('게이트웨이 추가', 'Add gateway')}</button>
             <button type="button" className="btn" onClick={gws.reload}><Icon name="refresh" size={16} />{L('새로 고침', 'Refresh')}</button>
@@ -115,14 +121,13 @@ function GatewayCard({ g, when, act, onEdit }: { g: JtagGateway; when: (s: strin
       </div>
 
       <h3 className="small strong">{L('게이트웨이가 보는 케이블', 'Cables the gateway sees')} <span className="muted small">{g.cables_at
-        ? (failed ? L(`${when(g.cables_at)}에 읽은 목록 (오래됨)`, `read ${when(g.cables_at)} (stale)`) : when(g.cables_at))
-        : failed ? L('(아직 읽은 적 없음)', '(never read)') : L('(케이블 찾기를 누르세요 — 게스트 에이전트 필요)', '(press Find cables - needs the guest agent)')}</span></h3>
+        ? (failed ? L(`${when(g.cables_at)} 기준 · 오래됨`, `as of ${when(g.cables_at)} · stale`) : when(g.cables_at))
+        : failed ? L('아직 읽은 적 없음', 'never read') : L('케이블 찾기를 누르세요', 'Press Find cables')}</span></h3>
       {failed && <div className="alert small error" role="alert">
         {L(`${when(g.cables_error_at ?? null)} 케이블 찾기 실패: `, `Cable read failed ${when(g.cables_error_at ?? null)}: `)}{cableReadText(g.cables_error_code || undefined, g.cables_error ?? '', L)}
-        {g.cables.length > 0 && L(' 아래 목록은 그 전에 읽은 것이라 지금과 다를 수 있습니다.', ' The list below was read before and may be out of date.')}</div>}
+</div>}
       {g.cables.length > 0 && <div style={failed ? { opacity: 0.6 } : undefined}><CableTable cables={g.cables} /></div>}
-      <p className="muted small">{L(`이 게이트웨이의 보드 ${g.boards.length}개`, `${g.boards.length} boards on this gateway`)}{g.boards.length ? `: ${g.boards.map((b) => `${b.name}${b.cable_serial ? ` (${b.cable_serial})` : ''}${b.lent ? L(' · 대여 중', ' · lent') : ''}`).join(', ')}` : ''}.
-        {' '}{L('보드는 보드 탭에서 이 게이트웨이와 케이블 시리얼로 등록합니다.', 'Register boards on the Boards tab with this gateway and the cable serial.')}</p>
+      <p className="muted small">{L(`이 게이트웨이의 보드 ${g.boards.length}개`, `${g.boards.length} boards on this gateway`)}{g.boards.length ? `: ${g.boards.map((b) => `${b.name}${b.cable_serial ? ` (${b.cable_serial})` : ''}${b.lent ? L(' · 대여 중', ' · lent') : ''}`).join(', ')}` : ''}</p>
       {adding && <PassthroughDialog g={g} onClose={() => setAdding(false)} onDone={(restart) => {
         setAdding(false);
         void act(async () => undefined, restart ? L('PCIe 컨트롤러는 게이트웨이 VM을 다시 시작해야 붙습니다.', 'The PCIe controller goes on after the gateway VM restarts.') : L('케이블을 넘겼습니다.', 'Cable passed through.'));
@@ -171,10 +176,8 @@ function PassthroughDialog({ g, onClose, onDone }: { g: JtagGateway; onClose: ()
         ? <label><span>{L('USB (VID:PID 또는 포트 경로)', 'USB (vid:pid or port path)')}</span><input id="gwpt-usb" value={value} placeholder="03fd:0008 · 1-4.2" onChange={(e) => setValue(e.target.value.trim())} /></label>
         : <label><span>{L('컨트롤러 주소', 'Controller address')}</span><input id="gwpt-pci" value={value} placeholder="0000:05:00.0" onChange={(e) => setValue(e.target.value.trim())} /></label>}
       <p className="muted small">{kind === 'usb'
-        ? L('VM이 켜진 채로 붙습니다. 같은 케이블이 여러 개면 포트 경로로 지정하세요. Platform Cable USB II는 펌웨어를 올리며 ID가 바뀌므로 포트 경로나 PCIe 컨트롤러를 쓰세요.',
-          'Goes on while the VM runs. Use a port path when several cables are alike; the Platform Cable USB II changes its id when its firmware loads, so use a port path or a PCIe controller.')
-        : L('컨트롤러에 꽂힌 케이블이 모두 게이트웨이 안에서 보이고 재열거에도 끊기지 않습니다. 게이트웨이 VM을 다시 시작해야 붙고, IOMMU 그룹이 분리된 카드여야 합니다.',
-          'Every cable on the controller shows up inside the gateway and survives re-enumeration. It goes on after a VM restart; the card needs its own IOMMU group.')}</p>
+        ? L('같은 케이블이 여러 개면 포트 경로로 지정합니다.', 'Use a port path when several cables are alike.')
+        : L('게이트웨이 VM을 다시 시작해야 붙습니다.', 'Goes on after the gateway VM restarts.')}</p>
     </Dialog>
   );
 }
@@ -216,8 +219,7 @@ function GatewayDialog({ gw, onClose, onDone }: { gw: JtagGateway | null; onClos
         <label><span>Quartus jtagd {L('포트', 'port')}</span><input id="jgw-jtagd" inputMode="numeric" value={jtagdPort} onChange={(e) => setJtagdPort(digits(e.target.value, 5))} /></label>
       </div>
       <label><span>{L('메모', 'Notes')}</span><input id="jgw-notes" value={notes} maxLength={300} placeholder={L('랙 B · PCIe USB 카드 · 전원 허브 2개', 'rack B · PCIe USB card · 2 powered hubs')} onChange={(e) => setNotes(e.target.value)} /></label>
-      <p className="muted small">{L('VM ID를 적으면 케이블 패스스루 · 케이블 찾기(게스트 에이전트) · VM 상태 감시를 씁니다. 게이트웨이는 빌드하지 않습니다 — Vivado Lab Edition만, 2–4 vCPU · 4–8 GB.',
-        'With the VM id MOAVI Desk passes cables through, reads them (guest agent) and watches the VM. The gateway does not build - Vivado Lab Edition only, 2-4 vCPU, 4-8 GB.')}</p>
+      <p className="muted small">{L('VM ID가 있어야 케이블 넘기기 · 찾기 · 상태 감시가 됩니다.', 'The VM id is needed to pass, read and watch cables.')}</p>
     </Dialog>
   );
 }

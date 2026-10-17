@@ -102,7 +102,8 @@ export function ResourcesPage() {
 }
 
 // 내 보드 (JTAG): boards lent to me. A network board (hw_server / XVC / Quartus jtagd) is dialled from the
-// tool inside the desktop, so it works over RDP, Warpgate or SPICE; a USB board is on the desktop already.
+// tool inside the desktop, so any display protocol works; a USB board is on the desktop already.
+// The card shows the values with copy buttons; the how-to stays folded.
 function MyBoardsPanel() {
   const { lang, pick } = useI18n();
   const L = (ko: string, en: string) => pick({ ko, en });
@@ -114,8 +115,7 @@ function MyBoardsPanel() {
         <span className="stat-icon tone-blue"><Icon name="fpga" size={18} /></span>
         <div>
           <h2 className="section-title">{L('내 보드 (JTAG)', 'My boards (JTAG)')}</h2>
-          <p className="muted small" style={{ margin: 0 }}>{L('네트워크 보드는 데스크톱 안의 Vivado · Quartus에서 아래 주소로 접속합니다. 화면 프로토콜(RDP · SPICE · Warpgate)과 상관없이 됩니다.',
-            'Open Vivado or Quartus inside your desktop and connect to the address below; any display protocol (RDP, SPICE, Warpgate) works.')}</p>
+          <p className="muted small" style={{ margin: 0 }}>{L('데스크톱 안의 Vivado · Quartus에서 접속합니다.', 'Connect from Vivado or Quartus in your desktop.')}</p>
         </div>
       </div>
       {boards.data.map((b: MyBoard) => (
@@ -125,17 +125,16 @@ function MyBoardsPanel() {
             {b.desktop && <span className="chip" style={{ marginLeft: 8 }}>{b.desktop.name}</span>}
             {b.lease_until && <span className="muted small" style={{ marginLeft: 8 }}>{L('반납', 'until')} {new Date(b.lease_until).toLocaleString(lang === 'ko' ? 'ko-KR' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' })}</span>}
           </div>
-          {b.available === false && <div className="alert small error" role="alert">{L(`JTAG 게이트웨이${b.gateway ? `(${b.gateway.name})` : ''}가 지금 응답하지 않습니다. 관리자에게 알려졌습니다 — 잠시 뒤 다시 접속해 보세요.`,
-            `The JTAG gateway${b.gateway ? ` (${b.gateway.name})` : ''} is not answering right now. Your admin has been told - try again shortly.`)}</div>}
+          {b.available === false && <div className="alert small error" role="alert">{L('JTAG 게이트웨이가 응답하지 않습니다. 잠시 뒤 다시 시도하세요.', 'The JTAG gateway is not answering. Try again shortly.')}</div>}
           {b.connection ? <BoardConnView c={b.connection} L={L} />
-            : <p className="muted small">{L('USB로 데스크톱에 연결되어 있습니다. 데스크톱 안에서 그대로 쓰세요.', 'Attached to the desktop over USB; use it inside the desktop.')}</p>}
+            : <p className="muted small">{L('USB로 데스크톱에 연결되어 있습니다.', 'Attached to the desktop over USB.')}</p>}
         </div>
       ))}
     </section>
   );
 }
 
-const PROTO: Record<BoardConn['protocol'], string> = { hw_server: 'Xilinx hw_server', xvc: 'Xilinx Virtual Cable (XVC)', quartus: 'Intel Quartus jtagd' };
+const PROTO: Record<BoardConn['protocol'], string> = { hw_server: 'hw_server', xvc: 'XVC', quartus: 'Quartus jtagd' };
 
 function CopyText({ text, L }: { text: string; L: (ko: string, en: string) => string }) {
   const [copied, setCopied] = useState(false);
@@ -152,26 +151,28 @@ function BoardConnView({ c, L }: { c: BoardConn; L: (ko: string, en: string) => 
   // the engine sends the Tcl lines (with the cable serial); an older engine does not
   const tcl = c.tcl?.length ? c.tcl.join('\n') : c.protocol === 'hw_server' ? `connect_hw_server -url ${c.endpoint}`
     : c.protocol === 'xvc' ? `open_hw_target -xvc_url ${c.endpoint}` : `jtagconfig --addserver ${c.host} <password>`;
-  const pick = c.cable_serial ? L(` › 목록에서 시리얼 ${c.cable_serial}로 끝나는 케이블을 고르세요(다른 케이블은 다른 사람의 보드입니다)`,
-    ` › pick the cable whose name ends in ${c.cable_serial} (the other cables are other people's boards)`) : '';
   const steps = c.protocol === 'hw_server'
-    ? L(`Vivado › Hardware Manager › Open Target › Open New Target › Remote server 선택 › 호스트 ${c.host}, 포트 ${c.port ?? 3121}${pick}`,
-      `Vivado › Hardware Manager › Open Target › Open New Target › Remote server › host ${c.host}, port ${c.port ?? 3121}${pick}`)
+    ? [L('Hardware Manager › Open New Target', 'Hardware Manager › Open New Target'),
+      L(`Remote server: ${c.endpoint}`, `Remote server: ${c.endpoint}`),
+      c.cable_serial ? L(`케이블 ${c.cable_serial} 선택`, `Pick cable ${c.cable_serial}`) : L('케이블 선택', 'Pick the cable')]
     : c.protocol === 'xvc'
-      ? L(`Vivado › Hardware Manager › Open Target › Open New Target(Local server) 뒤, localhost를 오른쪽 클릭 › Add Xilinx Virtual Cable (XVC) › 호스트 ${c.host}, 포트 ${c.port ?? 2542}`,
-        `Vivado › Hardware Manager › Open New Target (local server), then right-click localhost › Add Xilinx Virtual Cable (XVC) › host ${c.host}, port ${c.port ?? 2542}`)
-      : L(`Quartus Programmer › Hardware Setup › JTAG Settings › Add Server › 서버 ${c.host}, 관리자에게 받은 암호 (jtagd 포트 ${c.port ?? 1309})`,
-        `Quartus Programmer › Hardware Setup › JTAG Settings › Add Server › server ${c.host} and the password from your admin (jtagd port ${c.port ?? 1309})`);
+      ? [L('Hardware Manager › Open New Target (Local server)', 'Hardware Manager › Open New Target (Local server)'),
+        L(`localhost 오른쪽 클릭 › Add Xilinx Virtual Cable: ${c.endpoint}`, `Right-click localhost › Add Xilinx Virtual Cable: ${c.endpoint}`)]
+      : [L('Programmer › Hardware Setup › JTAG Settings', 'Programmer › Hardware Setup › JTAG Settings'),
+        L(`Add Server: ${c.host}, 관리자에게 받은 암호`, `Add Server: ${c.host}, the password from your admin`),
+        ...(c.cable_serial ? [L(`케이블 ${c.cable_serial} 선택`, `Pick cable ${c.cable_serial}`)] : [])];
   return (
     <div className="folder-item">
       <span className="strong">{PROTO[c.protocol]}{c.label ? ` · ${c.label}` : ''}</span>
       <span className="folder-paths">
-        <span><span className="muted small">{L('주소 ', 'Address ')}</span><CopyText text={c.endpoint} L={L} /></span>
+        <span><span className="muted small">{L('서버 ', 'Server ')}</span><CopyText text={c.endpoint} L={L} /></span>
         {c.cable_serial && <span><span className="muted small">{L('케이블 ', 'Cable ')}</span><CopyText text={c.cable_serial} L={L} /></span>}
-        <span><span className="muted small">Tcl </span><CopyText text={tcl} L={L} /></span>
-        {c.uart && <span><span className="muted small">{L('UART 콘솔 ', 'UART console ')}</span><CopyText text={c.uart} L={L} />
-          <span className="muted small"> {L('(telnet · PuTTY Raw로 접속)', '(telnet or PuTTY raw)')}</span></span>}
-        <span className="muted small">{steps}</span>
+        {c.uart && <span><span className="muted small">UART </span><CopyText text={c.uart} L={L} /></span>}
+        <details className="small">
+          <summary>{c.protocol === 'quartus' ? L('Quartus에서 여는 법', 'Open in Quartus') : L('Vivado에서 여는 법', 'Open in Vivado')}</summary>
+          <ol style={{ margin: '4px 0', paddingLeft: 20 }}>{steps.map((s) => <li key={s}>{s}</li>)}</ol>
+          <span><span className="muted small">Tcl </span><CopyText text={tcl} L={L} /></span>
+        </details>
       </span>
     </div>
   );
