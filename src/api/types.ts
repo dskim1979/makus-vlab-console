@@ -130,18 +130,18 @@ export type Pool = {
   desktops: number;
   assigned: number;
   settings?: { gpu?: GpuPolicy; protocols?: string[]; templates?: number[]; policy?: PoolPolicy;
-    shared?: { max_sessions?: number }; rdp_gateway_id?: string; guac_gateway_id?: string };
+    shared?: { max_sessions?: number } };
 };
 
 // PUT /api/vlab/admin/pools/<id>: what the pool form changes (the cluster and the type stay)
 export type PoolUpdate = {
   name?: string; description?: string; enabled?: boolean;
-  settings?: { max_sessions?: number; rdp_gateway_id?: string | null; guac_gateway_id?: string | null };
+  settings?: { max_sessions?: number };
 };
 
 // --- pool policy (데스크톱 풀 > 풀 > 정책) ------------------------------------------
 export type PoolPolicy = {
-  protocols: ('vnc' | 'spice' | 'rdp' | 'guac')[]; spice_fullscreen: boolean;
+  protocols: ('vnc' | 'spice' | 'rdp')[]; spice_fullscreen: boolean;
   clipboard: Clipboard;
   usb_redirect: boolean; usb_autoshare: boolean;
   // RDP / browser RDP: the user's own PC drives and printers in the desktop
@@ -222,9 +222,8 @@ export type ConnectInfo = (
   | { type: 'vnc'; ws_path: string; password: string; session_id: string; clipboard?: Clipboard }
   | { type: 'spice'; vv: string; filename: string; session_id: string }
   | { type: 'rdp'; rdp: string; filename: string; session_id: string; via?: 'warpgate' }
-  | { type: 'guac'; url: string; session_id: string }
 ) & { storage?: StorageResult };
-export type ConnectProtocol = 'vnc' | 'spice' | 'rdp' | 'guac';
+export type ConnectProtocol = 'vnc' | 'spice' | 'rdp';
 
 export type PowerAction = 'start' | 'shutdown' | 'reboot' | 'stop';
 

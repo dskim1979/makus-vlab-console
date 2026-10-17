@@ -28,13 +28,7 @@ export type SignupAnswer = { request: { id: string; status: string; verify?: 'se
 export type UsbCategory = 'jtag' | 'security-key' | 'storage' | 'serial' | 'camera' | 'other';
 export type UsbDevice = { id: string; name: string; vid: string; pid: string; category: UsbCategory; notes: string; builtin: number; pools: number };
 export type UsbInput = { name: string; vid: string; pid: string; category: UsbCategory; notes: string };
-export type GatewayKind = 'guacamole' | 'rdpgw' | 'msrdgw';
-export type Gateway = {
-  id: string; name: string; kind: GatewayKind; address: string; port: number; notes: string; enabled: number;
-  last_check: string | null; last_ok: number | null; last_detail: string; external: number; has_key?: boolean;
-};
-export type GatewayInput = { name: string; kind: GatewayKind; address: string; port: number; notes: string; enabled: boolean; secret_key?: string };
-export type ExternalDesktop = { id: string; name: string; address: string; port: number; assigned_user: string | null; gateway_id: string | null; notes: string };
+export type ExternalDesktop = { id: string; name: string; address: string; port: number; assigned_user: string | null; notes: string };
 export type ExternalInput = Omit<ExternalDesktop, 'id'>;
 export type GoldenVersion = { name: string; description: string; time: number | null };
 export type GoldenImage = {
@@ -122,11 +116,6 @@ const realNextApi = {
     (await call<{ device: UsbDevice }>(id ? 'PUT' : 'POST', id ? `${A}/usb-devices/${enc(id)}` : `${A}/usb-devices`, b)).device,
   deleteUsbDevice: async (id: string) => { await call('DELETE', `${A}/usb-devices/${enc(id)}`); },
 
-  gateways: async () => (await call<{ gateways: Gateway[] }>('GET', `${A}/gateways`)).gateways,
-  saveGateway: async (id: string | null, b: GatewayInput) =>
-    (await call<{ gateway: Gateway }>(id ? 'PUT' : 'POST', id ? `${A}/gateways/${enc(id)}` : `${A}/gateways`, b)).gateway,
-  deleteGateway: async (id: string) => { await call('DELETE', `${A}/gateways/${enc(id)}`); },
-  checkGateway: async (id: string) => call<{ gateway: Gateway; ok: boolean; ms: number; error: string }>('POST', `${A}/gateways/${enc(id)}/check`),
 
   externalDesktops: async () => (await call<{ desktops: ExternalDesktop[] }>('GET', `${A}/external-desktops`)).desktops,
   saveExternal: async (id: string | null, b: ExternalInput) =>
@@ -175,7 +164,8 @@ const realNextApi = {
   },
   claim: async (poolId: string) => call<{ desktop: { id: string; name: string }; new: boolean }>('POST', `/api/vlab/me/pools/${enc(poolId)}/claim`),
   route: async (poolId: string) => call<{ desktop: { id: string; name: string }; sessions: number; limit: number }>('POST', `/api/vlab/me/pools/${enc(poolId)}/route`),
-  myExternalGuac: async (id: string) => call<{ url: string }>('GET', `/api/vlab/me/external/${enc(id)}/guac`),
+  // browser RDP through 보안 게이트웨이 (WG_OFF when it is off)
+  myExternalWeb: async (id: string) => call<{ url: string; via: 'warpgate' }>('GET', `/api/vlab/me/external/${enc(id)}/web`),
   // pools[].workdir: the user's scratch folder when build jobs start there (each job in <workdir>/<job id>), else ''
   myJobs: async () => call<{ jobs: BuildJob[]; pools: JobPool[] }>('GET', '/api/vlab/me/build-jobs'),
   mySubmitJob: async (b: JobInput) => (await call<{ job: BuildJob }>('POST', '/api/vlab/me/build-jobs', b)).job,
@@ -189,7 +179,7 @@ const realNextApi = {
     const { status, data } = await request<{ desktops: MyExternal[] }>('GET', '/api/vlab/me/external');
     return status === 200 ? data.desktops ?? [] : [];
   },
-  myExternalRdp: async (id: string) => call<{ filename: string; rdp: string }>('GET', `/api/vlab/me/external/${enc(id)}/rdp`),
+  myExternalRdp: async (id: string) => call<{ filename: string; rdp: string; via?: 'warpgate' }>('GET', `/api/vlab/me/external/${enc(id)}/rdp`),
   signupConfig: async (): Promise<SignupConfig> => {
     try {
       const { status, data } = await request<SignupConfig>('GET', '/api/vlab/signup/config');
@@ -244,16 +234,10 @@ const usb: UsbDevice[] = [
   { id: 'usb_3', name: 'Digilent JTAG', vid: '1443', pid: '', category: 'jtag', notes: 'VID 1443 전체', builtin: 1, pools: 0 },
   { id: 'usb_4', name: 'YubiKey 5 NFC', vid: '1050', pid: '0407', category: 'security-key', notes: '연구 보안 구역 로그인용', builtin: 0, pools: 1 },
 ];
-const gateways: Gateway[] = [
-  { id: 'gw_1', name: '외부망 RDP 게이트웨이', kind: 'rdpgw', address: 'rdgw.univ.ac.kr', port: 443, notes: '재택 · 출장 접속', enabled: 1,
-    last_check: iso(12), last_ok: 1, last_detail: '18 ms', external: 2 },
-  { id: 'gw_2', name: '브라우저 RDP (Guacamole)', kind: 'guacamole', address: 'guac.univ.ac.kr', port: 8443, notes: '설치 없는 RDP', enabled: 1,
-    last_check: iso(60), last_ok: 1, last_detail: '9 ms', external: 0, has_key: true },
-];
 const external: ExternalDesktop[] = [
-  { id: 'ext_1', name: '측정실 PC (오실로스코프)', address: '10.30.5.21', port: 3389, assigned_user: 'alice', gateway_id: 'gw_1', notes: '계측 장비 연결 PC' },
-  { id: 'ext_2', name: '설계실 워크스테이션 3', address: '10.30.6.13', port: 3389, assigned_user: 'bob', gateway_id: 'gw_1', notes: '' },
-  { id: 'ext_3', name: '전산실 서버 콘솔', address: '10.30.1.5', port: 3389, assigned_user: null, gateway_id: null, notes: '배정 대기' },
+  { id: 'ext_1', name: '측정실 PC (오실로스코프)', address: '10.30.5.21', port: 3389, assigned_user: 'alice', notes: '계측 장비 연결 PC' },
+  { id: 'ext_2', name: '설계실 워크스테이션 3', address: '10.30.6.13', port: 3389, assigned_user: 'bob', notes: '' },
+  { id: 'ext_3', name: '전산실 서버 콘솔', address: '10.30.1.5', port: 3389, assigned_user: null, notes: '배정 대기' },
 ];
 const golden: GoldenImage[] = [
   { id: 'gold_1', cluster_id: 'c1', node: 'pve1', vmid: 9001, name: 'win11-실습-골든', current_version: 'gold-20261010-090000', notes: 'Windows 11 · Office · Python',
@@ -425,20 +409,6 @@ const mockNextApi: NextApi = {
     usb.splice(usb.findIndex((x) => x.id === id), 1); return delay(undefined);
   },
 
-  gateways: () => delay(gateways.map((g) => ({ ...g, external: external.filter((e) => e.gateway_id === g.id).length }))),
-  saveGateway: (id, b) => {
-    const { secret_key, ...rest } = b;
-    if (secret_key && (b.kind !== 'guacamole' || !/^[0-9a-f]{32}$/.test(secret_key))) return fail(400, 'secret_key: 32 hex digits, Guacamole only');
-    if (id) { const g = gateways.find((x) => x.id === id)!; Object.assign(g, { ...rest, enabled: b.enabled ? 1 : 0 }, secret_key ? { has_key: true } : {}); return delay({ ...g }); }
-    const g: Gateway = { id: nid('gw'), ...rest, enabled: b.enabled ? 1 : 0, last_check: null, last_ok: null, last_detail: '', external: 0, has_key: !!secret_key };
-    gateways.push(g); return delay({ ...g });
-  },
-  deleteGateway: (id) => { gateways.splice(gateways.findIndex((x) => x.id === id), 1); external.forEach((e) => { if (e.gateway_id === id) e.gateway_id = null; }); return delay(undefined); },
-  checkGateway: (id) => {
-    const g = gateways.find((x) => x.id === id)!; const ok = g.kind !== 'guacamole';
-    Object.assign(g, { last_check: iso(0), last_ok: ok ? 1 : 0, last_detail: ok ? '16 ms' : 'Connection refused' });
-    return delay({ gateway: { ...g }, ok, ms: ok ? 16 : 2001, error: ok ? '' : 'Connection refused' });
-  },
 
   externalDesktops: () => delay(external.map((e) => ({ ...e }))),
   saveExternal: (id, b) => {
@@ -549,7 +519,7 @@ const mockNextApi: NextApi = {
     p.free -= 1; p.mine = ['d_claimed']; return delay({ desktop: { id: 'd_claimed', name: 'research-win11-05' }, new: true });
   },
   route: () => delay({ desktop: { id: 'd1', name: 'eda-server-02' }, sessions: 3, limit: 10 }),
-  myExternalGuac: () => delay({ url: 'https://guac.univ.ac.kr:8443/guacamole/?data=mock' }),
+  myExternalWeb: () => delay({ url: 'https://wg.univ.ac.kr:8888/@warpgate#/web-desktop/start/mock', via: 'warpgate' as const }),
   myJobs: () => delay({ jobs: jobs.filter((j) => j.username === 'alice').map((j) => ({ ...j })), pools: [{ id: 'p_farm', name: 'FPGA 빌드 팜', workdir: '/nas/scratch/alice', gpus_per_vm: 0 },
     { id: 'p_gpu', name: 'A100 학습 팜', workdir: '/nas/scratch/alice', gpus_per_vm: 4, gpu_kind: 'A100', max_minutes: 2880, runtime: 'docker' }] }),
   mySubmitJob: (b) => {

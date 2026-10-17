@@ -26,7 +26,6 @@ export function WarpgatePage() {
           { label: L('사용', 'Enabled'), value: c ? (c.enabled ? L('켜짐', 'on') : L('꺼짐', 'off')) : '-', tone: c?.enabled ? 'ok' : 'off' },
           { label: L('연결', 'Connection'), value: c ? (c.last_ok === true ? L('정상', 'ok') : c.last_ok === false ? L('오류', 'error') : L('확인 전', 'unchecked')) : '-', tone: c?.last_ok === true ? 'ok' : c?.last_ok === false ? 'warn' : undefined },
           { label: L('동기화된 대상', 'Targets'), value: cfg.state === 'ok' ? String(cfg.data.targets) : '-' },
-          { label: L('브라우저 RDP', 'Browser RDP'), value: c ? (c.web_rdp_provider === 'warpgate' ? 'Warpgate' : 'Guacamole') : '-' },
           { label: L('앱·RDP 파일', 'App / RDP file'), value: c ? (c.rdp_via_warpgate ? 'Warpgate' : L('직접', 'direct')) : '-' },
         ]} />}>
       <LoadState value={cfg} retry={cfg.reload}>{(d) => <WarpgateForm initial={d.config} onSaved={cfg.reload} />}</LoadState>
@@ -47,7 +46,7 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
     try {
       const saved = await warpgateApi.save({
         base_url: f.base_url, ssh_port: f.ssh_port, rdp_port: f.rdp_port, vnc_port: f.vnc_port,
-        verify_tls: f.verify_tls, enabled: f.enabled, rdp_nla_user: f.rdp_nla_user, web_rdp_provider: f.web_rdp_provider,
+        verify_tls: f.verify_tls, enabled: f.enabled, rdp_nla_user: f.rdp_nla_user,
         rdp_via_warpgate: f.rdp_via_warpgate, allow_direct_fallback: f.allow_direct_fallback,
         ...(token ? { admin_token: token } : {}),
         ...(nlaPw ? { rdp_nla_password: nlaPw } : {}),
@@ -93,13 +92,6 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
           <label><span>{L('RDP 포트', 'RDP port')}</span><input id="wg-rdp" type="number" min={1} max={65535} value={f.rdp_port} onChange={(e) => setF({ ...f, rdp_port: Number(e.target.value) || 0 })} /></label>
           <label><span>{L('VNC 포트', 'VNC port')}</span><input id="wg-vnc" type="number" min={1} max={65535} value={f.vnc_port} onChange={(e) => setF({ ...f, vnc_port: Number(e.target.value) || 0 })} /></label>
         </div>
-
-        <label><span>{L('브라우저 RDP 제공', 'Browser RDP served by')}</span>
-          <select id="wg-provider" value={f.web_rdp_provider} onChange={(e) => setF({ ...f, web_rdp_provider: e.target.value as 'guac' | 'warpgate' })}>
-            <option value="guac">{L('Guacamole (기본)', 'Guacamole (default)')}</option>
-            <option value="warpgate">Warpgate</option>
-          </select>
-          <small className="muted">{L('검증 전에는 Guacamole 유지', 'Keep Guacamole until verified')}</small></label>
 
         <label className="check"><input id="wg-rdp-via" type="checkbox" checked={!!f.rdp_via_warpgate} onChange={(e) => setF({ ...f, rdp_via_warpgate: e.target.checked })} />
           <span>{L('전용 앱·RDP 파일을 보안 게이트웨이 경유로', 'Windows app / RDP file through Warpgate')}</span></label>

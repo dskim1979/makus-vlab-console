@@ -23,7 +23,7 @@ const GROUP_TEXT: Record<FeatureGroup, { ko: [string, string]; en: [string, stri
   lab: { ko: ['실습실 · LAB', 'LAB · 단말 에이전트 · 사용 일정 · 예약 · 키오스크 · 일정형 풀'], en: ['Labs', 'Labs, terminal agents, timetables, bookings, kiosk, scheduled pools'] },
   signup: { ko: ['가입 · 대량 계정', '가입 심사(포털 가입 신청), 부서'], en: ['Sign-up', 'Sign-up review (portal requests), departments'] },
   org: { ko: ['조직 · 권한', '부서, 역할, 유효 권한 조회'], en: ['Organisation and roles', 'Departments, roles, effective access'] },
-  external: { ko: ['외부 접속', '게이트웨이(Guacamole · RD 게이트웨이), USB 장치 라이브러리, 외부 데스크톱'], en: ['External access', 'Gateways (Guacamole, RD Gateway), USB device library, external desktops'] },
+  external: { ko: ['외부 접속', 'USB 장치 라이브러리, 외부 데스크톱'], en: ['External access', 'USB device library, external desktops'] },
   data: { ko: ['연구 데이터', '데이터셋, 파일 전송, 반출 승인 · 규칙, 용량'], en: ['Research data', 'Datasets, file transfer, export approval and rules, capacity'] },
   ha: { ko: ['고가용성', 'Proxmox HA, 서버 이중화'], en: ['High availability', 'Proxmox HA, server pair'] },
   fpga: { ko: ['FPGA 개발', '보드 LAB(JTAG), 빌드 팜, 라이선스 서버 · 좌석, 카드 대여 · 점검'], en: ['FPGA development', 'Board lab (JTAG), build farm, licence servers and seats, card loans and checks'] },

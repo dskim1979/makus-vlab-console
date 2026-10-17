@@ -51,11 +51,11 @@ export const MODULES: AdminModule[] = [
   {
     id: 'pools', icon: 'pool', tone: 'violet',
     label: { ko: '데스크톱 풀', en: 'Desktop pools' },
-    summary: { ko: '풀(정책 · 권한 · 공유 저장소), 접속 설정(게이트웨이 · USB · 외부 데스크톱)', en: 'Pools (policy, access, shared storage), access settings (gateways, USB, external desktops)' },
+    summary: { ko: '풀(정책 · 권한 · 공유 저장소), 접속 설정(USB · 외부 데스크톱)', en: 'Pools (policy, access, shared storage), access settings (USB, external desktops)' },
     pages: [
       { id: 'list', label: { ko: '풀', en: 'Pools' }, phase: 1, render: 'pools/list' },
       { id: 'access', label: { ko: '접속 설정', en: 'Access settings' }, phase: 1, feature: ['external'], tabs: [
-        T('gateways', '게이트웨이', 'Gateways', 'pools/gateways'), T('usb', 'USB 장치', 'USB devices', 'pools/usb'),
+        T('usb', 'USB 장치', 'USB devices', 'pools/usb'),
         T('external', '외부 데스크톱', 'External desktops', 'pools/external')] },
     ],
   },

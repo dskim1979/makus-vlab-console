@@ -7,7 +7,6 @@ export type WarpgateProto = 'rdp' | 'ssh' | 'vnc';
 export type WarpgateConfig = {
   base_url: string; ssh_port: number; rdp_port: number; vnc_port: number;
   verify_tls: boolean; enabled: boolean; rdp_nla_user: string; has_nla_password: boolean;
-  web_rdp_provider: 'guac' | 'warpgate';   // who serves browser RDP (guac until Warpgate is verified)
   rdp_via_warpgate: boolean;   // the client's / mstsc's .rdp aimed at Warpgate (single-use ticket)
   allow_direct_fallback: boolean;   // Warpgate down: go direct / Guacamole (security weakened); default off = refuse
   has_token: boolean; last_check: string | null; last_ok: boolean | null; last_detail: string;
@@ -17,7 +16,7 @@ export type WarpgateConfig = {
 export type WarpgateInput = {
   base_url: string; ssh_port: number; rdp_port: number; vnc_port: number;
   verify_tls: boolean; enabled: boolean; rdp_nla_user?: string;
-  admin_token?: string; rdp_nla_password?: string; web_rdp_provider?: 'guac' | 'warpgate'; rdp_via_warpgate?: boolean; allow_direct_fallback?: boolean;
+  admin_token?: string; rdp_nla_password?: string; rdp_via_warpgate?: boolean; allow_direct_fallback?: boolean;
 };
 
 export type WarpgateConnection = {
@@ -49,7 +48,7 @@ export type WarpgateApi = {
   save: (b: WarpgateInput) => Promise<WarpgateConfig>;
   test: () => Promise<{ ok: boolean; detail: string; config: WarpgateConfig }>;
   sessionsUrl: (sessionId?: string) => Promise<string>;
-  myStatus: () => Promise<{ enabled: boolean; protocols: WarpgateProto[]; web_rdp_provider: 'guac' | 'warpgate' }>;
+  myStatus: () => Promise<{ enabled: boolean; protocols: WarpgateProto[] }>;
   connect: (desktopId: string, protocol: WarpgateProto) => Promise<WarpgateConnection>;
   sshKeys: () => Promise<{ enabled: boolean; keys: SshKey[] }>;
   addSshKey: (label: string, openssh_public_key: string) => Promise<SshKey[]>;
@@ -63,7 +62,7 @@ const realWarpgateApi: WarpgateApi = {
   test: () => call<{ ok: boolean; detail: string; config: WarpgateConfig }>('POST', `${A}/test`),
   sessionsUrl: async (sessionId) =>
     (await call<{ url: string }>('GET', `${A}/sessions${sessionId ? `?session_id=${enc(sessionId)}` : ''}`)).url,
-  myStatus: () => call<{ enabled: boolean; protocols: WarpgateProto[]; web_rdp_provider: 'guac' | 'warpgate' }>('GET', '/api/vlab/me/warpgate'),
+  myStatus: () => call<{ enabled: boolean; protocols: WarpgateProto[] }>('GET', '/api/vlab/me/warpgate'),
   connect: async (desktopId, protocol) =>
     (await call<{ type: string; connection: WarpgateConnection }>(
       'POST', `/api/vlab/me/desktops/${enc(desktopId)}/warpgate`, { protocol })).connection,
@@ -81,7 +80,7 @@ const MOCK_CFG_KEY = 'vlab.mock.warpgate';
 const MOCK_KEYS_KEY = 'vlab.mock.sshkeys';
 const MOCK_DEFAULT: WarpgateConfig = {
   base_url: '', ssh_port: 2222, rdp_port: 3389, vnc_port: 5900, verify_tls: false, enabled: false,
-  rdp_nla_user: '', has_nla_password: false, web_rdp_provider: 'guac', rdp_via_warpgate: false, allow_direct_fallback: false,
+  rdp_nla_user: '', has_nla_password: false, rdp_via_warpgate: false, allow_direct_fallback: false,
   has_token: false, last_check: null, last_ok: null, last_detail: '',
 };
 function mockLoad<T>(key: string, fallback: T): T {
@@ -104,7 +103,6 @@ const mockWarpgateApi: WarpgateApi = {
       rdp_nla_user: b.rdp_nla_user ?? mockCfg.rdp_nla_user,
       has_token: b.admin_token !== undefined ? !!b.admin_token : mockCfg.has_token,
       has_nla_password: b.rdp_nla_password !== undefined ? !!b.rdp_nla_password : mockCfg.has_nla_password,
-      web_rdp_provider: b.web_rdp_provider ?? mockCfg.web_rdp_provider,
       rdp_via_warpgate: b.rdp_via_warpgate ?? mockCfg.rdp_via_warpgate,
       allow_direct_fallback: b.allow_direct_fallback ?? mockCfg.allow_direct_fallback,
     };
@@ -118,7 +116,7 @@ const mockWarpgateApi: WarpgateApi = {
     return { ok, detail: mockCfg.last_detail, config: { ...mockCfg } };
   },
   sessionsUrl: async (sessionId) => `${mockCfg.base_url || 'https://warpgate.example:8888'}/@warpgate/admin/sessions${sessionId ? `/${sessionId}` : ''}`,
-  myStatus: async () => ({ enabled: mockCfg.enabled, protocols: ['rdp', 'ssh', 'vnc'], web_rdp_provider: mockCfg.web_rdp_provider }),
+  myStatus: async () => ({ enabled: mockCfg.enabled, protocols: ['rdp', 'ssh', 'vnc'] }),
   connect: async (_desktopId, protocol) => {
     const host = (mockCfg.base_url || 'https://warpgate.example:8888').replace(/^[a-z]+:\/\//, '').replace(/:\d+$/, '');
     const secret = 'TKT-MOCK-123';

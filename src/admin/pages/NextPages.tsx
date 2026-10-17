@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { adminApi } from '../../api/admin';
 import { envApi } from '../../api/envmig';
 import { nextApi } from '../../api/next';
-import type { Board, BuildJob, CardRow, ClientSettings, Department, ExternalDesktop, Gateway, GatewayKind, GoldenImage, JobPool, JobStatus, LicenseServer, RolloutResult, Signup, SignupSettings, SignupStatus, UsbCategory, UsbDevice, VerifyMode } from '../../api/next';
+import type { Board, BuildJob, CardRow, ClientSettings, Department, ExternalDesktop, GoldenImage, JobPool, JobStatus, LicenseServer, RolloutResult, Signup, SignupSettings, SignupStatus, UsbCategory, UsbDevice, VerifyMode } from '../../api/next';
 import { researchApi, waitText } from '../../api/research';
 import { Dialog } from '../../components/Dialog';
 import { Icon } from '../../components/Icon';
@@ -254,117 +254,6 @@ function RolloutDialog({ target, onClose, onDone }: { target: { image: GoldenIma
   );
 }
 
-// --- 데스크톱 풀 > 게이트웨이 ------------------------------------------------------
-
-const GW_KINDS: { id: GatewayKind; ko: string; en: string; port: number }[] = [
-  { id: 'rdpgw', ko: 'RDP 게이트웨이 (rdpgw)', en: 'RDP gateway (rdpgw)', port: 443 },
-  { id: 'msrdgw', ko: 'Microsoft RD 게이트웨이', en: 'Microsoft RD Gateway', port: 443 },
-  { id: 'guacamole', ko: '브라우저 RDP (Guacamole)', en: 'Browser RDP (Guacamole)', port: 8080 },
-];
-
-export function GatewaysPage() {
-  const { L, when } = useL();
-  const gws = useLoad(nextApi.gateways);
-  const [editing, setEditing] = useState<Gateway | 'new' | null>(null);
-  const [notice, setNotice] = useState<Notice>(null);
-  const [checking, setChecking] = useState<string | null>(null);
-  async function check(g: Gateway) {
-    setChecking(g.id);
-    try { const r = await nextApi.checkGateway(g.id); setNotice({ kind: r.ok ? 'info' : 'error', text: r.ok ? L(`${g.name}: 응답 ${r.ms} ms`, `${g.name}: answered in ${r.ms} ms`) : L(`${g.name}: 응답 없음 (${r.error})`, `${g.name}: no answer (${r.error})`) }); gws.reload(); }
-    catch (e) { setNotice({ kind: 'error', text: errText(e) }); } finally { setChecking(null); }
-  }
-  return (
-    <LoadState value={gws} retry={gws.reload}>
-      {(list) => (
-        <>
-          <Intro>{L('외부망에서 데스크톱 · 외부 PC에 RDP로 들어올 때 거치는 게이트웨이를 등록합니다. RDP 게이트웨이는 외부 데스크톱의 .rdp 파일에 자동으로 들어갑니다.',
-            'Gateways that RDP connections from outside go through. RDP gateways are written into the external desktops\' .rdp files.')}</Intro>
-          <div className="toolbar">
-            <button type="button" className="btn primary" onClick={() => setEditing('new')}><Icon name="plus" size={16} />{L('게이트웨이 추가', 'Add gateway')}</button>
-            <button type="button" className="btn" onClick={gws.reload}><Icon name="refresh" size={16} />{L('새로 고침', 'Refresh')}</button>
-          </div>
-          <SettingsStatus items={[
-            { label: L('게이트웨이', 'Gateways'), value: String(list.length) },
-            { label: L('응답함', 'Answering'), value: String(list.filter((g) => g.last_ok === 1).length), tone: 'ok' },
-            { label: L('응답 없음', 'Not answering'), value: String(list.filter((g) => g.last_ok === 0).length), tone: list.some((g) => g.last_ok === 0) ? 'warn' : undefined },
-            { label: L('쓰는 외부 데스크톱', 'External desktops'), value: String(list.reduce((a, g) => a + g.external, 0)) },
-          ]} />
-          <NoticeBar notice={notice} />
-          {list.length === 0 ? <div className="empty"><p>{L('등록된 게이트웨이가 없습니다.', 'No gateways yet.')}</p></div> : (
-            <div className="table-scroll"><table className="table compact-head">
-              <thead><tr><th>{L('이름', 'Name')}</th><th>{L('종류', 'Kind')}</th><th>{L('주소', 'Address')}</th><th>{L('상태', 'State')}</th><th>{L('마지막 확인', 'Checked')}</th><th className="num">{L('외부 데스크톱', 'External')}</th><th className="actions" /></tr></thead>
-              <tbody>{list.map((g) => (
-                <tr key={g.id} className={g.enabled ? '' : 'row-off'}>
-                  <td className="strong">{g.name}{g.notes && <div className="muted small">{g.notes}</div>}</td>
-                  <td>{L(GW_KINDS.find((k) => k.id === g.kind)?.ko ?? g.kind, GW_KINDS.find((k) => k.id === g.kind)?.en ?? g.kind)}</td>
-                  <td><code className="code">{g.address}:{g.port}</code></td>
-                  <td>{g.last_ok === 1 ? <span className="chip chip-on">{L('응답', 'up')} · {g.last_detail}</span> : g.last_ok === 0 ? <span className="chip chip-warn">{L('응답 없음', 'down')}</span> : <span className="chip">{L('확인 전', 'unchecked')}</span>}</td>
-                  <td className="muted small">{when(g.last_check)}</td>
-                  <td className="num">{g.external}</td>
-                  <td className="actions">
-                    <button type="button" className="btn-ghost small-btn" disabled={checking === g.id} onClick={() => check(g)}>{L('접속 확인', 'Check')}</button>
-                    <button type="button" className="btn-ghost small-btn" onClick={() => setEditing(g)}>{L('편집', 'Edit')}</button>
-                    <button type="button" className="btn-ghost small-btn danger" onClick={async () => {
-                      if (!confirm(L(`'${g.name}'을(를) 지울까요? 이 게이트웨이를 쓰던 외부 데스크톱은 직접 연결로 바뀝니다.`, `Delete '${g.name}'?`))) return;
-                      try { await nextApi.deleteGateway(g.id); gws.reload(); } catch (e) { setNotice({ kind: 'error', text: errText(e) }); }
-                    }}>{L('삭제', 'Delete')}</button>
-                  </td>
-                </tr>))}</tbody>
-            </table></div>
-          )}
-          {editing && <GatewayDialog gw={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onDone={() => { setEditing(null); gws.reload(); }} />}
-        </>
-      )}
-    </LoadState>
-  );
-}
-
-function GatewayDialog({ gw, onClose, onDone }: { gw: Gateway | null; onClose: () => void; onDone: () => void }) {
-  const { L } = useL();
-  const [name, setName] = useState(gw?.name ?? '');
-  const [kind, setKind] = useState<GatewayKind>(gw?.kind ?? 'rdpgw');
-  const [address, setAddress] = useState(gw?.address ?? '');
-  const [port, setPort] = useState(gw?.port ?? 443);
-  const [notes, setNotes] = useState(gw?.notes ?? '');
-  const [enabled, setEnabled] = useState(gw ? !!gw.enabled : true);
-  const [key, setKey] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const newKey = () => setKey(Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join(''));
-  async function submit() {
-    setBusy(true); setError(null);
-    try { await nextApi.saveGateway(gw?.id ?? null, { name, kind, address, port, notes, enabled, ...(kind === 'guacamole' && key ? { secret_key: key } : {}) }); onDone(); }
-    catch (e) { setError(errText(e)); } finally { setBusy(false); }
-  }
-  return (
-    <Dialog open title={gw ? L('게이트웨이 편집', 'Edit gateway') : L('게이트웨이 추가', 'Add gateway')} onClose={onClose} onSubmit={submit} submitLabel={L('저장', 'Save')} busy={busy || !name || !address} error={error}>
-      <label><span>{L('이름', 'Name')}</span><input id="gw-name" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} /></label>
-      <label><span>{L('종류', 'Kind')}</span>
-        <select id="gw-kind" value={kind} onChange={(e) => { const k = e.target.value as GatewayKind; setKind(k); setPort(GW_KINDS.find((x) => x.id === k)!.port); }}>
-          {GW_KINDS.map((k) => <option key={k.id} value={k.id}>{L(k.ko, k.en)}</option>)}
-        </select></label>
-      <div className="form-row form-row-wide">
-        <label><span>{L('주소 (도메인 또는 IP)', 'Address')}</span><input id="gw-addr" value={address} placeholder="rdgw.example.com" onChange={(e) => setAddress(e.target.value.trim())} /></label>
-        <label><span>{L('포트', 'Port')}</span><input id="gw-port" type="number" min={1} max={65535} value={port} onChange={(e) => setPort(Number(e.target.value) || 0)} /></label>
-      </div>
-      {kind === 'guacamole' && (
-        <>
-          <label><span>{L('공유 키 (guacamole-auth-json, 16진수 32자)', 'Shared key (guacamole-auth-json, 32 hex)')}</span>
-            <div className="input-with-btn">
-              <input id="gw-key" value={key} maxLength={32} placeholder={gw?.has_key ? L('저장됨 — 바꿀 때만 입력', 'Saved; type only to change') : '4c0b569e4c96df157eee1b65dd0e4d41'}
-                onChange={(e) => setKey(e.target.value.trim().toLowerCase())} />
-              <button type="button" className="btn small-btn" onClick={newKey}>{L('새로 만들기', 'Generate')}</button>
-            </div></label>
-          <p className="muted small">{L('같은 키를 Guacamole 서버의 guacamole.properties에 json-secret-key로 넣으세요. 이 키가 있어야 포털에서 브라우저 RDP 링크를 만듭니다.',
-            'Put the same key in the Guacamole server\'s guacamole.properties as json-secret-key. The portal needs it to make browser RDP links.')}</p>
-        </>
-      )}
-      <label><span>{L('메모', 'Notes')}</span><input id="gw-notes" value={notes} maxLength={300} onChange={(e) => setNotes(e.target.value)} /></label>
-      <label className="check"><input id="gw-on" type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} /><span>{L('사용', 'Enabled')}</span></label>
-    </Dialog>
-  );
-}
-
 // --- 데스크톱 풀 > USB 장치 라이브러리 ---------------------------------------------
 
 const USB_CATS: { id: UsbCategory; ko: string; en: string }[] = [
@@ -454,16 +343,14 @@ function UsbDialog({ dev, onClose, onDone }: { dev: UsbDevice | null; onClose: (
 export function ExternalDesktopsPage() {
   const { L } = useL();
   const exts = useLoad(nextApi.externalDesktops);
-  const gws = useLoad(nextApi.gateways);
   const [editing, setEditing] = useState<ExternalDesktop | 'new' | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
-  const gwName = (id: string | null) => (id && gws.state === 'ok' ? gws.data.find((g) => g.id === id)?.name : null);
   return (
     <LoadState value={exts} retry={exts.reload}>
       {(list) => (
         <>
-          <Intro>{L('가상화가 아닌 실제 PC(측정 장비 PC, 설계실 워크스테이션)를 사용자에게 배정합니다. 사용자는 작업 공간에서 .rdp 파일을 받아 원격 데스크톱으로 접속합니다.',
-            'Physical PCs (lab instrument PCs, workstations) assigned to users. Users get an .rdp file from their workspace.')}</Intro>
+          <Intro>{L('실제 PC(측정 장비 PC, 워크스테이션)를 사용자에게 배정합니다. 보안 게이트웨이가 켜져 있으면 그곳을 거칩니다.',
+            'Physical PCs assigned to users. With the security gateway on, connections go through it.')}</Intro>
           <div className="toolbar">
             <button type="button" className="btn primary" onClick={() => setEditing('new')}><Icon name="plus" size={16} />{L('외부 데스크톱 추가', 'Add external desktop')}</button>
           </div>
@@ -471,18 +358,16 @@ export function ExternalDesktopsPage() {
             { label: L('외부 데스크톱', 'External desktops'), value: String(list.length) },
             { label: L('배정됨', 'Assigned'), value: String(list.filter((e) => e.assigned_user).length), tone: 'ok' },
             { label: L('배정 대기', 'Unassigned'), value: String(list.filter((e) => !e.assigned_user).length) },
-            { label: L('게이트웨이 경유', 'Via gateway'), value: String(list.filter((e) => e.gateway_id).length) },
           ]} />
           <NoticeBar notice={notice} />
           {list.length === 0 ? <div className="empty"><p>{L('등록된 외부 데스크톱이 없습니다.', 'No external desktops yet.')}</p></div> : (
             <div className="table-scroll"><table className="table compact-head">
-              <thead><tr><th>{L('이름', 'Name')}</th><th>{L('주소', 'Address')}</th><th>{L('사용자', 'User')}</th><th>{L('게이트웨이', 'Gateway')}</th><th>{L('메모', 'Notes')}</th><th className="actions" /></tr></thead>
+              <thead><tr><th>{L('이름', 'Name')}</th><th>{L('주소', 'Address')}</th><th>{L('사용자', 'User')}</th><th>{L('메모', 'Notes')}</th><th className="actions" /></tr></thead>
               <tbody>{list.map((e) => (
                 <tr key={e.id}>
                   <td className="strong">{e.name}</td>
                   <td><code className="code">{e.address}:{e.port}</code></td>
                   <td>{e.assigned_user ?? <span className="chip chip-free">{L('배정 안 됨', 'unassigned')}</span>}</td>
-                  <td>{gwName(e.gateway_id) ?? <span className="muted small">{L('직접 연결', 'direct')}</span>}</td>
                   <td className="muted small">{e.notes}</td>
                   <td className="actions">
                     <button type="button" className="btn-ghost small-btn" onClick={() => setEditing(e)}>{L('편집', 'Edit')}</button>
@@ -494,27 +379,26 @@ export function ExternalDesktopsPage() {
                 </tr>))}</tbody>
             </table></div>
           )}
-          {editing && <ExternalDialog ext={editing === 'new' ? null : editing} gateways={gws.state === 'ok' ? gws.data : []} onClose={() => setEditing(null)} onDone={() => { setEditing(null); exts.reload(); }} />}
+          {editing && <ExternalDialog ext={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onDone={() => { setEditing(null); exts.reload(); }} />}
         </>
       )}
     </LoadState>
   );
 }
 
-function ExternalDialog({ ext, gateways, onClose, onDone }: { ext: ExternalDesktop | null; gateways: Gateway[]; onClose: () => void; onDone: () => void }) {
+function ExternalDialog({ ext, onClose, onDone }: { ext: ExternalDesktop | null; onClose: () => void; onDone: () => void }) {
   const { L } = useL();
   const users = useLoad(adminApi.users);
   const [name, setName] = useState(ext?.name ?? '');
   const [address, setAddress] = useState(ext?.address ?? '');
   const [port, setPort] = useState(ext?.port ?? 3389);
   const [user, setUser] = useState(ext?.assigned_user ?? '');
-  const [gw, setGw] = useState(ext?.gateway_id ?? '');
   const [notes, setNotes] = useState(ext?.notes ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function submit() {
     setBusy(true); setError(null);
-    try { await nextApi.saveExternal(ext?.id ?? null, { name, address, port, assigned_user: user || null, gateway_id: gw || null, notes }); onDone(); }
+    try { await nextApi.saveExternal(ext?.id ?? null, { name, address, port, assigned_user: user || null, notes }); onDone(); }
     catch (e) { setError(errText(e)); } finally { setBusy(false); }
   }
   return (
@@ -528,11 +412,6 @@ function ExternalDialog({ ext, gateways, onClose, onDone }: { ext: ExternalDeskt
         <select id="ext-user" value={user} onChange={(e) => setUser(e.target.value)}>
           <option value="">{L('배정 안 함', 'Nobody')}</option>
           {(users.state === 'ok' ? users.data : []).map((u) => <option key={u.username} value={u.username}>{u.display_name || u.username} ({u.username})</option>)}
-        </select></label>
-      <label><span>{L('게이트웨이', 'Gateway')}</span>
-        <select id="ext-gw" value={gw} onChange={(e) => setGw(e.target.value)}>
-          <option value="">{L('직접 연결', 'Direct')}</option>
-          {gateways.filter((g) => g.kind !== 'guacamole').map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
         </select></label>
       <label><span>{L('메모', 'Notes')}</span><input id="ext-notes" value={notes} maxLength={300} onChange={(e) => setNotes(e.target.value)} /></label>
     </Dialog>

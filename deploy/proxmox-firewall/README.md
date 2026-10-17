@@ -24,7 +24,7 @@ VM 안 방화벽(Windows 방화벽·iptables)만으로는 부족하다. 사용�
 |---|---|---|
 | Warpgate bastion (RDP·SSH·VNC) | Warpgate (VLAB_WARPGATE=1) | 1회용 티켓, 세션 녹화, 비밀번호 비저장 |
 | 브라우저 RDP · 브라우저 SSH·SFTP | Warpgate (HTTP 8888) | 번들 Guacamole는 제거됨, 파일 전송은 풀 정책 |
-| 전용 앱·RDP (외부망, UDP 유지) | MS RD 게이트웨이 | Windows Server·RDS CAL 필요(고객), UDP 3391 |
+| 전용 앱·RDP 파일 | Warpgate RDP ("RDP를 보안 게이트웨이로" 켜기) | 1회용 티켓, 세션 녹화 |
 | SPICE·VNC | Proxmox 프록시·엔진 경유 | 지금 그대로 |
 
 **Warpgate(bastion)** 를 거치므로 데스크톱의 RDP·SSH·VNC가 Warpgate 한 주소에서만 들어온다.

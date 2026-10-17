@@ -87,7 +87,7 @@ const realApi = {
     return data.desktops ?? [];
   },
 
-  async connect(desktopId: string, protocol: 'vnc' | 'spice' | 'rdp' | 'guac'): Promise<ConnectInfo> {
+  async connect(desktopId: string, protocol: 'vnc' | 'spice' | 'rdp'): Promise<ConnectInfo> {
     const { status, data } = await request<ConnectInfo & { error?: string; code?: string }>(
       'POST', `/api/vlab/desktops/${encodeURIComponent(desktopId)}/connect`, { protocol });
     if (status !== 200) throw new ApiError(status, data?.code || data?.error || `HTTP ${status}`, data);

@@ -813,11 +813,6 @@ export const mockAdminApi: AdminApi = {
         if (!(u.settings.max_sessions >= 1 && u.settings.max_sessions <= 500)) return fail(400, 'max_sessions must be 1 to 500');
         if (s.shared?.max_sessions !== u.settings.max_sessions) { s.shared = { ...s.shared, max_sessions: u.settings.max_sessions }; changed.push('max_sessions'); }
       }
-      for (const k of ['rdp_gateway_id', 'guac_gateway_id'] as const) {
-        if (u.settings[k] === undefined || (s[k] ?? '') === (u.settings[k] ?? '')) continue;
-        if (u.settings[k]) s[k] = u.settings[k]!; else delete s[k];
-        changed.push(k);
-      }
       p.settings = s;
     }
     desks.forEach((d) => { if (d.pool_id === p.id) d.pool = p.name; });

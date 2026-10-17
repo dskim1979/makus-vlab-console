@@ -64,7 +64,7 @@ function Screen({ d, family }: { d: Desktop; family: OsFamily }) {
 
 export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hint, onChanged, warpgate }: {
   d: Desktop; busy: boolean; fav: boolean; onFav: () => void; onChanged?: () => void; warpgate?: boolean;
-  onConnect: (p: 'vnc' | 'spice' | 'rdp' | 'guac' | 'wg-rdp' | 'wg-ssh') => void; onPower: (a: PowerAction) => void; error?: string; hint?: string;
+  onConnect: (p: 'vnc' | 'spice' | 'rdp' | 'wg-rdp' | 'wg-ssh') => void; onPower: (a: PowerAction) => void; error?: string; hint?: string;
 }) {
   const { t, lang, pick } = useI18n();
   const family = osFamily(d);
@@ -113,13 +113,6 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
                 <button type="button" role="menuitem" disabled={busy || !running}
                   onClick={() => { setMenu(false); onConnect('rdp'); }}>
                   <Icon name="download" size={16} />{t('portal.connectRdp')}
-                </button>
-              )}
-              {/* with 보안 게이트웨이 on, its RDP item is the browser RDP: one entry, not two */}
-              {d.protocols.includes('guac') && !warpgate && (
-                <button type="button" role="menuitem" disabled={busy || !running}
-                  onClick={() => { setMenu(false); onConnect('guac'); }}>
-                  <Icon name="globe" size={16} />{t('portal.connectGuac')}
                 </button>
               )}
               {warpgate && (

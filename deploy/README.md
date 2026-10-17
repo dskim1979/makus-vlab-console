@@ -69,7 +69,7 @@ Warpgate 를 켜지 않으면 브라우저 RDP 가 없다 — 이 커밋은 Warp
    RDP 3389, VNC 5900, 세션 녹화 켜짐; 이미 있으면 건너뜀). 열리는 포트: 8888(관리자 UI·브라우저
    RDP/SSH·관리자 API), 2222/3389/5900(native SSH/RDP/VNC).
 2. **연결은 자동**: 엔진이 첫 기동 때 위 비밀번호로 Warpgate 에 로그인해 API 토큰을 만들고, 코어 DB 키로
-   봉인해 저장한다(base URL `https://<VLAB_WARPGATE_HOST>:8888`, 포트는 `.env` 값, 웹 RDP 는 Guacamole 유지).
+   봉인해 저장한다(base URL `https://<VLAB_WARPGATE_HOST>:8888`, 포트는 `.env` 값).
    콘솔 > 플랫폼 설정 > **보안 게이트웨이**에서 '연결됨'만 확인한다. 이미 설정이 있으면 건드리지 않는다.
    RDP 를 3389 가 아닌 포트로 게시했다면 `VLAB_WARPGATE_RDP_PORT` 도 `.env` 에 넣는다.
 3. **수동 연결(자동이 실패했을 때)**: Warpgate UI(`https://<호스트>:8888/@warpgate`)에 admin 으로 로그인 →
@@ -107,10 +107,10 @@ VS Code Remote-SSH 로 데스크톱에 평소처럼 붙되 Warpgate를 거친다
 이 커밋은 **전환이 끝난 뒤의 상태**다. 적용 전에 다음이 모두 끝나 있어야 한다:
 1. 실클러스터 검증(엔진 `docs/warpgate-gateway.md` 4-3): 브라우저 RDP·네이티브 RDP·네이티브 SSH·
    브라우저 SSH·VNC·세션 녹화 재생·직접 접속 차단·1회용 티켓·비밀번호 비저장·디렉터리 로그인.
-2. 콘솔 플랫폼 설정 > Warpgate 에서 `web_rdp_provider` 를 `warpgate` 로 바꿔 둔다.
-3. 엔진의 `/ssh` 제거 커밋(별도)도 같이 적용한다.
+2. 엔진의 `/ssh` 제거 커밋(별도)도 같이 적용한다. 엔진은 시작할 때 게이트웨이 카탈로그(Guacamole · RD 게이트웨이)를
+   지운다 — 브라우저 RDP 는 보안 게이트웨이뿐이다.
 - **롤백**: 이 커밋을 `git revert` 하고 `docker compose up -d` 하면 번들 Guacamole(guacd·guacamole·
-  vlab-guac-key·`/guacamole/`)가 돌아온다. 엔진에서 `web_rdp_provider` 를 `guac` 로 되돌린다.
+  vlab-guac-key·`/guacamole/`)가 돌아온다. 엔진도 게이트웨이 카탈로그가 있던 커밋으로 되돌려야 한다.
 
 ## 데스크톱 직접 접속 차단 (Proxmox 보안 그룹)
 사용자가 데스크톱 안에서 IP 를 알아내 원격 데스크톱·SSH 로 직접 붙는 길을 막아, 모든 접속이 MOAVI Desk

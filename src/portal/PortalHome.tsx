@@ -48,7 +48,7 @@ export function PortalHome() {
     try { localStorage.setItem(VIEW_KEY, v); } catch { /* per-browser convenience only */ }
   }
 
-  async function connect(d: Desktop, protocol: 'vnc' | 'spice' | 'rdp' | 'guac' | 'wg-rdp' | 'wg-ssh') {
+  async function connect(d: Desktop, protocol: 'vnc' | 'spice' | 'rdp' | 'wg-rdp' | 'wg-ssh') {
     setBusy(d.id); setError(null); setHint(null);
     if (protocol === 'wg-rdp' || protocol === 'wg-ssh') {
       try {
@@ -69,9 +69,6 @@ export function PortalHome() {
       }
       if (c.type === 'vnc') {
         setOpen({ title: d.name, wsPath: c.ws_path, password: c.password, sessionId: c.session_id, clipboard: c.clipboard ?? 'both' });
-      } else if (c.type === 'guac') {
-        window.open(c.url, '_blank', 'noopener');
-        setHint({ id: d.id, text: t('portal.guacHint') });
       } else if (c.type === 'rdp') {
         const url = URL.createObjectURL(new Blob([c.rdp], { type: 'application/x-rdp' }));
         const a = document.createElement('a');

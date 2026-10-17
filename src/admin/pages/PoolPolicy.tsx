@@ -99,8 +99,8 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
     finally { setBusy(false); }
   }
 
-  const toggleProto = (x: 'vnc' | 'spice' | 'rdp' | 'guac') =>
-    set('protocols', p.protocols.includes(x) ? p.protocols.filter((y) => y !== x) : (['vnc', 'spice', 'rdp', 'guac'] as const).filter((y) => y === x || p.protocols.includes(y)));
+  const toggleProto = (x: 'vnc' | 'spice' | 'rdp') =>
+    set('protocols', p.protocols.includes(x) ? p.protocols.filter((y) => y !== x) : (['vnc', 'spice', 'rdp'] as const).filter((y) => y === x || p.protocols.includes(y)));
 
   return (
     <Dialog open wide title={`${t('pol.title')} · ${pool.name}`} onClose={onClose} onSubmit={next}
@@ -120,7 +120,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
         <div className="wiz-body">
           <span className="field-label">{t('pol.protocols')}</span>
           <div className="mode-cards mode-cards-2">
-            {(['rdp', 'spice', 'vnc', 'guac'] as const).map((x) => (
+            {(['rdp', 'spice', 'vnc'] as const).map((x) => (
               <label key={x} className={`mode-card${p.protocols.includes(x) ? ' on' : ''}`}>
                 <input type="checkbox" checked={p.protocols.includes(x)} onChange={() => toggleProto(x)} aria-label={t(`pol.${x}` as MessageKey)} />
                 <span className="strong">{t(`pol.${x}` as MessageKey)}</span>
@@ -128,7 +128,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
               </label>
             ))}
           </div>
-          <label className="check"><input type="checkbox" checked={p.rdp_tune ?? true} disabled={!p.protocols.includes('rdp') && !p.protocols.includes('guac')}
+          <label className="check"><input type="checkbox" checked={p.rdp_tune ?? true} disabled={!p.protocols.includes('rdp')}
             onChange={(e) => set('rdp_tune', e.target.checked)} />
             <span>{L('Windows 데스크톱 RDP 자동 준비 — 처음 RDP로 접속할 때 원격 데스크톱 켜기 · 방화벽 · H.264/AVC 444 · UDP 설정',
               'Prepare Windows desktops for RDP - at the first RDP connect: Remote Desktop on, firewall, H.264/AVC 444, UDP')}</span></label>

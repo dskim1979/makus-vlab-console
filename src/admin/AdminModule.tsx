@@ -31,7 +31,7 @@ import { UsersPage } from './pages/UsersPage';
 import { AccelChecksPage } from './pages/AccelChecksPage';
 import { EnvCatalogPage } from './pages/EnvCatalogPage';
 import { GpuQueuePage, GpuQuotasPage, GpuUsagePage, IdeSessionsPage } from './pages/ResearchPages';
-import { BoardsPage, BuildFarmPage, CardUsagePage, DepartmentsPage, ExternalDesktopsPage, GatewaysPage, GoldenImagesPage, LicenseServersPage, SignupsPage, UsbLibraryPage } from './pages/NextPages';
+import { BoardsPage, BuildFarmPage, CardUsagePage, DepartmentsPage, ExternalDesktopsPage, GoldenImagesPage, LicenseServersPage, SignupsPage, UsbLibraryPage } from './pages/NextPages';
 
 // Pages that exist so far; every other menu entry shows its planned phase.
 function pageBody(key: string, subId?: string) {
@@ -69,7 +69,6 @@ function pageBody(key: string, subId?: string) {
   if (key === 'users/access') return <AccessPage username={subId} />;
   if (key === 'vms/golden') return <GoldenImagesPage />;
   if (key === 'vms/environments') return <EnvCatalogPage />;
-  if (key === 'pools/gateways') return <GatewaysPage />;
   if (key === 'pools/usb') return <UsbLibraryPage />;
   if (key === 'pools/external') return <ExternalDesktopsPage />;
   if (key === 'users/signups') return <SignupsPage />;
