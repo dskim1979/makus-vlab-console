@@ -12,6 +12,7 @@ import { draftOf, StorageStep, storageBody, storageStepError, storageSummary } f
 import type { StorageDraft } from './PoolStorage';
 import { useL } from './OpsPages';
 import { useFeatures } from '../../features';
+import { directoryApi } from '../../api/directory';
 
 // 데스크톱 풀 > (풀) > 정책: how the pool's desktops are reached and kept - a summary on the
 // pool page and a wizard in six steps plus review. The engine applies it (pegaprox/vlab/policy.py; the
@@ -66,6 +67,7 @@ function Summary({ p, storage }: { p: PoolPolicy; storage: PoolStorage | null })
   if (p.defer_when_busy) chips.push(L(`작업 중이면 미루기 (최대 ${p.defer_max_hours}시간)`, `Wait while working (up to ${p.defer_max_hours} h)`));
   if (p.web_ide?.length) chips.push(`${L('웹 IDE', 'Web IDE')}: ${p.web_ide.map((k) => (k === 'jupyter' ? 'JupyterLab' : 'VS Code')).join(' · ')}`);
   if (storage?.enabled) chips.push(`${L('공유 저장소', 'Shared storage')}: ${storage.kind.toUpperCase()} ${storage.server}`);
+  if (p.auto_domain_join === true) chips.push(L('자동 도메인 조인', 'Auto domain join'));
   return <div className="policy-chips">{chips.map((c) => <span key={c} className="chip">{c}</span>)}</div>;
 }
 
@@ -205,6 +207,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
         <div className="wiz-body">
           <label className="check"><input type="checkbox" checked={p.start_on_connect} onChange={(e) => set('start_on_connect', e.target.checked)} />
             <span>{t('pol.startOnConnect')}</span></label>
+          <AutoJoinSwitch value={p.auto_domain_join ?? null} onChange={(v) => set('auto_domain_join', v)} />
           <label>
             <span>{t('pol.idle')}</span>
             <span className="with-unit">
@@ -287,5 +290,18 @@ function BusyFields({ p, set }: { p: PoolPolicy; set: <K extends keyof PoolPolic
           <span className="with-unit"><input type="number" min={1} max={168} value={p.defer_max_hours} disabled={!p.defer_when_busy} onChange={num('defer_max_hours', 1, 168)} /><span className="muted small">{L('시간', 'h')}</span></span></label>
       </div>
     </fieldset>
+  );
+}
+
+// 자동 도메인 조인: only while the bundled directory is on; unset follows it (on)
+function AutoJoinSwitch({ value, onChange }: { value: boolean | null; onChange: (v: boolean) => void }) {
+  const { L } = useL();
+  const [dir, setDir] = useState<{ enabled: boolean; active: boolean } | null>(null);
+  useEffect(() => { directoryApi.get().then((d) => setDir({ enabled: d.enabled, active: d.active })).catch(() => setDir(null)); }, []);
+  if (!dir?.enabled) return null;
+  return (
+    <label className="check"><input type="checkbox" checked={value ?? dir.active} disabled={!dir.active} onChange={(e) => onChange(e.target.checked)} />
+      <span>{L('자동 도메인 조인', 'Auto domain join')}</span>
+      <small className="muted hint-indent">{L('새 · 복제 · 초기화된 데스크톱이 스스로 도메인에 들어갑니다', 'New, cloned and reset desktops join by themselves')}</small></label>
   );
 }

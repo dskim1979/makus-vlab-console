@@ -24,7 +24,7 @@ export type DirectoryAccount = { username: string; where: 'directory' | 'waiting
 export type DirectoryGroup = { department_id: string; name: string; parent_id: string | null; cn: string; dn: string };
 export type JoinState = 'joined' | 'failed' | 'pending' | 'other' | 'not_joined' | 'unknown';
 export type DomainJoin = { desktop_id: string; pool_id?: string; vmid?: number; name?: string; state: JoinState; code: string; detail: string;
-  computer: string; domain: string; os: string; at: string | null };
+  computer: string; domain: string; os: string; at: string | null; auto?: boolean };
 
 const enc = encodeURIComponent;
 
@@ -78,12 +78,15 @@ function summary(): BundledDirectory {
 
 function seedJoins() {
   if (Object.keys(mockJoins).length) return;
-  const seen = new Set<string>();
+  const n = new Map<string, number>();
   for (const d of mockVmStore.desks) {
-    if (seen.has(d.pool_id)) continue;
-    seen.add(d.pool_id);
-    mockJoins[d.id] = { desktop_id: d.id, state: 'joined', code: 'OK', detail: '', computer: `MD-${d.vmid}`, domain: 'moavi.lan',
-      os: 'windows', at: new Date(Date.now() - 86400e3).toISOString() };
+    const i = n.get(d.pool_id) ?? 0;
+    n.set(d.pool_id, i + 1);
+    const at = new Date(Date.now() - (i + 1) * 3600e3).toISOString();
+    // per pool: the first joined, the second waiting for its agent (automatic join), the third a clone not sysprepped
+    if (i === 0) mockJoins[d.id] = { desktop_id: d.id, state: 'joined', code: 'OK', detail: '', computer: `MD-${d.vmid}`, domain: 'moavi.lan', os: 'windows', at };
+    else if (i === 1) mockJoins[d.id] = { desktop_id: d.id, state: 'pending', code: 'NO_AGENT', detail: 'the QEMU guest agent does not answer', computer: '', domain: '', os: '', at, auto: true };
+    else if (i === 2) mockJoins[d.id] = { desktop_id: d.id, state: 'failed', code: 'NOT_SYSPREPPED', detail: 'the same machine SID as another desktop - generalize the template with sysprep', computer: '', domain: '', os: 'windows', at };
   }
 }
 
@@ -145,7 +148,8 @@ export function joinCodeText(code: string, L: (ko: string, en: string) => string
     UNSUPPORTED: ['컨테이너는 가입 안 함', 'Containers are not joined'], OTHER_DOMAIN: ['다른 도메인에 가입돼 있음', 'In another domain'],
     NO_DNS: ['DNS 에서 DC 를 못 찾음', 'No DC in DNS'], JOIN_FAILED: ['가입 실패', 'Join failed'], NO_TOOLS: ['realmd · sssd 없음', 'No realmd / sssd'],
     RENAME_FAILED: ['이름 바꾸기 실패', 'Rename failed'], AGENT_ERROR: ['에이전트 오류', 'Agent error'], PENDING: ['게스트에서 진행 중', 'Still running'],
-    NOT_JOINED: ['가입 안 됨', 'Not joined'], NO_SERVICE_ACCOUNT: ['서비스 계정 없음', 'No service account'], UNREACHABLE: ['DC 에 연결 안 됨', 'DC unreachable'],
+    NOT_JOINED: ['가입 안 됨', 'Not joined'], QUEUED: ['조인 대기', 'Queued'], GAVE_UP: ['자동 조인 중단', 'Auto join stopped'],
+    NOT_SYSPREPPED: ['sysprep 안 된 복제본', 'Clone not sysprepped'], NO_SERVICE_ACCOUNT: ['서비스 계정 없음', 'No service account'], UNREACHABLE: ['DC 에 연결 안 됨', 'DC unreachable'],
   };
   const v = m[code];
   return v ? L(v[0], v[1]) : code;

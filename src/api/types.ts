@@ -153,6 +153,8 @@ export type PoolPolicy = {
   // a working desktop (busy GPU / CPU, a build job, the user's "작업 중") is not shut down or reset; the step waits
   defer_when_busy: boolean; busy_gpu_pct: number; busy_cpu_pct: number; defer_max_hours: number;
   web_ide: ('jupyter' | 'vscode')[]; web_ide_idle_min: number;   // 웹 IDE (research.ts)
+  // new, cloned and reset desktops join the bundled directory by themselves; null = on while it is in use
+  auto_domain_join?: boolean | null;
 };
 export type PoolPolicyAnswer = { policy: PoolPolicy; defaults: PoolPolicy; reset_allowed: boolean };
 
