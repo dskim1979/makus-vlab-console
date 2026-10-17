@@ -15,7 +15,7 @@ const NAMES: [RegExp, string][] = [
   [/vivado-build-0?(\d+)/g, 'dev-ubuntu-0$1'], [/gpu-build-0?(\d+)/g, 'dev-ubuntu-1$1'], [/gpu-ws-(\w+)/g, 'office-win11-$1'],
   [/board-lab-zcu102/g, 'office-win11-12'], [/ai-ws-03/g, 'office-win11-03'],
   [/FPGA 빌드 팜/g, '개발팀'], [/A100 학습 팜/g, '개발팀 2'], [/GPU 학습 팜/g, '개발팀 2'], [/보드 LAB/g, '인사팀'], [/AI 연구실/g, '영업팀'],
-  [/Rocky Linux 9/g, 'Ubuntu 22.04'],
+  [/Rocky Linux 9/g, 'Ubuntu 22.04'], [/LLM 실습 \(A100 MIG\)/g, '디자인팀 (고사양)'], [/A100 3g\.40gb 한 조각씩/g, 'CAD · 영상 편집용 고사양 데스크톱'],
 ];
 // without LAB the lab rooms read as shared office desktops
 const LAB_NAMES: [RegExp, string][] = [[/공용 LAB A/g, '공용 데스크톱'], [/lab-win11-(\d+)/g, 'shared-win11-$1'], [/교육장 A 수업용/g, '교육용']];
