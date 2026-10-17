@@ -9,7 +9,12 @@
 #                start) into the vlab-guac volume; the engine registers the bundled Guacamole as a
 #                gateway with it by itself
 #
+#   vlab-directory  optional (VLAB_DIRECTORY=1): the bundled directory, a Samba AD DC, for sites
+#                without Active Directory - the portal account is the desktop account. Off by default.
+#
 # Browser RDP off: VLAB_GUACAMOLE=0 in .env (no guacd/guacamole containers, the gateway disabled).
+# Bundled directory on: VLAB_DIRECTORY=1 and VLAB_DIRECTORY_IP=<this host's address on the desktop
+# network> in .env (README.md "내장 디렉터리"). A site with its own AD leaves it off.
 #
 # Built from the two repositories checked out side by side:
 #   <dir>/makus-vlab            (engine)
@@ -63,11 +68,18 @@ services:
       VLAB_GUAC_KEY_FILE: /etc/vlab/guac/json-secret-key
       VLAB_HOSTNAME: ${VLAB_HOSTNAME:-vlab.local}           # the gateway's address as shown in the console
       VLAB_HTTPS_PORT: ${VLAB_HTTPS_PORT:-443}
+      VLAB_DIRECTORY: ${VLAB_DIRECTORY:-0}                  # 1: portal accounts live in the bundled directory
+      VLAB_DIRECTORY_REALM: ${VLAB_DIRECTORY_REALM:-moavi.lan}
+      VLAB_DIRECTORY_DOMAIN: ${VLAB_DIRECTORY_DOMAIN:-MOAVI}
+      VLAB_DIRECTORY_HOSTNAME: ${VLAB_DIRECTORY_HOSTNAME:-dc1}
+      VLAB_DIRECTORY_IP: ${VLAB_DIRECTORY_IP:-}             # the desktops' DNS server after a join
+      VLAB_DIRECTORY_FILES: /etc/vlab/directory
       TZ: ${TZ:-Asia/Seoul}
     volumes:
       - vlab-config:/app/config             # database (encrypted), master key, settings - back this up
       - vlab-logs:/app/logs
       - vlab-guac:/etc/vlab/guac:ro
+      - vlab-directory-out:/etc/vlab/directory:ro   # the service account and the DC's TLS CA
     expose:
       - "5000"
     networks: [vlab]
@@ -120,6 +132,48 @@ services:
       - "8080"                              # not published: reached through vlab-proxy /guacamole/
     networks: [vlab]
 
+  vlab-directory:
+    image: ${VLAB_DIRECTORY_IMAGE:-vlab-directory:dev}
+    build:
+      context: ./directory
+    restart: unless-stopped
+    deploy:
+      replicas: ${VLAB_DIRECTORY:-0}        # 1: on (README.md "내장 디렉터리")
+    hostname: ${VLAB_DIRECTORY_HOSTNAME:-dc1}
+    environment:
+      VLAB_DIRECTORY_REALM: ${VLAB_DIRECTORY_REALM:-moavi.lan}          # DNS name of the domain
+      VLAB_DIRECTORY_DOMAIN: ${VLAB_DIRECTORY_DOMAIN:-MOAVI}            # NetBIOS name (MOAVIlice)
+      VLAB_DIRECTORY_HOSTNAME: ${VLAB_DIRECTORY_HOSTNAME:-dc1}
+      VLAB_DIRECTORY_IP: ${VLAB_DIRECTORY_IP:-}                         # required: where the desktops reach it
+      VLAB_DIRECTORY_ROLE: ${VLAB_DIRECTORY_ROLE:-primary}              # replica: a second DC on the HA partner
+      VLAB_DIRECTORY_PRIMARY_IP: ${VLAB_DIRECTORY_PRIMARY_IP:-}         # replica only
+      VLAB_DIRECTORY_ADMIN_PASSWORD: ${VLAB_DIRECTORY_ADMIN_PASSWORD:-} # optional on the primary, needed by a replica
+      VLAB_DIRECTORY_DNS_FORWARDER: ${VLAB_DIRECTORY_DNS_FORWARDER:-127.0.0.11}
+      TZ: ${TZ:-Asia/Seoul}
+    volumes:
+      - vlab-directory:/var/lib/samba       # the domain database - back this up with vlab-config
+      - vlab-directory-out:/vlab
+    # Only toward the desktop network: bound to VLAB_DIRECTORY_IP. Until it is set they stay on
+    # 127.0.0.1 (the container refuses to start without it anyway). Never publish these to the Internet.
+    ports:
+      - "${VLAB_DIRECTORY_IP:-127.0.0.1}:53:53/tcp"
+      - "${VLAB_DIRECTORY_IP:-127.0.0.1}:53:53/udp"
+      - "${VLAB_DIRECTORY_IP:-127.0.0.1}:88:88/tcp"
+      - "${VLAB_DIRECTORY_IP:-127.0.0.1}:88:88/udp"
+      - "${VLAB_DIRECTORY_IP:-127.0.0.1}:389:389/tcp"
+      - "${VLAB_DIRECTORY_IP:-127.0.0.1}:389:389/udp"
+      - "${VLAB_DIRECTORY_IP:-127.0.0.1}:445:445/tcp"
+      - "${VLAB_DIRECTORY_IP:-127.0.0.1}:464:464/tcp"
+      - "${VLAB_DIRECTORY_IP:-127.0.0.1}:464:464/udp"
+      - "${VLAB_DIRECTORY_IP:-127.0.0.1}:636:636/tcp"
+      - "${VLAB_DIRECTORY_IP:-127.0.0.1}:3268:3268/tcp"
+      - "${VLAB_DIRECTORY_IP:-127.0.0.1}:3269:3269/tcp"
+    networks:
+      vlab:
+        aliases:
+          # the engine speaks LDAPS to this name: the one in the DC's certificate
+          - ${VLAB_DIRECTORY_HOSTNAME:-dc1}.${VLAB_DIRECTORY_REALM:-moavi.lan}
+
 networks:
   vlab:
 
@@ -128,3 +182,5 @@ volumes:
   vlab-logs:
   vlab-tls:
   vlab-guac:                                # the shared Guacamole key
+  vlab-directory:                           # the bundled directory's domain database (VLAB_DIRECTORY=1)
+  vlab-directory-out:                       # the engine's service account and the DC's TLS CA

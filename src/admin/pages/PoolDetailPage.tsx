@@ -12,6 +12,7 @@ import { PoolGpuPanel } from './PoolGpu';
 import { PoolPolicyPanel } from './PoolPolicy';
 import { PoolStoragePanel } from './PoolStorage';
 import { PoolGrantsPanel } from './PoolGrants';
+import { PoolDomainJoinPanel } from './BundledDirectory';
 import type { MessageKey } from '../../i18n/messages';
 import { useAdminConsole, VmManageDialog, type ManagedDesktop } from './VmManage';
 
@@ -115,6 +116,7 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
       {notice && <div className={`alert ${notice.kind === 'error' ? 'error' : 'info'}`} role="status">{notice.text}</div>}
       {pool && <PoolPolicyPanel pool={pool} onChanged={pools.reload} />}
       {pool && <PoolStoragePanel pool={pool} />}
+      {pool && <PoolDomainJoinPanel pool={pool} />}
       {pool && <PoolGrantsPanel pool={pool} />}
       {pool && <PoolGpuPanel pool={pool} onChanged={() => { pools.reload(); desktops.reload(); }} />}
       <p className="muted small">{t('desk.assignNote')}</p>
