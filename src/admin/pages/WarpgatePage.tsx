@@ -48,7 +48,7 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
       const saved = await warpgateApi.save({
         base_url: f.base_url, ssh_port: f.ssh_port, rdp_port: f.rdp_port, vnc_port: f.vnc_port,
         verify_tls: f.verify_tls, enabled: f.enabled, rdp_nla_user: f.rdp_nla_user, web_rdp_provider: f.web_rdp_provider,
-        rdp_via_warpgate: f.rdp_via_warpgate,
+        rdp_via_warpgate: f.rdp_via_warpgate, allow_direct_fallback: f.allow_direct_fallback,
         ...(token ? { admin_token: token } : {}),
         ...(nlaPw ? { rdp_nla_password: nlaPw } : {}),
       });
@@ -106,8 +106,16 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
 
         <label className="check"><input id="wg-rdp-via" type="checkbox" checked={!!f.rdp_via_warpgate} onChange={(e) => setF({ ...f, rdp_via_warpgate: e.target.checked })} />
           <span>{L('전용 앱·RDP 파일을 Warpgate 경유로 (1회용 티켓, 비밀번호 없음)', 'Windows app / RDP file through Warpgate (single-use ticket, no password)')}</span></label>
-        <small className="muted hint-indent">{L('켜면 MOAVI Desk 클라이언트·mstsc가 받는 .rdp가 데스크톱 주소 대신 Warpgate를 향하고, 사용자 이름에 그 사용자·데스크톱 전용 1회용 티켓이 들어갑니다. 데스크톱이 로그인을 물으면 사용자가 본인(AD) 계정으로 들어갑니다. 끄면 지금처럼 직접/RD 게이트웨이 .rdp. Warpgate가 응답하지 않으면 그 접속만 직접 .rdp로 돌아갑니다.',
-          'On: the .rdp the MOAVI Desk client / mstsc gets points at Warpgate instead of the desktop, with a single-use ticket for that user and desktop as the user name. If the desktop asks to sign in, the user uses their own (AD) account. Off: the direct / RD Gateway .rdp as today. If Warpgate does not answer, that one connect falls back to the direct .rdp.')}</small>
+        <small className="muted hint-indent">{L('켜면 MOAVI Desk 클라이언트·mstsc가 받는 .rdp가 데스크톱 주소 대신 Warpgate를 향하고, 사용자 이름에 그 사용자·데스크톱 전용 1회용 티켓이 들어갑니다. 데스크톱이 로그인을 물으면 사용자가 본인(AD) 계정으로 들어갑니다. 끄면 지금처럼 직접/RD 게이트웨이 .rdp. Warpgate가 응답하지 않으면 접속을 거부합니다(아래 옵션을 켠 경우만 직접 연결).',
+          'On: the .rdp the MOAVI Desk client / mstsc gets points at Warpgate instead of the desktop, with a single-use ticket for that user and desktop as the user name. If the desktop asks to sign in, the user uses their own (AD) account. Off: the direct / RD Gateway .rdp as today. If Warpgate does not answer, the connect is refused (unless the option below allows the direct path).')}</small>
+
+        <label className="check"><input id="wg-fallback" type="checkbox" checked={!!f.allow_direct_fallback} onChange={(e) => setF({ ...f, allow_direct_fallback: e.target.checked })} />
+          <span>{L('Warpgate 장애 시 직접 접속 허용 (보안 약화)', 'Allow direct access when Warpgate is down (weakens security)')}</span></label>
+        {f.allow_direct_fallback
+          ? <div className="alert small error">{L('켜져 있음: Warpgate가 응답하지 않으면 그 접속은 Warpgate를 거치지 않고 직접 .rdp·Guacamole로 열립니다. 세션 녹화·1회용 티켓·대상 숨김이 적용되지 않고, 데스크톱 직접 접속을 막은 현장에서는 어차피 실패합니다. 장애 대응 중에만 잠깐 켜세요.',
+              'On: when Warpgate does not answer, the connect skips Warpgate and opens the direct .rdp / Guacamole - no recording, no single-use ticket, the desktop address is exposed, and it fails anyway where direct access is blocked. Turn it on only briefly during an outage.')}</div>
+          : <small className="muted hint-indent">{L('꺼짐(권장): Warpgate로 전환한 접속은 Warpgate가 응답하지 않으면 "Warpgate에 연결할 수 없습니다" 오류로 막습니다(bastion 우회 없음).',
+              'Off (recommended): connects switched to Warpgate are refused with "Cannot reach Warpgate" while it is down (no bastion bypass).')}</small>}
 
         <label className="check"><input id="wg-tls" type="checkbox" checked={f.verify_tls} onChange={(e) => setF({ ...f, verify_tls: e.target.checked })} />
           <span>{L('Warpgate의 TLS 인증서 검증 (자체 서명이면 끄기)', 'Verify Warpgate\'s TLS certificate (off for self-signed)')}</span></label>

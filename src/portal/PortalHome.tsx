@@ -57,7 +57,7 @@ export function PortalHome() {
         setHint({ id: d.id, text: t('portal.warpgateHint') });
       } catch (e) {
         const code = (e as { code?: string }).code;
-        setError({ id: d.id, text: code && code.startsWith('NO_') ? t(`portal.err.${code}` as MessageKey) : (e as Error).message });
+        setError({ id: d.id, text: code && (code.startsWith('NO_') || code === 'WG_DOWN') ? t(`portal.err.${code}` as MessageKey) : (e as Error).message });
       } finally { setBusy(null); }
       return;
     }
@@ -94,7 +94,7 @@ export function PortalHome() {
         [4000, 10000, 20000].forEach((ms) => setTimeout(() => desktops.reload(), ms));
         return;
       }
-      if (code === 'NO_IP' || code === 'NO_GATEWAY') { setError({ id: d.id, text: t(`portal.err.${code}` as MessageKey) }); return; }
+      if (code === 'NO_IP' || code === 'NO_GATEWAY' || code === 'WG_DOWN') { setError({ id: d.id, text: t(`portal.err.${code}` as MessageKey) }); return; }
       const known = code === 'VM_STOPPED' || code === 'NO_SPICE';
       setError({ id: d.id, text: known ? t(`portal.err.${code}` as MessageKey) : `${t('portal.err.generic')}: ${code}` });
     } finally {

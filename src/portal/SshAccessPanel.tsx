@@ -38,10 +38,23 @@ function SshAccessBody() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
+  const keyError = (code: string) => code === 'PRIVATE_KEY'
+    ? L('개인키는 올릴 수 없습니다. .pub 파일(공개키) 한 줄만 넣으세요.', 'A private key cannot be uploaded. Paste one line from your .pub file (the public key).')
+    : code === 'BAD_PUBLIC_KEY'
+      ? L('OpenSSH 공개키 한 줄(ssh-ed25519 ...)을 넣으세요.', 'Paste one OpenSSH public key line (ssh-ed25519 ...).')
+      : code === 'WG_OFF' || code === 'WG_API' || code === 'WG_UNREACHABLE'
+        ? L('지금은 Warpgate에 공개키를 등록할 수 없습니다. 잠시 뒤 다시 시도하거나 관리자에게 문의하세요.', 'The key cannot be registered with Warpgate right now. Try again later or contact your administrator.')
+        : L('공개키를 등록하지 못했습니다.', 'Could not add the public key.');
+
   async function add() {
-    setBusy(true); setMsg(null);
-    try { await warpgateApi.addSshKey(label.trim() || 'MOAVI Desk', pub.trim()); setLabel(''); setPub(''); keys.reload(); setMsg({ ok: true, text: L('공개키를 등록했습니다.', 'Public key added.') }); }
-    catch (e) { setMsg({ ok: false, text: (e as Error).message }); } finally { setBusy(false); }
+    setMsg(null);
+    const text = pub.trim();
+    // checked here first: a pasted private key is cleared and never sent anywhere
+    if (/PRIVATE KEY|PuTTY-User-Key-File/i.test(text)) { setPub(''); setMsg({ ok: false, text: keyError('PRIVATE_KEY') }); return; }
+    if (!/^(ssh-|ecdsa-|sk-)\S+\s+\S+/.test(text)) { setMsg({ ok: false, text: keyError('BAD_PUBLIC_KEY') }); return; }
+    setBusy(true);
+    try { await warpgateApi.addSshKey(label.trim() || 'MOAVI Desk', text); setLabel(''); setPub(''); keys.reload(); setMsg({ ok: true, text: L('공개키를 등록했습니다.', 'Public key added.') }); }
+    catch (e) { setMsg({ ok: false, text: keyError((e as Error).message) }); } finally { setBusy(false); }
   }
   async function del(id: string) {
     if (!confirm(L('이 공개키를 삭제할까요?', 'Delete this public key?'))) return;

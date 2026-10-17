@@ -526,6 +526,7 @@ export const messages = {
   'portal.connectWarpgateSsh': { ko: "Warpgate SSH 터미널", en: "Warpgate SSH terminal" },
   'portal.warpgateHint': { ko: "새 탭에서 Warpgate 화면이 열렸습니다. 로그인한 뒤 목록에서 이 데스크톱을 여세요(세션 녹화).", en: "Warpgate opened in a new tab. Sign in, then open this desktop from the list (the session is recorded)." },
   'portal.err.NO_IP': { ko: "데스크톱 주소를 아직 모릅니다. 데스크톱이 다 켜진 뒤 다시 시도하세요 (게스트 에이전트 필요).", en: "The desktop has no address yet; try again once it is up (guest agent needed)." },
+  'portal.err.WG_DOWN': { ko: "Warpgate에 연결할 수 없습니다. 잠시 뒤 다시 시도하거나 관리자에게 문의하세요.", en: "Cannot reach Warpgate. Try again in a moment or contact your administrator." },
   'portal.err.NO_GATEWAY': { ko: "브라우저 RDP 게이트웨이가 준비되지 않았습니다. 관리자에게 문의하세요.", en: "No browser RDP gateway is set up. Ask your administrator." },
   'pol.clipboard': { ko: "복사·붙여넣기", en: "Copy and paste" },
   'pol.clip.both': { ko: "양방향", en: "Both ways" },

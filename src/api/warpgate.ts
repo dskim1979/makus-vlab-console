@@ -9,6 +9,7 @@ export type WarpgateConfig = {
   verify_tls: boolean; enabled: boolean; rdp_nla_user: string; has_nla_password: boolean;
   web_rdp_provider: 'guac' | 'warpgate';   // who serves browser RDP (guac until Warpgate is verified)
   rdp_via_warpgate: boolean;   // the client's / mstsc's .rdp aimed at Warpgate (single-use ticket)
+  allow_direct_fallback: boolean;   // Warpgate down: go direct / Guacamole (security weakened); default off = refuse
   has_token: boolean; last_check: string | null; last_ok: boolean | null; last_detail: string;
 };
 
@@ -16,7 +17,7 @@ export type WarpgateConfig = {
 export type WarpgateInput = {
   base_url: string; ssh_port: number; rdp_port: number; vnc_port: number;
   verify_tls: boolean; enabled: boolean; rdp_nla_user?: string;
-  admin_token?: string; rdp_nla_password?: string; web_rdp_provider?: 'guac' | 'warpgate'; rdp_via_warpgate?: boolean;
+  admin_token?: string; rdp_nla_password?: string; web_rdp_provider?: 'guac' | 'warpgate'; rdp_via_warpgate?: boolean; allow_direct_fallback?: boolean;
 };
 
 export type WarpgateConnection = {
@@ -80,7 +81,7 @@ const MOCK_CFG_KEY = 'vlab.mock.warpgate';
 const MOCK_KEYS_KEY = 'vlab.mock.sshkeys';
 const MOCK_DEFAULT: WarpgateConfig = {
   base_url: '', ssh_port: 2222, rdp_port: 3389, vnc_port: 5900, verify_tls: false, enabled: false,
-  rdp_nla_user: '', has_nla_password: false, web_rdp_provider: 'guac', rdp_via_warpgate: false,
+  rdp_nla_user: '', has_nla_password: false, web_rdp_provider: 'guac', rdp_via_warpgate: false, allow_direct_fallback: false,
   has_token: false, last_check: null, last_ok: null, last_detail: '',
 };
 function mockLoad<T>(key: string, fallback: T): T {
@@ -105,6 +106,7 @@ const mockWarpgateApi: WarpgateApi = {
       has_nla_password: b.rdp_nla_password !== undefined ? !!b.rdp_nla_password : mockCfg.has_nla_password,
       web_rdp_provider: b.web_rdp_provider ?? mockCfg.web_rdp_provider,
       rdp_via_warpgate: b.rdp_via_warpgate ?? mockCfg.rdp_via_warpgate,
+      allow_direct_fallback: b.allow_direct_fallback ?? mockCfg.allow_direct_fallback,
     };
     saveCfg();
     return { ...mockCfg };
@@ -132,9 +134,9 @@ const mockWarpgateApi: WarpgateApi = {
   },
   sshKeys: async () => ({ enabled: mockCfg.enabled, keys: [...mockKeys] }),
   addSshKey: async (label, openssh_public_key) => {
-    if (/PRIVATE KEY/i.test(openssh_public_key) || !/^(ssh-|ecdsa-|sk-)/.test(openssh_public_key.trim())) {
-      throw new ApiError(400, 'openssh_public_key: OpenSSH 공개키 한 줄이어야 합니다');
-    }
+    // the engine's codes (pegaprox/api/vlab_warpgate.py add_my_ssh_key)
+    if (/PRIVATE KEY|PuTTY-User-Key-File/i.test(openssh_public_key)) throw new ApiError(400, 'PRIVATE_KEY');
+    if (!/^(ssh-|ecdsa-|sk-)/.test(openssh_public_key.trim())) throw new ApiError(400, 'BAD_PUBLIC_KEY');
     mockKeys.push({ id: `key-${mockKeys.length + 1}`, label: label || 'MOAVI Desk', openssh_public_key, date_added: new Date().toISOString() });
     saveKeys();
     return [...mockKeys];
