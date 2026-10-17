@@ -100,6 +100,15 @@ const realApi = {
     if (status !== 200) throw new ApiError(status, data?.error || `HTTP ${status}`, data);
   },
 
+  // the portal card's picture of a running desktop; null when there is none (204, off, failed)
+  async screenshot(desktopId: string): Promise<Blob | null> {
+    try {
+      const res = await fetch(`/api/vlab/desktops/${encodeURIComponent(desktopId)}/screenshot`, {
+        credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      return res.status === 200 ? await res.blob() : null;
+    } catch { return null; }
+  },
+
   async endSession(sessionId: string): Promise<void> {
     try { await request('POST', `/api/vlab/sessions/${encodeURIComponent(sessionId)}/end`); } catch { /* best effort */ }
   },
