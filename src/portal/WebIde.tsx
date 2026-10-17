@@ -116,8 +116,8 @@ export function WebIdePanel() {
         <span className="stat-icon tone-violet"><Icon name="code" size={18} /></span>
         <div>
           <h2 className="section-title">{L('웹 IDE', 'Web IDE')}</h2>
-          <p className="muted small" style={{ margin: 0 }}>{L('브라우저에서 JupyterLab · VS Code를 엽니다. 내 계정으로, 공유 저장소의 내 폴더에서 실행됩니다. 이미 떠 있으면 그대로 다시 엽니다.',
-            'JupyterLab or VS Code in the browser, run as you in your folder on shared storage. One already running is reopened.')}</p>
+          <p className="muted small" style={{ margin: 0 }}>{L('브라우저에서 JupyterLab · VS Code를 엽니다.',
+            'JupyterLab or VS Code in the browser.')}</p>
         </div>
         <div className="panel-actions"><button type="button" className="btn" onClick={data.reload} aria-label={L('새로 고침', 'Refresh')}><Icon name="refresh" size={16} /></button></div>
       </div>
@@ -158,8 +158,8 @@ export function MyGpuCard() {
         <span className="stat-icon tone-green"><Icon name="gpu" size={18} /></span>
         <div>
           <h2 className="section-title">{L('내 GPU', 'My GPUs')}</h2>
-          <p className="muted small" style={{ margin: 0 }}>{L('이번 달 GPU-시간은 GPU 작업(장 수 × 시간)과 카드 대여를 더한 값입니다. 할당량을 넘기면 내 작업은 큐 뒤로 갑니다.',
-            "This month's GPU-hours: GPU jobs (GPUs × hours) plus card loans. Over a quota, your jobs go to the back of the queue.")}</p>
+          <p className="muted small" style={{ margin: 0 }}>{L('이번 달 GPU-시간(작업 + 카드 대여)과 할당량입니다.',
+            "This month's GPU-hours (jobs + card loans) and quotas.")}</p>
         </div>
       </div>
       <div className="gpu-quota">

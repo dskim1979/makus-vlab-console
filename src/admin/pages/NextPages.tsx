@@ -1045,10 +1045,10 @@ export function BuildJobsPanel({ pools, admin = false }: { pools: JobPool[]; adm
         <div>
           <h2 className="section-title">{gpuPools ? L('작업 큐 (빌드 · GPU)', 'Job queue (builds and GPU)') : L('빌드 작업 큐', 'Build job queue')}</h2>
           <p className="muted small" style={{ margin: 0 }}>{gpuPools
-            ? L('긴 빌드나 GPU 학습을 큐에 넣으면 빈 빌드 VM · 빈 GPU에서 차례로 돌립니다. 오래 기다린 사람이 먼저, 할당량을 넘긴 사람은 뒤로 갑니다. 결과는 스크래치/<작업 ID> 폴더에 남습니다.',
-              'Queue long builds or GPU training; they run on free build VMs and free GPUs in turn. Who waited longest goes first, anyone over quota goes last. Results stay in scratch/<job id>.')
-            : L('합성 · 구현 같은 긴 빌드를 큐에 넣으면 빈 빌드 VM에서 차례로 돌립니다. 결과와 마지막 출력이 여기에 남습니다.',
-              'Queue long builds (synthesis, implementation); they run on free build VMs in turn and leave their result and last output here.')}</p>
+            ? L('긴 빌드 · GPU 학습을 맡기면 차례로 돌립니다. 결과는 스크래치/<작업 ID>에.',
+              'Queue long builds or GPU training; they run in turn. Results in scratch/<job id>.')
+            : L('긴 빌드를 맡기면 빈 빌드 VM에서 차례로 돌립니다.',
+              'Queue long builds; they run on free build VMs in turn.')}</p>
         </div>
         <div className="panel-actions">
           <button type="button" className="btn" onClick={jobs.reload}><Icon name="refresh" size={16} /></button>

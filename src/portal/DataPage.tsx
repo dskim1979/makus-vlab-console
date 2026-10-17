@@ -48,8 +48,8 @@ export function DataPage() {
       <div className="page-head">
         <div>
           <h1>{L('데이터', 'Data')}</h1>
-          <p className="muted">{L('내 NAS 폴더로 큰 파일을 올리고 받으며, 연구실 데이터셋을 찾습니다. 반출이 통제된 파일은 승인을 받아 한 번 받을 수 있습니다.',
-            'Move large files to and from your NAS folders, find the lab\'s datasets. Controlled files leave once, after approval.')}</p>
+          <p className="muted">{L('내 NAS 폴더의 파일과 연구실 데이터셋입니다.',
+            'Your NAS folders and the lab\'s datasets.')}</p>
         </div>
         <div className="page-tools">
           <button type="button" className="btn" onClick={mine.reload}><Icon name="refresh" size={16} />{L('새로 고침', 'Refresh')}</button>
@@ -431,8 +431,8 @@ function AskDialog({ ask, onClose, onDone }: { ask: Ask; onClose: () => void; on
   return (
     <Dialog open title={L('반출 요청', 'Export request')} onClose={onClose} onSubmit={send} busy={busy} error={error} submitLabel={L('요청 보내기', 'Send request')}>
       <p className="small" style={{ margin: 0 }}><code className="code">{ask.label}</code></p>
-      <p className="muted small" style={{ margin: 0 }}>{L('데이터 담당자가 승인하면 정해진 시간 안에 한 번 받을 수 있는 링크가 생깁니다. 요청 · 승인 · 다운로드는 모두 기록됩니다.',
-        'Once a data steward approves, a link that works once is yours for a set time. Requests, approvals and downloads are all recorded.')}</p>
+      <p className="muted small" style={{ margin: 0 }}>{L('승인되면 한 번 받을 수 있는 링크가 생깁니다.',
+        'Once approved, you get a one-time link.')}</p>
       <label><span>{L('사유', 'Reason')}</span>
         <textarea rows={3} required minLength={2} maxLength={1000} value={reason} onChange={(e) => setReason(e.target.value)}
           placeholder={L('예: 학회 발표 자료로 외부 공동 연구자와 공유', 'e.g. to share with an outside co-author for a conference paper')} /></label>
