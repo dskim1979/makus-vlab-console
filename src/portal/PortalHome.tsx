@@ -15,6 +15,7 @@ import { DesktopCard, relativeTime } from './DesktopCard';
 import { ExternalDesktops } from './ExternalDesktops';
 import { MyPools } from './MyPools';
 import { WebIdePanel } from './WebIde';
+import { useFeatures } from '../features';
 
 // noVNC is only loaded when a console is opened
 const ConsoleWindow = lazy(() => import('./ConsoleWindow'));
@@ -26,6 +27,7 @@ function savedView(): 'grid' | 'list' {
 
 // User portal home: quick actions, greeting, the user's desktops as cards or a list.
 export function PortalHome() {
+  const { on } = useFeatures();
   const { t, lang, pick } = useI18n();
   const { user } = useAuth();
   const desktops = useLoad(api.myDesktops);
@@ -240,7 +242,7 @@ export function PortalHome() {
             }}
           </LoadState>
         )}
-        <WebIdePanel />
+        {on('gpuai') && <WebIdePanel />}
         <MyPools onOpen={(id) => { desktops.reload(); setTimeout(() => document.getElementById(`dtile-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 600); }} />
         <ExternalDesktops />
       </div>

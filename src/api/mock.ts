@@ -1,4 +1,5 @@
 // Fake engine for `npm run dev:mock`: lets the screens run without vlab-engine.
+import { forProfile } from './mockProfile';
 import { ApiError, type Api } from './client';
 import type { AuthStatus, Branding, Desktop, Lease, Notice, User, KioskInfo } from './types';
 import { mockDeskWork, mockLeaseExtras } from './mockWork';
@@ -45,7 +46,7 @@ const leases: Lease[] = [
   { id: 'l2', kind: 'usb', name: 'JTAG ZCU102 #1', ends_at: '2026-10-20T18:00:00+09:00' },
 ];
 
-const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 150));
+const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(forProfile(v)), 150));
 
 // the white label, shared with the admin mock (운영 > 화이트라벨)
 export const mockBranding: Branding = {

@@ -1,4 +1,5 @@
 // Fake admin API for `npm run dev:mock`: same rules as the engine, kept in memory.
+import { forProfile } from './mockProfile';
 import type { AdminApi } from './admin';
 import { ApiError } from './client';
 import { mockBranding, mockNotices, noticeState } from './mock';
@@ -271,7 +272,7 @@ const liveMutes = () => mockMutes.filter((m) => Date.parse(m.until) > Date.now()
 const muteOf = (a: ActiveAlert) => liveMutes().find((m) =>
   (!m.rule_id || m.rule_id === a.alert_id) && (!m.object_key || m.object_key === a.object_key));
 
-const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 120));
+const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(forProfile(v)), 120));
 const fail = (status: number, msg: string) => Promise.reject(new ApiError(status, msg));
 
 export const mockAdminApi: AdminApi = {

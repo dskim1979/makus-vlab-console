@@ -1,6 +1,7 @@
 // Next-phase screens: departments, sign-up review, USB library, gateways, external desktops,
 // golden images, board lab, build farm, licence servers (makus-vlab pegaprox/api/vlab_next.py),
 // and the Windows client settings (pegaprox/api/vlab.py /api/vlab/admin/client).
+import { forProfile } from './mockProfile';
 import { ApiError, isMock, request } from './client';
 import { mockHaVmids } from './ops';
 import type { GpuEnv, GpuJobFields, Notify, Runtime, WaitReason } from './research';
@@ -208,7 +209,7 @@ export type NextApi = typeof realNextApi;
 
 // --- mock mode -------------------------------------------------------------------------------
 
-const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 120));
+const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(forProfile(v)), 120));
 const fail = (status: number, msg: string) => Promise.reject(new ApiError(status, msg));
 let seq = 100;
 const nid = (p: string) => `${p}_${++seq}`;
