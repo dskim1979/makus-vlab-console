@@ -14,6 +14,7 @@ import { useI18n } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
 import { DesktopCard, relativeTime } from './DesktopCard';
 import { ExternalDesktops } from './ExternalDesktops';
+import { certDone, GatewayCertDialog, loadGatewayCert, type GatewayCert } from './GatewayCert';
 import { MyPools } from './MyPools';
 import { WebIdePanel } from './WebIde';
 import { useFeatures } from '../features';
@@ -42,6 +43,8 @@ export function PortalHome() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<{ id: string; text: string } | null>(null);
   const [hint, setHint] = useState<{ id: string; text: string; link?: { href: string; label: string } } | null>(null);
+  // the devices route on a PC that has not trusted the gateway yet: ask first, then get the .rdp
+  const [certAsk, setCertAsk] = useState<{ d: Desktop; cert: GatewayCert | null } | null>(null);
 
   function pickView(v: 'grid' | 'list') {
     setView(v);
@@ -70,6 +73,10 @@ export function PortalHome() {
       if (c.type === 'vnc') {
         setOpen({ title: d.name, wsPath: c.ws_path, password: c.password, sessionId: c.session_id, clipboard: c.clipboard ?? 'both' });
       } else if (c.type === 'rdp') {
+        if (c.via === 'rdpgw') {
+          const cert = await loadGatewayCert(c.cert_url);
+          if (!certDone(cert)) { setCertAsk({ d, cert }); return; }
+        }
         const url = URL.createObjectURL(new Blob([c.rdp], { type: 'application/x-rdp' }));
         const a = document.createElement('a');
         a.href = url; a.download = c.filename; a.click();
@@ -265,6 +272,8 @@ export function PortalHome() {
           <ConsoleWindow title={open.title} wsPath={open.wsPath} password={open.password} clipboard={open.clipboard} onClose={close} />
         </Suspense>
       )}
+      {certAsk && <GatewayCertDialog cert={certAsk.cert} onClose={() => setCertAsk(null)}
+        onRdp={() => { const d = certAsk.d; setCertAsk(null); void connect(d, 'rdp'); }} />}
     </main>
   );
 }

@@ -5,6 +5,7 @@ import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { SettingsSection, SettingsShell, SettingsStatus } from '../../components/SettingsShell';
 import { useLoad } from '../../components/useLoad';
+import { CERT_URL, downloadInstaller, useGatewayCert } from '../../portal/GatewayCert';
 import { useI18n } from '../../i18n';
 
 // 운영 > 플랫폼 설정 > Warpgate: 접근 게이트웨이(bastion) 설정 (makus-vlab pegaprox/api/vlab_warpgate.py).
@@ -155,6 +156,7 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
 function DevicesSection() {
   const { L } = useL();
   const st = useLoad(warpgateApi.rdpgw);
+  const cert = useGatewayCert();
   return (
     <SettingsSection id="devices" title={L('장치 연결 방식', 'Device route')}
       desc={L('RDP 파일로 내 PC의 드라이브·프린터·USB를 쓰게 합니다. 녹화하지 않습니다.', 'Lets the RDP file use the drives, printers and USB of the PC. Not recorded.')}>
@@ -171,6 +173,10 @@ function DevicesSection() {
             <dt>{L('1회용 토큰', 'One-time token')}</dt>
             <dd>{L(`${d.config.token_minutes}분 · 그 데스크톱만${d.config.verify_client_ip ? ' · 받은 PC에서만' : ''}`,
               `${d.config.token_minutes} min, that desktop only${d.config.verify_client_ip ? ', from the PC that got it' : ''}`)}</dd>
+            <dt>{L('인증서', 'Certificate')}</dt>
+            <dd>{cert === undefined ? '…' : cert ? <><code className="nowrap">{cert.thumbprint}</code> · <a href={CERT_URL} download>{L('받기', 'Download')}</a>
+              {' · '}<button type="button" className="btn-ghost small-btn" onClick={() => downloadInstaller(cert)}>{L('설치 도우미', 'Installer')}</button></>
+              : <span className="muted">{L('읽지 못함', 'Not readable')}</span>}</dd>
             <dt>{L('쓰는 풀', 'Pools')}</dt>
             <dd>{d.pools.length ? d.pools.map((p, i) => <span key={p.id}>{i > 0 && ', '}<Link to={`/admin/pools/list/${encodeURIComponent(p.id)}`}>{p.name}</Link></span>)
               : <span className="muted">{L('없음 — 풀 정책 > USB · 장치에서 고릅니다', 'None - pick it in the pool policy (USB / devices)')}</span>}</dd>
@@ -180,8 +186,8 @@ function DevicesSection() {
             <ul className="muted small ssh-howto">
               <li>{L('켜기 — 서버 .env에 VLAB_RDPGW=1, VLAB_RDPGW_KEY(32자, openssl rand -hex 16)를 넣고 docker compose up -d.',
                 'Turn on - in the .env of the server set VLAB_RDPGW=1 and VLAB_RDPGW_KEY (32 characters, openssl rand -hex 16), then docker compose up -d.')}</li>
-              <li>{L('사용자 PC — 콘솔 인증서가 자체 서명이면 포털의 "게이트웨이 인증서 받기"로 받아 "신뢰할 수 있는 루트 인증 기관"에 한 번 설치합니다.',
-                'User PCs - with a self-signed console certificate, get it from the portal ("Get the gateway certificate") and install it once under Trusted Root Certification Authorities.')}</li>
+              <li>{L('사용자 PC — 자체 서명 인증서면 처음 접속할 때 포털이 설치 도우미를 안내합니다. PC가 많으면 그룹 정책(컴퓨터 구성 › Windows 설정 › 보안 설정 › 공개 키 정책 › 신뢰할 수 있는 루트 인증 기관)으로 이 인증서를 배포하세요. 공인 인증서면 필요 없습니다.',
+                'User PCs - with a self-signed certificate the portal walks users through the installer on the first connect. For many PCs, deploy this certificate by Group Policy (Computer Configuration › Windows Settings › Security Settings › Public Key Policies › Trusted Root Certification Authorities). Not needed with a public certificate.')}</li>
               <li>{L('USB — 사용자 PC에서 RemoteFX USB 리디렉션 정책을 켜야 보이는 장치가 있습니다. 데스크톱 쪽 허용·차단은 풀 정책을 따릅니다.',
                 'USB - some devices need RemoteFX USB redirection allowed by policy on the PC of the user. The desktop side follows the pool policy.')}</li>
             </ul>
