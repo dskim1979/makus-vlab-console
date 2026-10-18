@@ -13,6 +13,7 @@
 #
 # Bundled directory on: VLAB_DIRECTORY=1 and VLAB_DIRECTORY_IP=<this host's address on the desktop
 # network> in .env (README.md "내장 디렉터리"). A site with its own AD leaves it off.
+#   rdpgw        the gateway's devices route: RD Gateway for pools that need drives / printers / USB (VLAB_RDPGW=1)
 #
 # Built from the two repositories checked out side by side:
 #   <dir>/makus-vlab            (engine)
@@ -57,6 +58,11 @@ services:
       VLAB_DIRECTORY_HOSTNAME: ${VLAB_DIRECTORY_HOSTNAME:-dc1}
       VLAB_DIRECTORY_IP: ${VLAB_DIRECTORY_IP:-}             # the desktops' DNS server after a join
       VLAB_DIRECTORY_FILES: /etc/vlab/directory
+      # 보안 게이트웨이 · 장치 연결 방식(VLAB_RDPGW=1): 풀 정책 '장치 연결'인 풀의 .rdp 가 rdpgw 를 거친다.
+      # 엔진이 1회용 토큰(5분, 그 데스크톱·그 PC 주소만)을 VLAB_RDPGW_KEY 로 서명한다 - rdpgw 와 같은 값.
+      VLAB_RDPGW: ${VLAB_RDPGW:-0}
+      VLAB_RDPGW_KEY: ${VLAB_RDPGW_KEY:-}
+      VLAB_RDPGW_HOST: ${VLAB_RDPGW_HOST:-${VLAB_HOSTNAME:-vlab.local}:${VLAB_HTTPS_PORT:-443}}   # 사용자 PC 가 닿는 콘솔 주소
       TZ: ${TZ:-Asia/Seoul}
     volumes:
       - vlab-config:/app/config             # database (encrypted), master key, settings - back this up
@@ -181,6 +187,37 @@ services:
         aliases:
           # the engine speaks LDAPS to this name: the one in the DC's certificate
           - ${VLAB_DIRECTORY_HOSTNAME:-dc1}.${VLAB_DIRECTORY_REALM:-moavi.lan}
+
+  # --- 보안 게이트웨이 · 장치 연결 방식 (rdpgw, Apache-2.0) — 선택(기본 꺼짐) ---------------
+  # VLAB_RDPGW=1 과 VLAB_RDPGW_KEY(정확히 32자: openssl rand -hex 16) 로 켠다. Warpgate 는 녹화를 위해
+  # RDP 를 풀었다 다시 맺으며 장치 채널(드라이브·프린터·USB)을 버린다. rdpgw 는 암호화된 RDP 를 그대로
+  # 데스크톱까지 실어 나르므로 장치가 된다 - 대신 녹화되지 않는다(접속 기록은 감사 로그에 남는다).
+  # 포트를 따로 열지 않는다: vlab-proxy(443)가 /remoteDesktopGateway/ 만 rdpgw 로 넘긴다. 토큰은 엔진이
+  # 만들고(header 모드의 /connect 는 쓰지 않음 - 프록시 밖에서 닿지 않는다), rdpgw 는 그 토큰이 가리키는
+  # 데스크톱으로만 보낸다.
+  rdpgw:
+    image: ${VLAB_RDPGW_IMAGE:-bolkedebruin/rdpgw@sha256:fd82a8616db4ad65cb8d8f2aab4ea582d447a8ace562cd3d1358e0c2aa1c3abd}   # latest 2026-08-18 (16cdaaf)
+    restart: unless-stopped
+    deploy:
+      replicas: ${VLAB_RDPGW:-0}            # 0: 장치 연결 방식 꺼짐
+    environment:
+      RDPGW_SERVER__TLS: disable            # TLS 는 vlab-proxy 가 맡는다
+      RDPGW_SERVER__PORT: "80"
+      RDPGW_SERVER__GATEWAY_ADDRESS: https://${VLAB_RDPGW_HOST:-${VLAB_HOSTNAME:-vlab.local}:${VLAB_HTTPS_PORT:-443}}
+      RDPGW_SERVER__AUTHENTICATION: header  # 게이트웨이 접속은 토큰만으로; /connect 는 아래 127.0.0.1 만 믿으므로 쓸 수 없다
+      RDPGW_HEADER__USER_HEADER: X-Moavi-Unused
+      RDPGW_HEADER__TRUSTED_PROXIES: 127.0.0.1/32
+      RDPGW_SERVER__HOST_SELECTION: any     # 갈 곳은 토큰이 정한다(rdpgw 가 토큰의 데스크톱과 다르면 거절)
+      RDPGW_SERVER__TRUSTED_PROXIES: 172.16.0.0/12 10.0.0.0/8 192.168.0.0/16   # vlab-proxy 의 X-Forwarded-For
+      RDPGW_CAPS__TOKEN_AUTH: "true"
+      RDPGW_CAPS__REDIRECT_ALL: "true"      # 무엇을 넘길지는 풀 정책(.rdp)과 데스크톱 자체 설정이 정한다
+      RDPGW_CAPS__IDLE_TIMEOUT: "0"
+      RDPGW_SECURITY__PAA_TOKEN_SIGNING_KEY: ${VLAB_RDPGW_KEY:-}
+      RDPGW_SECURITY__VERIFY_CLIENT_IP: "true"
+      TZ: ${TZ:-Asia/Seoul}
+    expose:
+      - "80"
+    networks: [vlab]                        # 데스크톱의 3389 에 닿아야 한다
 
 networks:
   vlab:

@@ -59,6 +59,7 @@ function Summary({ p, storage }: { p: PoolPolicy; storage: PoolStorage | null })
     `${t('pol.s.clip')}: ${t(`pol.clip.${p.clipboard}` as MessageKey)}`,
     `USB: ${p.usb_redirect ? t('pol.on') : t('pol.offShort')}`,
   ];
+  if (p.rdp_route === 'devices') chips.push(L('RDP: 장치 연결', 'RDP: devices'));
   if (p.client_drives) chips.push(L('내 PC 드라이브 연결', 'PC drives'));
   if (p.start_on_connect) chips.push(t('pol.startOnConnect'));
   if (p.idle_shutdown_min) chips.push(`${t('pol.idle')} ${p.idle_shutdown_min}${t('pol.min')}`);
@@ -232,7 +233,18 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
           <label className="check"><input type="checkbox" checked={p.usb_autoshare} disabled={!p.usb_redirect}
             onChange={(e) => set('usb_autoshare', e.target.checked)} /><span>{t('pol.usbAuto')}</span></label>
           {on('fpga') && <div className="callout"><Icon name="info" size={18} /><p>{t('pol.usbNote')}</p></div>}
-          <span className="field-label">{L('RDP 접속 (Windows 앱 · 브라우저 RDP)', 'RDP connections (Windows app, browser RDP)')}</span>
+          <span className="field-label">{L('RDP 파일 (Windows 원격 데스크톱 · 전용 앱)', 'RDP file (Remote Desktop app, MOAVI Desk client)')}</span>
+          <div className="mode-cards mode-cards-2" role="radiogroup" aria-label={L('RDP 파일 경로', 'RDP file route')}>
+            {([['record', L('녹화', 'Recorded'), L('보안 게이트웨이가 녹화합니다. 드라이브·프린터·USB는 연결되지 않습니다.', 'The security gateway records it. No drives, printers or USB.')],
+              ['devices', L('장치 연결', 'Devices'), L('내 PC의 드라이브·프린터·USB를 씁니다. 녹화하지 않습니다.', 'Drives, printers and USB of the PC work. Not recorded.')]] as const).map(([v, title, hint]) => (
+              <label key={v} className={`mode-card${(p.rdp_route ?? 'record') === v ? ' on' : ''}`}>
+                <input type="radio" name="rdp-route" checked={(p.rdp_route ?? 'record') === v} onChange={() => set('rdp_route', v)} />
+                <span className="strong">{title}</span><span className="muted small">{hint}</span>
+              </label>
+            ))}
+          </div>
+          {(p.rdp_route ?? 'record') === 'devices' && <small className="muted">{L('USB는 위 "USB 장치 연결 허용"을 따릅니다. 브라우저 RDP는 그대로 보안 게이트웨이로 녹화됩니다.',
+            'USB follows "Allow USB redirection" above. Browser RDP stays recorded through the security gateway.')}</small>}
           <label className="check"><input type="checkbox" checked={!!p.client_drives} onChange={(e) => set('client_drives', e.target.checked)} />
             <span className="strong">{L('내 PC 드라이브 연결 허용', 'Allow the PC\'s drives')}</span></label>
           <small className="muted hint-indent">{L('사용자 PC의 C: · USB 메모리가 데스크톱 안에 보입니다. 끄면 이 길로 파일을 들이거나 내갈 수 없습니다(기본: 끔).',
@@ -294,6 +306,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
             <dt>{L('웹 IDE', 'Web IDE')}</dt><dd>{(p.web_ide ?? []).length ? `${p.web_ide.map((k) => (k === 'jupyter' ? 'JupyterLab' : 'VS Code')).join(', ')} · ${L(`유휴 ${p.web_ide_idle_min}분 뒤 끔`, `ends after ${p.web_ide_idle_min} min unused`)}` : t('pol.offShort')}</dd>
             <dt>{t('pol.s.clip')}</dt><dd>{t(`pol.clip.${p.clipboard}` as MessageKey)}</dd>
             <dt>{t('pol.s.usb')}</dt><dd>{p.usb_redirect ? `${t('pol.on')}${p.usb_autoshare ? ` · ${t('pol.usbAuto')}` : ''}` : t('pol.offShort')}</dd>
+            <dt>{L('RDP 파일 경로', 'RDP file route')}</dt><dd>{(p.rdp_route ?? 'record') === 'devices' ? L('장치 연결 (녹화 안 함)', 'Devices (not recorded)') : L('녹화 (보안 게이트웨이)', 'Recorded (security gateway)')}</dd>
             <dt>{L('RDP 드라이브 · 프린터', 'RDP drives, printers')}</dt><dd>{`${L('내 PC 드라이브', 'PC drives')} ${p.client_drives ? t('pol.on') : t('pol.offShort')} · ${L('프린터', 'printers')} ${(p.client_printers ?? true) ? t('pol.on') : t('pol.offShort')}`}</dd>
             <dt>{t('pol.s.power')}</dt><dd>{[p.start_on_connect && t('pol.startOnConnect'),
               p.idle_shutdown_min ? `${t('pol.idle')} ${p.idle_shutdown_min}${t('pol.min')}` : '',

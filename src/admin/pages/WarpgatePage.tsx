@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { warpgateApi, type WarpgateConfig } from '../../api/warpgate';
+import { Link } from 'react-router-dom';
+import { warpgateApi, type RdpgwStatus, type WarpgateConfig } from '../../api/warpgate';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { SettingsSection, SettingsShell, SettingsStatus } from '../../components/SettingsShell';
@@ -20,7 +21,8 @@ export function WarpgatePage() {
   const cfg = useLoad(warpgateApi.get);
   const c = cfg.state === 'ok' ? cfg.data.config : null;
   return (
-    <SettingsShell sections={[{ id: 'warpgate', title: L('보안 게이트웨이', 'Security gateway') }, { id: 'sessions', title: L('세션 녹화', 'Session recordings') }]}
+    <SettingsShell sections={[{ id: 'warpgate', title: L('보안 게이트웨이', 'Security gateway') }, { id: 'devices', title: L('장치 연결 방식', 'Device route') },
+      { id: 'sessions', title: L('세션 녹화', 'Session recordings') }]}
       status={
         <SettingsStatus items={[
           { label: L('사용', 'Enabled'), value: c ? (c.enabled ? L('켜짐', 'on') : L('꺼짐', 'off')) : '-', tone: c?.enabled ? 'ok' : 'off' },
@@ -137,6 +139,8 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
         </div>
       </SettingsSection>
 
+      <DevicesSection />
+
       <SettingsSection id="sessions" title={L('세션 녹화', 'Session recordings')}
         desc={L('보안 게이트웨이가 녹화한 세션을 다시 봅니다.', 'Review the sessions Warpgate recorded.')}>
         <div className="toolbar">
@@ -144,5 +148,46 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
         </div>
       </SettingsSection>
     </>
+  );
+}
+
+// 장치 연결 방식 (rdpgw): set up in the deploy's .env; the pools that use it choose it in their policy
+function DevicesSection() {
+  const { L } = useL();
+  const st = useLoad(warpgateApi.rdpgw);
+  return (
+    <SettingsSection id="devices" title={L('장치 연결 방식', 'Device route')}
+      desc={L('RDP 파일로 내 PC의 드라이브·프린터·USB를 쓰게 합니다. 녹화하지 않습니다.', 'Lets the RDP file use the drives, printers and USB of the PC. Not recorded.')}>
+      <LoadState value={st} retry={st.reload}>{(d: RdpgwStatus) => (
+        <>
+          <dl className="review-list">
+            <dt>{L('상태', 'State')}</dt>
+            <dd>{d.config.enabled
+              ? (d.reachable ? <span className="status st-ready"><span className="dot" />{L('켜짐 · 응답함', 'On, answering')}</span>
+                : <span className="status st-error"><span className="dot" />{L('켜짐 · 응답 없음', 'On, not answering')}</span>)
+              : d.config.problem ? <span className="status st-error"><span className="dot" />{d.config.problem}</span>
+                : <span className="muted">{L('꺼짐', 'Off')}</span>}</dd>
+            <dt>{L('접속 주소', 'Address')}</dt><dd>{d.config.host || '-'}</dd>
+            <dt>{L('1회용 토큰', 'One-time token')}</dt>
+            <dd>{L(`${d.config.token_minutes}분 · 그 데스크톱만${d.config.verify_client_ip ? ' · 받은 PC에서만' : ''}`,
+              `${d.config.token_minutes} min, that desktop only${d.config.verify_client_ip ? ', from the PC that got it' : ''}`)}</dd>
+            <dt>{L('쓰는 풀', 'Pools')}</dt>
+            <dd>{d.pools.length ? d.pools.map((p, i) => <span key={p.id}>{i > 0 && ', '}<Link to={`/admin/pools/list/${encodeURIComponent(p.id)}`}>{p.name}</Link></span>)
+              : <span className="muted">{L('없음 — 풀 정책 > USB · 장치에서 고릅니다', 'None - pick it in the pool policy (USB / devices)')}</span>}</dd>
+          </dl>
+          <details className="wg-more">
+            <summary>{L('사용 방법', 'How to')}</summary>
+            <ul className="muted small ssh-howto">
+              <li>{L('켜기 — 서버 .env에 VLAB_RDPGW=1, VLAB_RDPGW_KEY(32자, openssl rand -hex 16)를 넣고 docker compose up -d.',
+                'Turn on - in the .env of the server set VLAB_RDPGW=1 and VLAB_RDPGW_KEY (32 characters, openssl rand -hex 16), then docker compose up -d.')}</li>
+              <li>{L('사용자 PC — 콘솔 인증서가 자체 서명이면 포털의 "게이트웨이 인증서 받기"로 받아 "신뢰할 수 있는 루트 인증 기관"에 한 번 설치합니다.',
+                'User PCs - with a self-signed console certificate, get it from the portal ("Get the gateway certificate") and install it once under Trusted Root Certification Authorities.')}</li>
+              <li>{L('USB — 사용자 PC에서 RemoteFX USB 리디렉션 정책을 켜야 보이는 장치가 있습니다. 데스크톱 쪽 허용·차단은 풀 정책을 따릅니다.',
+                'USB - some devices need RemoteFX USB redirection allowed by policy on the PC of the user. The desktop side follows the pool policy.')}</li>
+            </ul>
+          </details>
+        </>
+      )}</LoadState>
+    </SettingsSection>
   );
 }
