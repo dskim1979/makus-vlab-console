@@ -396,10 +396,11 @@ function VmWizard({ cluster }: { cluster: Cluster }) {
   return (
     <LoadState value={nodes} retry={nodes.reload}>
       {() => (
-        <div className="card vm-wizard">
+        <>
           <p className="muted small page-intro">{L(
             'ISO로 새 VM을 만들고 바로 콘솔에서 OS를 설치합니다. 설치가 끝나면 게스트 에이전트를 넣은 뒤 템플릿으로 바꾸거나 골든 이미지로 등록해 풀에 씁니다.',
             'Make a VM from an ISO and install the OS from its console right away. Once installed, add the guest agent, then turn it into a template or register it as a golden image for pools.')}</p>
+          <div className="vm-wizard">
           <ol className="stepper">
             {STEPS.map((s, i) => (
               <li key={s} className={`${s === step ? 'on' : ''}${i < idx ? ' done' : ''}`}>
@@ -533,7 +534,8 @@ function VmWizard({ cluster }: { cluster: Cluster }) {
                 : <button type="submit" className="btn primary" disabled={!!problems[step]}>{L('다음', 'Next')}</button>}
             </div>
           </form>
-        </div>
+          </div>
+        </>
       )}
     </LoadState>
   );
@@ -603,7 +605,7 @@ function AfterCreate({ cluster, vm, onAnother }: { cluster: Cluster; vm: Created
 
   const done = templated || !!golden;
   return (
-    <div className="card vm-after">
+    <div className="vm-after">
       <div className="panel-head">
         <span className="stat-icon"><Icon name="vm" size={20} /></span>
         <div><h2 className="section-title">{L(`${vm.name} (VMID ${vm.vmid})를 만들었습니다`, `Created ${vm.name} (VMID ${vm.vmid})`)}</h2>
