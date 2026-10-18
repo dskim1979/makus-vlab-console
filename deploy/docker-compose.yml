@@ -28,7 +28,10 @@ services:
     environment:
       PEGAPROX_BEHIND_PROXY: "1"            # plain HTTP behind vlab-proxy; VNC websocket on the same port
       PEGAPROX_HOST: "0.0.0.0"              # reachable from vlab-proxy (the port is not published)
-      PEGAPROX_TRUSTED_PROXIES: "172.16.0.0/12,192.168.0.0/16,10.0.0.0/8"   # X-Forwarded-For from the proxy
+      # X-Forwarded-For from vlab-proxy only: the compose network (Docker hands out 172.16.0.0/12 first).
+      # A wider range would take users' own addresses (192.168.x, 10.x) for proxies and log every user as
+      # the proxy; set VLAB_TRUSTED_PROXIES (one CIDR) if Docker gave the vlab network another range.
+      PEGAPROX_TRUSTED_PROXIES: ${VLAB_TRUSTED_PROXIES:-172.16.0.0/12}
       PEGAPROX_HTTP_PORT: "-1"
       VLAB_PROFILE: ${VLAB_PROFILE:-}                       # optional: general | small_lab | university | research (first start only)
       VLAB_FEATURES: ${VLAB_FEATURES:-}                     # optional: fpga,gpuai
@@ -152,7 +155,7 @@ services:
       RDPGW_HEADER__TRUSTED_PROXIES: 127.0.0.1/32
       RDPGW_SERVER__HOST_SELECTION: any     # 갈 곳은 토큰이 정한다(rdpgw 가 토큰의 데스크톱과 다르면 거절)
       RDPGW_SERVER__HOSTS: any              # 비어 있으면 rdpgw 가 시작하지 않는다(/connect 용 목록 - 쓰지 않음)
-      RDPGW_SERVER__TRUSTED_PROXIES: 172.16.0.0/12 10.0.0.0/8 192.168.0.0/16   # vlab-proxy 의 X-Forwarded-For
+      RDPGW_SERVER__TRUSTED_PROXIES: ${VLAB_TRUSTED_PROXIES:-172.16.0.0/12}   # vlab-proxy 의 X-Forwarded-For (엔진과 같은 범위)
       RDPGW_CAPS__TOKEN_AUTH: "true"
       RDPGW_CAPS__REDIRECT_ALL: "true"      # 무엇을 넘길지는 풀 정책(.rdp)과 데스크톱 자체 설정이 정한다
       RDPGW_CAPS__IDLE_TIMEOUT: "0"
