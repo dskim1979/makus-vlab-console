@@ -151,6 +151,7 @@ services:
       RDPGW_HEADER__USER_HEADER: X-Moavi-Unused
       RDPGW_HEADER__TRUSTED_PROXIES: 127.0.0.1/32
       RDPGW_SERVER__HOST_SELECTION: any     # 갈 곳은 토큰이 정한다(rdpgw 가 토큰의 데스크톱과 다르면 거절)
+      RDPGW_SERVER__HOSTS: any              # 비어 있으면 rdpgw 가 시작하지 않는다(/connect 용 목록 - 쓰지 않음)
       RDPGW_SERVER__TRUSTED_PROXIES: 172.16.0.0/12 10.0.0.0/8 192.168.0.0/16   # vlab-proxy 의 X-Forwarded-For
       RDPGW_CAPS__TOKEN_AUTH: "true"
       RDPGW_CAPS__REDIRECT_ALL: "true"      # 무엇을 넘길지는 풀 정책(.rdp)과 데스크톱 자체 설정이 정한다
