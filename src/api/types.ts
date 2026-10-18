@@ -41,7 +41,8 @@ export type Desktop = {
   pool_type?: string;
   last_connected?: string | null;
   gpu?: { mode: 'passthrough' | 'vgpu'; label: string };
-  policy?: { clipboard: Clipboard; allow_power: boolean; start_on_connect: boolean; web_ide?: ('jupyter' | 'vscode')[] };
+  policy?: { clipboard: Clipboard; allow_power: boolean; start_on_connect: boolean; web_ide?: ('jupyter' | 'vscode')[];
+    desktop_files?: 'off' | 'up' | 'down' | 'both' };
   // 공유 저장소: the user's folders on the pool's NAS, and how the last check went
   storage?: StoragePaths & { ok: boolean | null; code: string; warnings: string[] };
   // 작업 중 표시, 미뤄진 정리, 카드 사용률 (pegaprox/api/vlab_work.py)
@@ -155,6 +156,8 @@ export type PoolPolicy = {
   web_ide: ('jupyter' | 'vscode')[]; web_ide_idle_min: number;   // 웹 IDE (research.ts)
   // SSH: 포털 브라우저 터미널(Guacamole), 연구자 자기 도구(Warpgate), 둘의 파일 전송(SFTP) 정책
   browser_ssh?: boolean; researcher_ssh?: boolean; ssh_files?: 'off' | 'down' | 'up' | 'both';
+  // 포털 '파일': 내 데스크톱 MOAVI 폴더로 올리기·받기 (게스트 에이전트)
+  desktop_files?: 'off' | 'up' | 'down' | 'both'; desktop_files_max_mb?: number; desktop_files_day_mb?: number;
 };
 export type PoolPolicyAnswer = { policy: PoolPolicy; defaults: PoolPolicy; reset_allowed: boolean };
 
