@@ -24,6 +24,12 @@ export type WarpgateConnection = {
   full_address?: string; ssh?: string; browser_url: string;
 };
 
+// 보안 게이트웨이 · 장치 연결 방식 (rdpgw): set up by the deploy (.env), read-only here
+export type RdpgwStatus = {
+  config: { enabled: boolean; requested: boolean; problem: string; host: string; verify_client_ip: boolean; token_minutes: number };
+  reachable: boolean; pools: { id: string; name: string }[];
+};
+
 export type SshKey = { id: string; label: string; openssh_public_key: string; date_added?: string | null; last_used?: string | null };
 export type SshConfigEntry = {
   host: string; hostname: string; port: number; user: string; target_name: string;
@@ -54,6 +60,7 @@ export type WarpgateApi = {
   addSshKey: (label: string, openssh_public_key: string) => Promise<SshKey[]>;
   deleteSshKey: (id: string) => Promise<SshKey[]>;
   sshConfig: () => Promise<SshConfig>;
+  rdpgw: () => Promise<RdpgwStatus>;
 };
 
 const realWarpgateApi: WarpgateApi = {
@@ -71,6 +78,7 @@ const realWarpgateApi: WarpgateApi = {
     (await call<{ keys: SshKey[] }>('POST', '/api/vlab/me/ssh-keys', { label, openssh_public_key })).keys,
   deleteSshKey: async (id) => (await call<{ keys: SshKey[] }>('DELETE', `/api/vlab/me/ssh-keys/${enc(id)}`)).keys,
   sshConfig: () => call<SshConfig>('GET', '/api/vlab/me/ssh-config'),
+  rdpgw: () => call<RdpgwStatus>('GET', '/api/vlab/admin/rdpgw'),
 };
 
 // --- mock --------------------------------------------------------------------------------
@@ -117,6 +125,10 @@ const mockWarpgateApi: WarpgateApi = {
   },
   sessionsUrl: async (sessionId) => `${mockCfg.base_url || 'https://warpgate.example:8888'}/@warpgate/admin/sessions${sessionId ? `/${sessionId}` : ''}`,
   myStatus: async () => ({ enabled: mockCfg.enabled, protocols: ['rdp', 'ssh', 'vnc'] }),
+  rdpgw: async () => ({
+    config: { enabled: true, requested: true, problem: '', host: 'vlab.lab.example:443', verify_client_ip: true, token_minutes: 5 },
+    reachable: true, pools: [{ id: 'pool-design', name: '디자인실' }],
+  }),
   connect: async (_desktopId, protocol) => {
     const host = (mockCfg.base_url || 'https://warpgate.example:8888').replace(/^[a-z]+:\/\//, '').replace(/:\d+$/, '');
     const secret = 'TKT-MOCK-123';

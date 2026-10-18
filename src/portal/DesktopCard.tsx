@@ -63,9 +63,9 @@ function Screen({ d, family }: { d: Desktop; family: OsFamily }) {
   );
 }
 
-export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hint, onChanged, warpgate }: {
+export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hint, hintLink, onChanged, warpgate }: {
   d: Desktop; busy: boolean; fav: boolean; onFav: () => void; onChanged?: () => void; warpgate?: boolean;
-  onConnect: (p: 'vnc' | 'spice' | 'rdp' | 'wg-rdp' | 'wg-ssh') => void; onPower: (a: PowerAction) => void; error?: string; hint?: string;
+  onConnect: (p: 'vnc' | 'spice' | 'rdp' | 'wg-rdp' | 'wg-ssh') => void; onPower: (a: PowerAction) => void; error?: string; hint?: string; hintLink?: { href: string; label: string };
 }) {
   const { t, lang, pick } = useI18n();
   const family = osFamily(d);
@@ -186,7 +186,7 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
       {d.work && (running || d.work.hold || d.work.deferrals.length > 0) && <WorkStrip deskId={d.id} work={d.work} onChanged={onChanged} />}
 
       {error && <div className="alert error small" role="alert">{error}</div>}
-      {hint && <div className="alert info small">{hint}</div>}
+      {hint && <div className="alert info small">{hint}{hintLink && <> <a href={hintLink.href} download>{hintLink.label}</a></>}</div>}
 
       <footer className="dtile-foot">
         <div className="dtile-state">

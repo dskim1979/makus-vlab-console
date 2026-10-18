@@ -147,6 +147,8 @@ export type PoolPolicy = {
   usb_redirect: boolean; usb_autoshare: boolean;
   // RDP / browser RDP: the user's own PC drives and printers in the desktop
   client_drives: boolean; client_printers: boolean;
+  // the .rdp's way: 'record' = 보안 게이트웨이 (recorded, no devices), 'devices' = its device route (rdpgw)
+  rdp_route?: 'record' | 'devices';
   // Windows desktops: RDP on, H.264/AVC 444 and UDP set up at the first RDP connect
   rdp_tune: boolean;
   start_on_connect: boolean; idle_shutdown_min: number; reset_on_logout: boolean;
@@ -224,7 +226,7 @@ export type UserAccess = {
 export type ConnectInfo = (
   | { type: 'vnc'; ws_path: string; password: string; session_id: string; clipboard?: Clipboard }
   | { type: 'spice'; vv: string; filename: string; session_id: string }
-  | { type: 'rdp'; rdp: string; filename: string; session_id: string; via?: 'warpgate' }
+  | { type: 'rdp'; rdp: string; filename: string; session_id: string; via?: 'warpgate' | 'rdpgw'; cert_url?: string }
 ) & { storage?: StorageResult };
 export type ConnectProtocol = 'vnc' | 'spice' | 'rdp';
 

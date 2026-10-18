@@ -87,6 +87,26 @@ Warpgate 를 켜지 않으면 브라우저 RDP 가 없다 — 이 커밋은 Warp
 않는 모드(`interactive_logon`; NLA 가 필요하면 콘솔의 Warpgate 설정에 **서비스 계정**만 넣는다 —
 사용자 비밀번호가 아니다). 외부 OIDC/LDAP 로그인과 디렉터리 연동은 Warpgate `config.yaml` 에서 설정한다.
 
+### 장치 연결 방식 (rdpgw) — RDP 파일에서 드라이브·프린터·USB
+Warpgate 는 녹화하려고 RDP 를 풀었다 다시 맺으며 장치 채널을 버린다. 장치가 꼭 필요한 풀만 **장치 연결 방식**으로
+보낸다: 번들 rdpgw(Apache-2.0, RD Gateway)가 암호화된 RDP 를 그대로 데스크톱까지 실어 나른다. 녹화는 되지 않고
+접속은 감사 로그에 남는다. 브라우저 RDP 는 그대로 Warpgate 로 녹화된다.
+
+1. `.env` 에 넣고 `docker compose up -d`:
+   ```
+   VLAB_RDPGW=1
+   VLAB_RDPGW_KEY=<openssl rand -hex 16 값, 정확히 32자>
+   # VLAB_RDPGW_HOST=vdi.lab.example:443   # 비우면 VLAB_HOSTNAME:VLAB_HTTPS_PORT
+   ```
+   포트를 따로 열지 않는다. vlab-proxy(443)가 `/remoteDesktopGateway/` 만 rdpgw 로 넘긴다.
+2. 풀 정책 > **USB · 장치** > RDP 파일 경로 **장치 연결**. 드라이브·프린터·USB 는 같은 화면의 스위치를 따르고,
+   Windows 데스크톱은 그 값을 스스로도 지킨다(.rdp 를 고쳐도 켜지지 않는다).
+3. **인증서**: Windows 원격 데스크톱은 믿지 않는 게이트웨이에 붙지 않는다. 콘솔 인증서가 자체 서명이면 사용자 PC 에서
+   포털의 **게이트웨이 인증서 받기**(`/moavi-gateway.crt`)를 "신뢰할 수 있는 루트 인증 기관"에 한 번 설치한다.
+   IP 로 접속하는 곳은 `VLAB_HOSTNAME` 을 그 IP 로 두고 인증서를 새로 만든다(`vlab-tls` 볼륨의 tls.crt·tls.key 를 지우고
+   vlab-proxy 재시작 — IP 항목이 들어간다). 공인 인증서를 쓰면 이 단계가 없다.
+4. 토큰: 엔진이 접속마다 만든다(5분, 그 사용자·그 데스크톱·받은 PC 주소). 비밀번호는 들어 있지 않다.
+
 ### 연구자 네이티브 SSH (자기 도구로 접속)
 풀 정책에서 **"연구자 네이티브 SSH"** 를 켜면(브라우저 SSH와 별개), 연구자가 PuTTY·scp·WinSCP·
 VS Code Remote-SSH 로 데스크톱에 평소처럼 붙되 Warpgate를 거친다(대상 IP 숨김, 세션 녹화).

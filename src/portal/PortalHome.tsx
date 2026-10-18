@@ -41,7 +41,7 @@ export function PortalHome() {
   const [open, setOpen] = useState<{ title: string; wsPath: string; password: string; sessionId: string; clipboard: Clipboard } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<{ id: string; text: string } | null>(null);
-  const [hint, setHint] = useState<{ id: string; text: string } | null>(null);
+  const [hint, setHint] = useState<{ id: string; text: string; link?: { href: string; label: string } } | null>(null);
 
   function pickView(v: 'grid' | 'list') {
     setView(v);
@@ -74,7 +74,8 @@ export function PortalHome() {
         const a = document.createElement('a');
         a.href = url; a.download = c.filename; a.click();
         setTimeout(() => URL.revokeObjectURL(url), 10000);
-        setHint({ id: d.id, text: t(c.via === 'warpgate' ? 'portal.rdpHintWarpgate' : 'portal.rdpHint') });
+        if (c.via === 'rdpgw') setHint({ id: d.id, text: t('portal.rdpHintDevices'), link: c.cert_url ? { href: c.cert_url, label: t('portal.certLink') } : undefined });
+        else setHint({ id: d.id, text: t(c.via === 'warpgate' ? 'portal.rdpHintWarpgate' : 'portal.rdpHint') });
       } else {
         // the .vv carries a one-time ticket: hand it straight to the browser as a download
         const url = URL.createObjectURL(new Blob([c.vv], { type: 'application/x-virt-viewer' }));
@@ -91,7 +92,7 @@ export function PortalHome() {
         [4000, 10000, 20000].forEach((ms) => setTimeout(() => desktops.reload(), ms));
         return;
       }
-      if (code === 'NO_IP' || code === 'NO_GATEWAY' || code === 'WG_DOWN') { setError({ id: d.id, text: t(`portal.err.${code}` as MessageKey) }); return; }
+      if (code === 'NO_IP' || code === 'NO_GATEWAY' || code === 'WG_DOWN' || code === 'RDPGW_OFF') { setError({ id: d.id, text: t(`portal.err.${code}` as MessageKey) }); return; }
       const known = code === 'VM_STOPPED' || code === 'NO_SPICE';
       setError({ id: d.id, text: known ? t(`portal.err.${code}` as MessageKey) : `${t('portal.err.generic')}: ${code}` });
     } finally {
@@ -208,7 +209,8 @@ export function PortalHome() {
                 {list.map((d) => (
                   <DesktopCard key={d.id} d={d} busy={busy === d.id} fav={favs.includes(d.id)} onFav={() => toggleFav(d.id)}
                     onConnect={(p) => connect(d, p)} onPower={(a) => power(d, a)} onChanged={desktops.reload} warpgate={wgOn}
-                    error={error?.id === d.id ? error.text : undefined} hint={hint?.id === d.id ? hint.text : undefined} />
+                    error={error?.id === d.id ? error.text : undefined} hint={hint?.id === d.id ? hint.text : undefined}
+                    hintLink={hint?.id === d.id ? hint.link : undefined} />
                 ))}
               </div>
             ) : (
@@ -242,7 +244,7 @@ export function PortalHome() {
                               onClick={() => connect(d, 'vnc')}><Icon name="vm" size={16} />{t('portal.connect')}</button>
                           )}
                           {error?.id === d.id && <div className="alert error small">{error.text}</div>}
-                          {hint?.id === d.id && <div className="alert info small">{hint.text}</div>}
+                          {hint?.id === d.id && <div className="alert info small">{hint.text}{hint.link && <> <a href={hint.link.href} download>{hint.link.label}</a></>}</div>}
                         </td>
                       </tr>
                     );
