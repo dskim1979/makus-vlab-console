@@ -186,6 +186,25 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
                 'Native SSH gives a shell and cannot fully prevent exfiltration. For strict pools, turn it off and allow only the browser terminal. Transfers are recorded by Warpgate.')}</small>
             </label>
           )}
+          <span className="field-label">{L('포털 파일 전송', 'Portal file transfer')}</span>
+          <label>
+            <span>{L('내 데스크톱 MOAVI 폴더로', "To the desktop's MOAVI folder")}</span>
+            <select value={p.desktop_files ?? 'off'} onChange={(e) => set('desktop_files', e.target.value as 'off' | 'up' | 'down' | 'both')}>
+              <option value="off">{L('없음', 'None')}</option>
+              <option value="up">{L('올리기만', 'Upload only')}</option>
+              <option value="down">{L('내려받기만', 'Download only')}</option>
+              <option value="both">{L('양방향', 'Both')}</option>
+            </select>
+            <small className="muted">{L('포털의 \'파일\'에서 게스트 에이전트로 주고받습니다. 전송은 모두 기록됩니다.', "Through the guest agent from the portal's Files; every transfer is logged.")}</small>
+          </label>
+          {(p.desktop_files ?? 'off') !== 'off' && (
+            <div className="form-row form-row-even">
+              <label><span>{L('파일 하나 최대 (MB)', 'Largest file (MB)')}</span>
+                <input type="number" min={1} max={10240} value={p.desktop_files_max_mb ?? 500} onChange={(e) => set('desktop_files_max_mb', Number(e.target.value) || 1)} /></label>
+              <label><span>{L('하루 한도 (MB, 0 = 없음)', 'Per day (MB, 0 = none)')}</span>
+                <input type="number" min={0} max={1048576} value={p.desktop_files_day_mb ?? 0} onChange={(e) => set('desktop_files_day_mb', Number(e.target.value) || 0)} /></label>
+            </div>
+          )}
         </div>
       )}
 

@@ -7,6 +7,7 @@ import { storageCodeText } from '../api/storage';
 import { WorkStrip } from '../components/WorkParts';
 import { OsLogo, osLogoKey, osLogoName } from '../components/OsLogo';
 import { api } from '../api/client';
+import { DesktopFiles } from './DesktopFiles';
 
 export type OsFamily = 'windows' | 'linux' | 'other';
 
@@ -125,6 +126,8 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
   const family = osFamily(d);
   const logo = osLogoKey(d.os, d.name);
   const [menu, setMenu] = useState(false);
+  const [files, setFiles] = useState(false);
+  const filesOn = (d.policy?.desktop_files ?? 'off') !== 'off';
   const menuRef = useRef<HTMLDivElement>(null);
   const running = d.state === 'ready' || d.state === 'in_use';
   const last = relativeTime(d.last_connected, lang);
@@ -180,6 +183,11 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
                 <button type="button" role="menuitem" disabled={busy || !running}
                   onClick={() => { setMenu(false); onConnect('wg-ssh'); }}>
                   <Icon name="globe" size={16} />{t('portal.connectWarpgateSsh')}
+                </button>
+              )}
+              {filesOn && (
+                <button type="button" role="menuitem" disabled={busy || !running} onClick={() => { setMenu(false); setFiles(true); }}>
+                  <Icon name="box" size={16} />{pick({ ko: '파일', en: 'Files' })}
                 </button>
               )}
               {!canPower ? null : running ? (
@@ -254,6 +262,7 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
           </button>
         )}
       </footer>
+      {files && <DesktopFiles desktopId={d.id} name={d.name} onClose={() => setFiles(false)} />}
     </article>
   );
 }

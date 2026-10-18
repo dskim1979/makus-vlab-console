@@ -41,7 +41,8 @@ export type Desktop = {
   pool_type?: string;
   last_connected?: string | null;
   gpu?: { mode: 'passthrough' | 'vgpu'; label: string };
-  policy?: { clipboard: Clipboard; allow_power: boolean; start_on_connect: boolean; web_ide?: ('jupyter' | 'vscode')[]; screen_thumbnail?: boolean };
+  policy?: { clipboard: Clipboard; allow_power: boolean; start_on_connect: boolean; web_ide?: ('jupyter' | 'vscode')[]; screen_thumbnail?: boolean;
+    desktop_files?: 'off' | 'up' | 'down' | 'both' };
   // 공유 저장소: the user's folders on the pool's NAS, and how the last check went
   storage?: StoragePaths & { ok: boolean | null; code: string; warnings: string[] };
   // 작업 중 표시, 미뤄진 정리, 카드 사용률 (pegaprox/api/vlab_work.py)
@@ -161,6 +162,8 @@ export type PoolPolicy = {
   screen_thumbnail?: boolean;
   // new, cloned and reset desktops join the bundled directory by themselves; null = on while it is in use
   auto_domain_join?: boolean | null;
+  // 포털 '파일': 내 데스크톱 MOAVI 폴더로 올리기·받기 (게스트 에이전트)
+  desktop_files?: 'off' | 'up' | 'down' | 'both'; desktop_files_max_mb?: number; desktop_files_day_mb?: number;
 };
 export type PoolPolicyAnswer = { policy: PoolPolicy; defaults: PoolPolicy; reset_allowed: boolean };
 

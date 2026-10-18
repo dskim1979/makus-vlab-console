@@ -37,7 +37,7 @@ const desktops: Desktop[] = [
   { id: 'd2', name: 'board-lab-zcu102', pool: '보드 LAB', state: 'in_use', os: 'Ubuntu 22.04', spec: { cpu: 8, memory_gb: 32 }, protocols: ['spice', 'vnc'], resources: [{ kind: 'usb', name: 'JTAG ZCU102 #1' }], pool_type: 'dedicated', last_connected: new Date(Date.now() - 2 * 36e5).toISOString(),
     storage: { kind: 'nfs', data_on_nas_only: false, ok: false, code: 'FOLDER_DENIED', warnings: [], folders: {
       home: { linux: '/nas/home/alice', windows: null, nas: 'nas01.lab.local:/export/board-lab/home/alice', folder: 'home/alice', quota_gb: 0 } } } },
-  { id: 'd4', name: 'ai-ws-03', pool: 'AI 연구실', state: 'ready', os: 'Windows 11', spec: { cpu: 8, memory_gb: 32 }, protocols: ['spice', 'vnc', 'rdp'], gpu: { mode: 'vgpu', label: 'A16-4Q' }, pool_type: 'dedicated', last_connected: new Date(Date.now() - 26 * 36e5).toISOString() },
+  { id: 'd4', name: 'ai-ws-03', pool: 'AI 연구실', state: 'ready', os: 'Windows 11', spec: { cpu: 8, memory_gb: 32 }, protocols: ['spice', 'vnc', 'rdp'], gpu: { mode: 'vgpu', label: 'A16-4Q' }, pool_type: 'dedicated', policy: { clipboard: 'both', allow_power: true, start_on_connect: true, desktop_files: 'both' }, last_connected: new Date(Date.now() - 26 * 36e5).toISOString() },
   { id: 'd3', name: 'lab-win11-07', pool: '공용 LAB A', state: 'stopped', os: 'Windows 11', spec: { cpu: 4, memory_gb: 8 }, protocols: ['vnc', 'spice'], pool_type: 'reset', last_connected: null, policy: { clipboard: 'to_desktop', allow_power: false, start_on_connect: true },
     storage: { kind: 'smb', data_on_nas_only: true, ok: null, code: '', warnings: [], folders: {
       home: { linux: '/nas/home/alice', windows: 'H:\\', nas: '\\\\nas01.lab.local\\lab\\home\\alice', folder: 'home/alice', quota_gb: 20 } } } },
