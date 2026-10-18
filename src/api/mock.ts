@@ -170,6 +170,13 @@ export const mockApi: Api = {
       throw new ApiError(409, 'STARTING');
     }
     if (protocol === 'rdp') {
+      // localStorage vlab.mock.rdpgw = '1': the pool is on the devices route (보안 게이트웨이 · 장치 연결)
+      let devices = false;
+      try { devices = localStorage.getItem('vlab.mock.rdpgw') === '1'; } catch { /* per browser */ }
+      if (devices) {
+        return delay({ type: 'rdp' as const, via: 'rdpgw' as const, cert_url: '/moavi-gateway.crt', filename: `${d.name}.rdp`, session_id: 'mock-sess',
+          rdp: 'full address:s:10.20.3.41:3389\r\nusername:s:alice\r\ngatewayhostname:s:vlab.lab.example:443\r\ngatewayaccesstoken:s:MOCK\r\n' });
+      }
       return delay({ type: 'rdp' as const, filename: `${d.name}.rdp`, session_id: 'mock-sess', rdp: 'full address:s:10.20.3.41:3389\r\nusername:s:alice\r\n' });
     }
     if (protocol === 'spice') {
