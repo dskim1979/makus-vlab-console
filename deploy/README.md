@@ -88,6 +88,8 @@ Warpgate 를 켜지 않으면 브라우저 RDP 가 없다 — 이 커밋은 Warp
 사용자 비밀번호가 아니다). 외부 OIDC/LDAP 로그인과 디렉터리 연동은 Warpgate `config.yaml` 에서 설정한다.
 
 ### 장치 연결 방식 (rdpgw) — RDP 파일에서 드라이브·프린터·USB
+![보안 게이트웨이: 녹화 방식과 장치 연결 방식](../docs/images/gateway-routes.png)
+
 Warpgate 는 녹화하려고 RDP 를 풀었다 다시 맺으며 장치 채널을 버린다. 장치가 꼭 필요한 풀만 **장치 연결 방식**으로
 보낸다: 번들 rdpgw(Apache-2.0, RD Gateway)가 암호화된 RDP 를 그대로 데스크톱까지 실어 나른다. 녹화는 되지 않고
 접속은 감사 로그에 남는다. 브라우저 RDP 는 그대로 Warpgate 로 녹화된다.
