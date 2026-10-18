@@ -33,6 +33,7 @@ services:
       VLAB_FEATURES: ${VLAB_FEATURES:-}                     # optional: fpga,gpuai
       VLAB_HOSTNAME: ${VLAB_HOSTNAME:-vlab.local}           # the gateway's address as shown in the console
       VLAB_HTTPS_PORT: ${VLAB_HTTPS_PORT:-443}
+      VLAB_PUBLIC_URL: ${VLAB_PUBLIC_URL:-}                 # the console address desktops reach (portal 파일 fast path, SSO); empty = https://VLAB_HOSTNAME[:VLAB_HTTPS_PORT]
       # 보안 게이트웨이 첫 기동 자동 연결(VLAB_WARPGATE=1): 엔진이 관리자 비밀번호로 API 토큰을 만들어 봉인 저장한다.
       # 설정이 이미 있으면 건드리지 않는다. 주소·포트는 사용자에게 보이는 값(Warpgate가 게시한 호스트 포트)이다.
       VLAB_WARPGATE: ${VLAB_WARPGATE:-0}
