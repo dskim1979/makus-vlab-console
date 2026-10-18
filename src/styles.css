@@ -1185,8 +1185,7 @@ a.kcell:hover { background: var(--surface-2); }
 .iso-transfer-list li:last-child { border-bottom: 0; padding-bottom: 0; }
 .iso-transfer-state { display: flex; align-items: center; gap: .6rem; min-width: 0; flex-wrap: wrap; }
 .iso-transfer-state .util { min-width: 180px; }
-.vm-wizard { max-width: 920px; }
-.vm-after { max-width: 920px; display: flex; flex-direction: column; gap: .8rem; }
+.vm-after { display: flex; flex-direction: column; gap: .8rem; }
 .vm-after .stat-icon { margin: 0; }
 .build-steps { margin: 0; padding-left: 1.3rem; display: flex; flex-direction: column; gap: .9rem; }
 .build-steps li > span { display: block; margin-top: .3rem; }
