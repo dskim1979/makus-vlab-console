@@ -73,7 +73,7 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
 
   return (
     <>
-      <SettingsSection id="warpgate" title="Warpgate"
+      <SettingsSection id="warpgate" title={L('보안 게이트웨이', 'Security gateway')}
         desc={L('데스크톱 RDP·SSH·VNC를 보안 게이트웨이 한 곳으로 중계합니다.', 'Relays desktop RDP, SSH and VNC through one Warpgate.')}>
         <label className="check"><input id="wg-on" type="checkbox" checked={f.enabled} onChange={(e) => setF({ ...f, enabled: e.target.checked })} />
           <span>{L('보안 게이트웨이 사용', 'Use Warpgate')}</span></label>
