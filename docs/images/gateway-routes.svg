@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" font-family="'Paperlogy','Pretendard','Malgun Gothic',sans-serif" font-weight="500">
+  <!-- MOAVI Desk 보안 게이트웨이: 두 가지 접속 경로 (녹화 방식 · 장치 연결 방식)와 직접 접속 차단 -->
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8FA3BF"/>
+    </marker>
+    <marker id="arrT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#53B1B1"/>
+    </marker>
+    <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#F07167"/>
+    </marker>
+    <marker id="arrO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#E8A13A"/>
+    </marker>
+    <style>
+      .t  { fill:#E8EEF7; font-size:26px; }
+      .tb { fill:#FFFFFF; font-size:30px; font-family:'Paperlogy','Malgun Gothic',sans-serif; font-weight:700; }
+      .s  { fill:#A9B7CC; font-size:21px; }
+      .xs { fill:#8FA3BF; font-size:19px; }
+      .lane-t { fill:#53B1B1; font-size:27px; font-family:'Paperlogy','Malgun Gothic',sans-serif; font-weight:700; }
+      .lane-o { fill:#E8A13A; font-size:27px; font-family:'Paperlogy','Malgun Gothic',sans-serif; font-weight:700; }
+      .red { fill:#F07167; font-size:22px; font-family:'Paperlogy','Malgun Gothic',sans-serif; font-weight:700; }
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="#0F1A2E"/>
+
+  <!-- user PC -->
+  <rect x="40" y="250" width="270" height="330" rx="18" fill="#16233B" stroke="#2C3E5C" stroke-width="2"/>
+  <rect x="95" y="290" width="160" height="104" rx="8" fill="none" stroke="#8FA3BF" stroke-width="4"/>
+  <rect x="150" y="394" width="50" height="18" fill="#8FA3BF"/>
+  <rect x="120" y="412" width="110" height="8" rx="4" fill="#8FA3BF"/>
+  <text x="175" y="468" text-anchor="middle" class="tb">사용자 PC</text>
+  <text x="175" y="504" text-anchor="middle" class="s">브라우저</text>
+  <text x="175" y="534" text-anchor="middle" class="s">원격 데스크톱 · 전용 앱</text>
+
+  <!-- MOAVI Desk server -->
+  <rect x="430" y="70" width="760" height="720" rx="22" fill="#132036" stroke="#3A5276" stroke-width="2" stroke-dasharray="0"/>
+  <text x="810" y="118" text-anchor="middle" class="tb">MOAVI Desk 서버 · 보안 게이트웨이</text>
+  <text x="810" y="152" text-anchor="middle" class="xs">사용자 PC가 닿는 곳은 이 서버 하나 (HTTPS 443 · 게이트웨이 포트)</text>
+
+  <!-- engine: one-time tokens -->
+  <rect x="560" y="182" width="500" height="92" rx="14" fill="#1B2B47" stroke="#3A5276" stroke-width="2"/>
+  <text x="810" y="220" text-anchor="middle" class="t">엔진 · 1회용 티켓 / 토큰 발급</text>
+  <text x="810" y="252" text-anchor="middle" class="xs">그 사용자 · 그 데스크톱 · 몇 분 · 비밀번호 없음</text>
+
+  <!-- lane 1: recorded (Warpgate) -->
+  <rect x="470" y="310" width="680" height="200" rx="16" fill="#12303A" stroke="#53B1B1" stroke-width="2.5"/>
+  <text x="500" y="352" class="lane-t">① 녹화 방식</text>
+  <text x="500" y="386" class="s">브라우저 RDP · SSH, 녹화가 필요한 풀의 RDP 파일</text>
+  <text x="500" y="428" class="t">세션 녹화 · 클립보드 · 파일 전송 통제</text>
+  <text x="500" y="466" class="xs">드라이브 · 프린터 · USB 는 연결되지 않음 (파일은 포털 [파일])</text>
+
+  <!-- lane 2: devices (rdpgw) -->
+  <rect x="470" y="540" width="680" height="215" rx="16" fill="#33281A" stroke="#E8A13A" stroke-width="2.5"/>
+  <text x="500" y="582" class="lane-o">② 장치 연결 방식</text>
+  <text x="500" y="616" class="s">장치가 필요한 풀의 RDP 파일 (풀 정책에서 선택)</text>
+  <text x="500" y="658" class="t">내 PC 드라이브 · 프린터 · USB 사용</text>
+  <text x="500" y="696" class="xs">암호화된 RDP 를 풀지 않고 그대로 전달 · 녹화 없음, 접속은 감사 로그</text>
+  <text x="500" y="728" class="xs">토큰: 5분 · 그 데스크톱만 · 받은 PC 에서만</text>
+
+  <!-- desktop VM -->
+  <rect x="1300" y="250" width="260" height="330" rx="18" fill="#16233B" stroke="#2C3E5C" stroke-width="2"/>
+  <rect x="1350" y="290" width="160" height="104" rx="8" fill="#22385C" stroke="#8FA3BF" stroke-width="3"/>
+  <rect x="1366" y="306" width="60" height="40" rx="3" fill="#3B5C8C"/>
+  <rect x="1434" y="306" width="60" height="40" rx="3" fill="#3B5C8C"/>
+  <text x="1430" y="458" text-anchor="middle" class="tb">데스크톱 VM</text>
+  <text x="1430" y="494" text-anchor="middle" class="s">Windows · Linux</text>
+  <text x="1430" y="524" text-anchor="middle" class="s">RDP 3389 · SSH 22</text>
+
+  <!-- PC -> server lanes -->
+  <path d="M310 380 C 380 380, 400 410, 466 410" fill="none" stroke="#53B1B1" stroke-width="4" marker-end="url(#arrT)"/>
+  <path d="M310 470 C 380 470, 400 640, 466 640" fill="none" stroke="#E8A13A" stroke-width="4" marker-end="url(#arrO)"/>
+  <text x="330" y="365" class="xs">HTTPS</text>
+  <text x="214" y="626" class="xs">HTTPS 443</text>
+  <!-- server lanes -> VM -->
+  <path d="M1150 410 C 1220 410, 1240 380, 1296 380" fill="none" stroke="#53B1B1" stroke-width="4" marker-end="url(#arrT)"/>
+  <path d="M1150 640 C 1220 640, 1240 470, 1296 470" fill="none" stroke="#E8A13A" stroke-width="4" marker-end="url(#arrO)"/>
+  <text x="1208" y="365" class="xs">RDP</text>
+  <text x="1218" y="610" class="xs">RDP (TCP)</text>
+  <!-- engine -> lanes -->
+  <path d="M810 274 L 810 306" stroke="#8FA3BF" stroke-width="3" marker-end="url(#arr)"/>
+
+  <!-- direct access blocked -->
+  <path d="M175 580 L 175 836 L 1430 836 L 1430 584" fill="none" stroke="#F07167" stroke-width="3.5" stroke-dasharray="12 9" marker-end="url(#arrR)" opacity="0.9"/>
+  <g transform="translate(1430 808)">
+    <circle r="0" fill="none"/>
+  </g>
+  <rect x="1240" y="810" width="56" height="52" rx="8" fill="#0F1A2E" stroke="#F07167" stroke-width="3"/>
+  <path d="M1254 822 L1282 850 M1282 822 L1254 850" stroke="#F07167" stroke-width="5" stroke-linecap="round"/>
+  <text x="800" y="884" text-anchor="middle" class="red">직접 접속 차단 — Proxmox 방화벽: 데스크톱은 MOAVI Desk 서버에서 오는 RDP · SSH · VNC 만 받음</text>
+</svg>

@@ -50,11 +50,43 @@
 | **첫 설정 — 어떤 곳에서 쓰시나요?** — 프로필 4가지, 연구 분야(FPGA · GPU·AI) 추가, 바뀔 메뉴 미리 보기 | **플랫폼 설정 › 기능** — 프로필 바꾸기, 기능 묶음 하나씩 켜고 끄기, 메뉴 N개 · 화면 N개 미리 보기 |
 | ![첫 설정](docs/images/setup-profile.png) | ![기능](docs/images/features.png) |
 
+## 보안 게이트웨이 — 두 가지 접속 경로
+
+<p align="center">
+  <img src="docs/images/gateway-routes.png" alt="보안 게이트웨이: 녹화 방식과 장치 연결 방식, 직접 접속 차단" width="900">
+</p>
+
+사용자 PC 가 닿는 곳은 MOAVI Desk 서버 하나입니다. 데스크톱 VM 의 RDP · SSH · VNC 는 Proxmox 방화벽으로 MOAVI Desk
+서버에서 오는 연결만 받게 하고([deploy/proxmox-firewall](deploy/proxmox-firewall/README.md)), 모든 접속은 보안 게이트웨이를 거칩니다.
+풀마다 둘 중 하나를 고릅니다(풀 정책 › USB · 장치 › **RDP 파일 경로**).
+
+| | ① 녹화 방식 (기본) | ② 장치 연결 방식 |
+|---|---|---|
+| 게이트웨이 | Warpgate (번들) | rdpgw — RD 게이트웨이 (번들) |
+| 쓰는 곳 | 브라우저 RDP · SSH, RDP 파일 | 장치가 필요한 풀의 RDP 파일 (Windows 원격 데스크톱 · 전용 앱) |
+| 세션 녹화 | 됨 | 안 됨 — 접속은 감사 로그에 남음 |
+| 내 PC 드라이브 · 프린터 · USB | 안 됨 (파일은 포털 **파일**) | 됨 — 풀 정책의 스위치대로, 데스크톱도 같은 값을 스스로 지킴 |
+| 접속 허가 | 1회용 티켓 (그 사용자 · 그 데스크톱) | 1회용 토큰 (5분 · 그 사용자 · 그 데스크톱 · 받은 PC 주소) |
+| 비밀번호 | 저장 · 전달하지 않음 | 저장 · 전달하지 않음 |
+
+장치 연결 방식은 암호화된 RDP 를 풀지 않고 데스크톱까지 그대로 전달하므로 장치 채널이 살아 있습니다. 대신 녹화하지 않습니다.
+게이트웨이 포트를 따로 열지 않고 콘솔의 HTTPS(443)로 받습니다. Windows 원격 데스크톱은 믿을 수 있는 게이트웨이에만 접속하므로,
+자체 서명 인증서라면 PC 마다 한 번 인증서를 설치합니다 — 포털이 처음 접속할 때 **설치 도우미**를 안내하고, PC 가 많으면 그룹 정책으로 배포합니다.
+
+| | |
+|---|---|
+| **풀 정책 › USB · 장치** — RDP 파일 경로 녹화 / 장치 연결, USB · 내 PC 드라이브 · 프린터 | **포털 › 게이트웨이 인증서 설치** — 이 PC 에서 처음 한 번, 설치 도우미(지문 확인) → RDP 파일 |
+| ![장치 연결 선택](docs/images/device-route-policy.png) | ![인증서 설치](docs/images/device-route-cert.png) |
+| **플랫폼 설정 › 보안 게이트웨이** — Warpgate 연결, 앱 · RDP 파일 경유, NLA 서비스 계정 | **플랫폼 설정 › 보안 게이트웨이 › 장치 연결 방식** — 상태 · 주소 · 토큰 · 인증서 지문 · 쓰는 풀 |
+| ![보안 게이트웨이](docs/images/security-gateway.png) | ![장치 연결 방식](docs/images/device-route-admin.png) |
+
+설치: [deploy/README.md](deploy/README.md) 의 "Warpgate 접근 게이트웨이" · "장치 연결 방식 (rdpgw)".
+
 ## 화면
 
 ### 사용자 작업 공간 (`/`)
 배정된 데스크톱을 한 화면에서 보고 바로 접속합니다. 즐겨찾기, 켜져 있는 것만 보기, 검색을 지원합니다.
-접속은 브라우저(noVNC), SPICE 파일, RDP 파일, 브라우저 RDP(Guacamole) 중 풀 정책이 허용한 방식으로 합니다. 새 풀은 RDP를 기본으로 켜고, 전용 앱(MOAVI Desk Client)은 **RDP 우선**(H.264 · UDP)으로 열며 SPICE · VNC는 고를 수 있습니다. Windows 데스크톱은 처음 RDP로 접속할 때 엔진이 원격 데스크톱 · H.264/AVC 444 · UDP를 설정하고, Linux 데스크톱은 xrdp가 있을 때만 RDP로, 없으면 SPICE로 엽니다.
+접속은 브라우저(noVNC), SPICE 파일, RDP 파일, 브라우저 RDP(보안 게이트웨이) 중 풀 정책이 허용한 방식으로 합니다. 새 풀은 RDP를 기본으로 켜고, 전용 앱(MOAVI Desk Client)은 **RDP 우선**(H.264 · UDP)으로 열며 SPICE · VNC는 고를 수 있습니다. Windows 데스크톱은 처음 RDP로 접속할 때 엔진이 원격 데스크톱 · H.264/AVC 444 · UDP를 설정하고, Linux 데스크톱은 xrdp가 있을 때만 RDP로, 없으면 SPICE로 엽니다.
 상단 탭은 **데스크톱 · 내 자원 · 예약(LAB) · 데이터(연구 데이터)** 이고, 켜진 기능만 보입니다.
 
 | | |
@@ -100,20 +132,18 @@
 | **이미지 › 환경 카탈로그** (GPU·AI · FPGA) — OS · 드라이버 · CUDA · 툴체인 버전 카드, 검색 · 필터, 게스트에서 버전 읽기, 호환표, 이 환경으로 풀 만들기 | |
 | ![환경 카탈로그](docs/images/env-catalog.png) | |
 
-**데스크톱 풀** — 풀, 접속 설정 › 게이트웨이 · USB 장치 · 외부 데스크톱(외부 접속)
+**데스크톱 풀** — 풀, 접속 설정 › USB 장치 · 외부 데스크톱(외부 접속). 보안 게이트웨이는 위 [두 가지 접속 경로](#보안-게이트웨이--두-가지-접속-경로)
 
 | | |
 |---|---|
 | **풀 상세** — 정책 · 이용 권한 · GPU 정책 패널, 데스크톱 할당 · 초기화 | **이용 권한** — 사용자 · 부서(하위 포함) · AD/LDAP 그룹, 공유 풀의 데스크톱당 최대 접속 |
 | ![풀 상세](docs/images/pool-detail.png) | ![이용 권한](docs/images/pool-grants.png) |
-| **풀 편집** — 이름 · 설명 · 사용/중지, 공유 풀 최대 접속, RDP · 브라우저 RDP 게이트웨이 | **풀 정책** — 접속 방식(noVNC · SPICE · RDP · 브라우저 RDP · 웹 IDE), 클립보드 · USB · RDP 내 PC 드라이브 · 프린터, 전원 · 시간 · 초기화 |
+| **풀 편집** — 이름 · 설명 · 사용/중지, 공유 풀 최대 접속 | **풀 정책** — 접속 방식(noVNC · SPICE · RDP · 브라우저 RDP · 웹 IDE), 클립보드 · USB · RDP 파일 경로(녹화 / 장치 연결) · 내 PC 드라이브 · 프린터, 전원 · 시간 · 초기화 |
 | ![풀 편집](docs/images/pool-edit.png) | ![풀 정책](docs/images/pool-policy.png) |
 | **풀 정책 › 공유 저장소** — NFS(autofs) · SMB, home · project · scratch 폴더 템플릿과 할당량 · 보관 기간, Windows 바탕 화면 · 문서 · 다운로드를 홈 드라이브로 · C 드라이브 숨기기 | **풀 상세 › 공유 저장소** — 마지막 확인 결과, 사용자별 사용량, 템플릿에 넣을 autofs 파일 |
 | ![공유 저장소 설정](docs/images/pool-policy-storage.png) | ![공유 저장소 상태](docs/images/pool-storage.png) |
-| **접속 설정 › 게이트웨이** — RDP 게이트웨이 · MS RD 게이트웨이 · Guacamole(내장 자동 등록), 포트 응답 확인 | **접속 설정 › USB 장치** — VID · PID 등록, FPGA JTAG 케이블 기본 제공 |
-| ![게이트웨이](docs/images/gateways.png) | ![USB 장치](docs/images/usb-library.png) |
-| **접속 설정 › 외부 데스크톱** — 가상화하지 않는 실제 PC를 사용자에게 배정(RDP · 게이트웨이) | |
-| ![외부 데스크톱](docs/images/external-desktops.png) | |
+| **접속 설정 › USB 장치** — VID · PID 등록, FPGA JTAG 케이블 기본 제공 | **접속 설정 › 외부 데스크톱** — 가상화하지 않는 실제 PC를 사용자에게 배정(RDP · 보안 게이트웨이) |
+| ![USB 장치](docs/images/usb-library.png) | ![외부 데스크톱](docs/images/external-desktops.png) |
 
 **사용자** — 사용자 › 사용자 목록 · 가입 심사 · 부서, 권한 › 역할 · 유효 권한 조회(조직 · 권한)
 
@@ -309,9 +339,9 @@ nginx 는 `proxy_set_header Host $http_host;` 로 둡니다.
 
 ## 서버에 설치
 
-[deploy/README.md](deploy/README.md) — docker compose 로 콘솔(nginx, HTTPS)과 엔진(API 전용), 브라우저 RDP 용 Apache Guacamole(guacd · guacamole)을
-한 서버에 함께 설치합니다. 사용자에게 열 포트는 443 하나이고(브라우저 RDP 도 같은 443 의 `/guacamole/`), Guacamole 공유 키는 첫 시작 때 자동으로 만들어
-엔진이 게이트웨이로 스스로 등록합니다. 브라우저 RDP 를 쓰지 않으면 `.env` 에 `VLAB_GUACAMOLE=0`.
+[deploy/README.md](deploy/README.md) — docker compose 로 콘솔(nginx, HTTPS)과 엔진(API 전용)을 한 서버에 설치하고, 필요하면 보안 게이트웨이
+(Warpgate: 브라우저 RDP · SSH · 녹화, `VLAB_WARPGATE=1`)와 그 장치 연결 방식(rdpgw: RDP 파일의 드라이브 · 프린터 · USB, `VLAB_RDPGW=1`),
+내장 디렉터리(Samba AD)를 함께 켭니다. 장치 연결 방식은 콘솔과 같은 443 의 `/remoteDesktopGateway/` 로 받습니다.
 
 ## 구조
 
