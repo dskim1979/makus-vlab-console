@@ -125,7 +125,7 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
   const nodes = useLoad(useCallback(() => adminApi.nodes(cid), [cid]), [cid]);
   const storage = useLoad(useCallback(() => adminApi.storage(cid), [cid]), [cid]);
   const [f, setF] = useState<DeskBuildInput>({ node: '', storage: '', bridge: '', name: `moavi-${preset.id}`, cores: preset.cores, memory_mb: preset.memory_mb, disk_gb: preset.disk_gb,
-    edition: 'Windows 11 Pro', language: 'ko-KR', windows_iso: '', virtio_iso: '', vendor_dir: '', accept_eula: false, snippets_storage: '' });
+    edition: 'Windows 11 Pro', language: 'ko-KR', windows_iso: '', virtio_iso: '', vendor_dir: '', accept_eula: false, iso_storage: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const set = <K extends keyof DeskBuildInput>(k: K, v: DeskBuildInput[K]) => setF((x) => ({ ...x, [k]: v }));
@@ -136,7 +136,7 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
   const on = (list: ClusterStorage[], content: string) => list.filter((s) => s.content.includes(content) && s.nodes.includes(node) && s.status !== 'unknown')
     .filter((s, i, all) => all.findIndex((x) => x.storage === s.storage) === i);
   const disks = storage.state === 'ok' ? on(storage.data, 'images') : [];
-  const snippets = storage.state === 'ok' ? on(storage.data, 'snippets') : [];
+  const isoStores = storage.state === 'ok' ? on(storage.data, 'iso') : [];
   const isoList = isos.state === 'ok' ? isos.data : [];
   const netList = nets.state === 'ok' ? nets.data : [];
   const disk = disks.some((s) => s.storage === f.storage) ? f.storage : disks[0]?.storage ?? '';
@@ -155,7 +155,7 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
     try {
       const body: DeskBuildInput = { node, storage: disk, bridge, name: f.name, cores: f.cores, memory_mb: f.memory_mb, disk_gb: f.disk_gb,
         ...(win ? { windows_iso: winIso, virtio_iso: virtio, edition: f.edition, language: f.language } : {}),
-        ...(!win && f.snippets_storage ? { snippets_storage: f.snippets_storage } : {}),
+        ...(!win && f.iso_storage ? { iso_storage: f.iso_storage } : {}),
         ...(vendor ? { vendor_dir: vendor } : {}), ...(needsEula ? { accept_eula: true } : {}) };
       onStarted(await desktplApi.build(cid, preset.id, body));
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
@@ -200,12 +200,12 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
         </>
       )}
       {!win && (
-        <label><span>{L('cloud-init 스니펫 스토리지', 'cloud-init snippets storage')}</span>
-          <select value={f.snippets_storage} onChange={(e) => set('snippets_storage', e.target.value)}>
-            <option value="">{snippets.length ? L('자동 (local 우선)', 'Automatic (local first)') : L('없음 — 아래 안내 참고', 'None - see below')}</option>
-            {snippets.map((s) => <option key={s.storage} value={s.storage}>{s.storage}</option>)}
+        <label><span>{L('설치용 CD를 둘 ISO 스토리지', 'ISO storage for the setup CD')}</span>
+          <select value={f.iso_storage} onChange={(e) => set('iso_storage', e.target.value)}>
+            <option value="">{L('자동 (local 우선)', 'Automatic (local first)')}</option>
+            {isoStores.map((s) => <option key={s.storage} value={s.storage}>{s.storage}</option>)}
           </select>
-          {storage.state === 'ok' && snippets.length === 0 && <small className="muted">{L('Proxmox 데이터센터 › 스토리지 › local › 콘텐츠에 "스니펫"을 추가해야 합니다.', 'Add "Snippets" to Datacenter › Storage › local › Content in Proxmox.')}</small>}
+          <small className="muted">{L('첫 부팅 설정을 담은 작은 CD를 잠시 두었다가, 다 만든 뒤 지웁니다.', 'A small first-boot CD is kept there during the build and deleted after.')}</small>
         </label>
       )}
       {(preset.id === 'npu' || preset.id === 'fpga') && (
@@ -231,6 +231,8 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
       <small className="muted">{win ? L('설치 · 업데이트 · 앱 설치까지 30분~1시간 걸립니다.', 'Setup, updates and apps take 30 min to an hour.')
         : preset.id === 'gpu' ? L('패키지를 받아 설치하므로 40분~1시간 30분 걸립니다.', 'Packages are downloaded and installed: 40 min to 1.5 h.')
           : L('패키지를 받아 설치하므로 20분~1시간 걸립니다. Vivado를 넣으면 몇 시간 더 걸립니다.', 'Packages are downloaded and installed: 20 min to an hour; Vivado adds hours.')}</small>
+      <small className="muted">{win ? L('Chrome · 7-Zip은 인터넷에서 받습니다. 노드와 VM이 인터넷에 닿아야 합니다.', 'Chrome and 7-Zip come from the Internet: the node and the VM need to reach it.')
+        : L('OS 이미지 · 패키지는 인터넷(Ubuntu · NVIDIA · PyTorch · GitHub)에서 받습니다. 노드와 VM이 인터넷에 닿아야 합니다.', 'The OS image and packages come from the Internet (Ubuntu, NVIDIA, PyTorch, GitHub): the node and the VM need to reach it.')}</small>
     </Dialog>
   );
 }
