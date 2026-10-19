@@ -1589,8 +1589,11 @@ fieldset.plain:disabled { opacity: .55; }
 .pw-missing { color: var(--warn); }
 .pw-ok { color: var(--ok); }
 .unified-note { display: block; margin-top: 2px; }
-.ad-split { display: grid; grid-template-columns: minmax(220px, 300px) 1fr; gap: 12px; align-items: start; }
-.ad-tree { max-height: 70vh; overflow: auto; padding: 8px; }
+.ad-split { display: grid; grid-template-columns: minmax(16rem, 22rem) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.ad-list .toolbar input[type=search] { flex: 1 1 14rem; min-width: 0; }
+.ad-list .toolbar label.check { display: flex; align-items: center; gap: .45rem; margin-left: auto; }
+.ad-at { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; }
+.ad-tree { max-height: 70vh; overflow: auto; padding: .6rem; }
 .ad-node-row { display: flex; align-items: center; gap: 2px; border-radius: 6px; }
 .ad-node-row.on { background: var(--accent-soft); }
 .ad-node-name { font: inherit; font-size: .85rem; border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left;

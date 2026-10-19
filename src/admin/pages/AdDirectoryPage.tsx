@@ -110,9 +110,9 @@ export function AdDirectoryPage() {
                   {{ all: L('전체', 'All'), users: L('사용자', 'Users'), groups: L('그룹', 'Groups'), computers: L('컴퓨터', 'Computers'), ous: 'OU' }[k]}</button>))}
             </div>
             <input type="search" placeholder={L('이름 · 아이디 · 메일 검색', 'Search name, id, mail')} value={q} onChange={(e) => setQ(e.target.value)} aria-label={L('검색', 'Search')} />
-            <label className="check small"><input type="checkbox" checked={subtree} onChange={(e) => setSubtree(e.target.checked)} />{L('하위 포함', 'Include sub-OUs')}</label>
+            <label className="check small"><input type="checkbox" checked={subtree} onChange={(e) => setSubtree(e.target.checked)} /><span>{L('하위 OU 까지', 'Include sub-OUs')}</span></label>
           </div>
-          <p className="muted small"><code className="code">{at}</code></p>
+          <p className="ad-at"><span className="strong">{rdn(at)}</span> <code className="code muted small">{at}</code></p>
           {rows === null ? <p className="muted">{L('불러오는 중…', 'Loading…')}</p> : rows.length === 0 ? <div className="empty"><p>{L('여기에는 없습니다.', 'Nothing here.')}</p></div> : (
             <div className="table-scroll"><table className="table compact-head">
               <thead><tr><th>{L('이름', 'Name')}</th><th>{L('종류', 'Kind')}</th><th>{L('상태 · 범위', 'State · scope')}</th><th>{L('설명', 'Description')}</th></tr></thead>
