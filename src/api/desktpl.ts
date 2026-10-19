@@ -7,7 +7,7 @@ export type DeskPresetId = 'office' | 'research' | 'gpu' | 'npu' | 'fpga';
 export type DeskDesktop = 'xfce' | 'gnome';
 export type DeskOs = {
   id: string; name: string; platform: 'windows' | 'linux'; family?: 'debian' | 'rhel'; distro?: string; release?: string;
-  edition?: string; iso_hint?: string; server?: boolean;
+  edition?: string; iso_hint?: string; server?: boolean; download_page?: string;
 };
 export type DeskPreset = {
   id: DeskPresetId; name: string; name_en: string; platform: 'windows' | 'linux'; kind: string; summary: string;
@@ -24,7 +24,7 @@ export type DeskBuild = {
 export type DeskBuildInput = {
   node: string; storage: string; bridge: string; name?: string; cores?: number; memory_mb?: number; disk_gb?: number;
   os?: string; desktop?: DeskDesktop;
-  windows_iso?: string; virtio_iso?: string; edition?: string; language?: 'ko-KR' | 'en-US'; product_key?: string;
+  windows_iso?: string; windows_url?: string; virtio_iso?: string; edition?: string; language?: 'ko-KR' | 'en-US'; product_key?: string;
   vendor_dir?: string; accept_eula?: boolean; iso_storage?: string;   // iso_storage: where the cloud-init CD of a Linux build goes
 };
 export type DeskBuildStarted = { build: DeskBuild; admin_password?: string; admin_user?: string };
@@ -61,7 +61,7 @@ const OS: Record<string, DeskOs> = {
   'ubuntu-2604': L('ubuntu-2604', 'Ubuntu 26.04 LTS', 'debian'), 'debian-13': L('debian-13', 'Debian 13', 'debian'), 'debian-12': L('debian-12', 'Debian 12', 'debian'),
   'rocky-9': L('rocky-9', 'Rocky Linux 9', 'rhel'), 'rocky-10': L('rocky-10', 'Rocky Linux 10', 'rhel'),
   'almalinux-9': L('almalinux-9', 'AlmaLinux 9', 'rhel'), 'almalinux-10': L('almalinux-10', 'AlmaLinux 10', 'rhel'),
-  win11: { id: 'win11', name: 'Windows 11', platform: 'windows', edition: 'Windows 11 Pro', iso_hint: 'win(dows)?[ _-]?11' },
+  win11: { id: 'win11', name: 'Windows 11', platform: 'windows', edition: 'Windows 11 Pro', iso_hint: 'win(dows)?[ _-]?11', download_page: 'https://www.microsoft.com/ko-kr/software-download/windows11' },
   win10: { id: 'win10', name: 'Windows 10', platform: 'windows', edition: 'Windows 10 Pro', iso_hint: 'win(dows)?[ _-]?10' },
   ws2025: { id: 'ws2025', name: 'Windows Server 2025', platform: 'windows', server: true, edition: 'Windows Server 2025 SERVERDATACENTER', iso_hint: 'server[ _-]?2025|2k25' },
   ws2022: { id: 'ws2022', name: 'Windows Server 2022', platform: 'windows', server: true, edition: 'Windows Server 2022 SERVERDATACENTER', iso_hint: 'server[ _-]?2022|2k22' },

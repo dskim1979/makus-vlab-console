@@ -25,6 +25,8 @@ function useL() {
 }
 
 const FEATURE_OF: Record<string, 'gpuai' | 'fpga' | undefined> = { gpu: 'gpuai', npu: 'gpuai', fpga: 'fpga' };
+// ISOs whose name says someone other than Microsoft repackaged them (pegaprox/vlab/desktpl.py REPACK_RE)
+const REPACK = /(\d+in1|remiz|adguard|_by_|ghost|lite|tiny11|tiny10|modified|repack)/i;
 
 export function DesktopTemplatesPage() {
   return <ClusterFrame>{(c) => <DesktopTemplates key={c.id} cluster={c} />}</ClusterFrame>;
@@ -126,11 +128,12 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
   const win = preset.platform === 'windows';
   const nodes = useLoad(useCallback(() => adminApi.nodes(cid), [cid]), [cid]);
   const storage = useLoad(useCallback(() => adminApi.storage(cid), [cid]), [cid]);
-  const [f, setF] = useState<DeskBuildInput>({ node: '', storage: '', bridge: '', name: '', cores: preset.cores, memory_mb: preset.memory_mb, disk_gb: preset.disk_gb,
-    os: preset.os_default, desktop: 'xfce', edition: '', language: 'ko-KR', windows_iso: '', virtio_iso: '', product_key: '', vendor_dir: '', accept_eula: false, iso_storage: '' });
+  const [f, setF] = useState<DeskBuildInput & { source?: 'net' | 'local'; virtio_source?: 'net' | 'local' }>({ node: '', storage: '', bridge: '', name: '', cores: preset.cores, memory_mb: preset.memory_mb, disk_gb: preset.disk_gb,
+    os: preset.os_default, desktop: 'xfce', edition: '', language: 'ko-KR', windows_iso: '', windows_url: '', virtio_iso: '', product_key: '', source: undefined, virtio_source: undefined, vendor_dir: '', accept_eula: false, iso_storage: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const set = <K extends keyof DeskBuildInput>(k: K, v: DeskBuildInput[K]) => setF((x) => ({ ...x, [k]: v }));
+  type Form = DeskBuildInput & { source?: 'net' | 'local'; virtio_source?: 'net' | 'local' };
+  const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((x) => ({ ...x, [k]: v }));
   const osd = preset.os_options.find((o) => o.id === f.os) ?? preset.os_options[0];
   const name = f.name || `moavi-${preset.id}-${osd.id.replace(/-/g, '')}`;
   const edition = f.edition || osd.edition || '';
@@ -142,7 +145,8 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
     .filter((s, i, all) => all.findIndex((x) => x.storage === s.storage) === i);
   const disks = storage.state === 'ok' ? on(storage.data, 'images') : [];
   const isoStores = storage.state === 'ok' ? on(storage.data, 'iso') : [];
-  const isoList = isos.state === 'ok' ? isos.data : [];
+  // the setup CDs a build puts there for a while are not ISOs to pick
+  const isoList = (isos.state === 'ok' ? isos.data : []).filter((i) => !/^moavi-(unattend|cidata)-/i.test(i.name));
   const netList = nets.state === 'ok' ? nets.data : [];
   const disk = disks.some((s) => s.storage === f.storage) ? f.storage : disks[0]?.storage ?? '';
   // default: a plain Linux bridge (vmbr*), not an SDN vnet that sorts first
@@ -150,21 +154,36 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
     : (netList.find((n) => n.type === 'bridge' && /^vmbr/.test(n.iface)) ?? netList.find((n) => n.type !== 'sdn_vnet') ?? netList[0])?.iface ?? '';
   const virtioGuess = isoList.find((i) => /virtio-win/i.test(i.name))?.volid ?? '';
   const hint = osd.iso_hint ? new RegExp(osd.iso_hint, 'i') : null;
-  const winIso = f.windows_iso || (hint ? isoList.find((i) => !/virtio-win/i.test(i.name) && hint.test(i.name))?.volid : '') || '';
-  const virtio = f.virtio_iso || virtioGuess;
+  const repack = (n: string) => REPACK.test(n);
+  const winIsos = isoList.filter((i) => !/virtio/i.test(i.name));
+  const goodLocal = hint ? winIsos.find((i) => hint.test(i.name) && !repack(i.name))?.volid ?? '' : '';
+  // where Windows comes from: the Internet (Microsoft) or an ISO already on the server; by default the server's
+  // own ISO of this Windows when there is one that does not look repackaged, else the Internet
+  const source = f.source ?? (goodLocal ? 'local' : 'net');
+  const fromNet = source === 'net';
+  const winIso = fromNet ? '' : f.windows_iso || goodLocal || winIsos.find((i) => hint?.test(i.name))?.volid || '';
+  const virtioSource = f.virtio_source ?? (virtioGuess ? 'local' : 'net');
+  const virtio = virtioSource === 'net' ? 'auto' : f.virtio_iso || virtioGuess;
+  const pickedIso = fromNet ? undefined : isoList.find((i) => i.volid === winIso);
+  const url = (f.windows_url ?? '').trim();
   const vendor = (f.vendor_dir ?? '').trim();
   const needsEula = preset.id === 'fpga' && !!vendor;
 
   async function submit() {
     setError(null);
-    if (win && (!winIso || !virtio)) { setError(L(`${osd.name} ISO와 virtio-win ISO를 고르세요.`, `Pick the ${osd.name} ISO and the virtio-win ISO.`)); return; }
+    if (win && !fromNet && !winIso) { setError(L(`서버에 있는 ${osd.name} ISO를 고르세요.`, `Pick the ${osd.name} ISO on the server.`)); return; }
+    if (win && virtioSource === 'local' && !virtio) { setError(L('서버에 있는 virtio-win ISO를 고르세요.', 'Pick the virtio-win ISO on the server.')); return; }
+    if (win && fromNet && !/^https:\/\/([a-z0-9-]+\.)*microsoft\.com\//i.test(url)) {
+      setError(L('Microsoft 다운로드 페이지에서 복사한 링크(https://…microsoft.com/…)를 붙여 넣으세요.', 'Paste the link copied from the Microsoft download page (https://…microsoft.com/…).')); return;
+    }
     if (needsEula && !f.accept_eula) { setError(L('Vivado를 설치하려면 AMD 라이선스 동의에 체크하세요.', 'Tick the AMD licence agreement to install Vivado.')); return; }
     setBusy(true);
     try {
       const key = (f.product_key ?? '').trim();
       const body: DeskBuildInput = { node, storage: disk, bridge, name, cores: f.cores, memory_mb: f.memory_mb, disk_gb: f.disk_gb, os: osd.id,
-        ...(win ? { windows_iso: winIso, virtio_iso: virtio, edition, language: f.language, ...(key ? { product_key: key } : {}) } : { desktop: f.desktop }),
-        ...(!win && f.iso_storage ? { iso_storage: f.iso_storage } : {}),
+        ...(win ? { ...(fromNet ? { windows_url: url } : { windows_iso: winIso }), virtio_iso: virtio, edition, language: f.language, ...(key ? { product_key: key } : {}) }
+          : { desktop: f.desktop }),
+        ...(f.iso_storage ? { iso_storage: f.iso_storage } : {}),
         ...(vendor ? { vendor_dir: vendor } : {}), ...(needsEula ? { accept_eula: true } : {}) };
       onStarted(await desktplApi.build(cid, preset.id, body));
     } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
@@ -206,18 +225,47 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
       )}
       {win && (
         <>
-          <div className="form-row form-row-even">
-            <label><span>{osd.name} ISO</span>
-              <select value={winIso} onChange={(e) => set('windows_iso', e.target.value)}>
-                <option value="">{L('고르세요', 'Pick one')}</option>
-                {isoList.filter((i) => !/virtio-win/i.test(i.name)).map((i) => <option key={i.volid} value={i.volid}>{i.name} · {i.storage}</option>)}
-              </select></label>
-            <label><span>{L('virtio-win 드라이버 ISO', 'virtio-win driver ISO')}</span>
-              <select value={virtio} onChange={(e) => set('virtio_iso', e.target.value)}>
-                <option value="">{L('고르세요', 'Pick one')}</option>
-                {isoList.map((i) => <option key={i.volid} value={i.volid}>{i.name} · {i.storage}</option>)}
-              </select></label>
+          <span className="field-label">{L(`${osd.name} 설치 파일`, `${osd.name} setup files`)}</span>
+          <div className="mode-cards mode-cards-2" role="radiogroup" aria-label={L('설치 파일', 'Setup files')}>
+            {([['net', L('인터넷에서 받기', 'From the Internet'), L('Microsoft 공식 다운로드 링크로 노드가 직접 받습니다', 'The node downloads it from a Microsoft link')],
+              ['local', L('로컬 ISO', 'Local ISO'), L('서버 스토리지에 올려 둔 ISO로 설치합니다', 'An ISO already on a storage of the cluster')]] as ['net' | 'local', string, string][]).map(([v, t, h]) => (
+              <label key={v} className={`mode-card${source === v ? ' on' : ''}`}>
+                <input type="radio" name="desktpl-source" checked={source === v} onChange={() => set('source', v)} />
+                <span className="strong">{t}</span><span className="muted small">{h}</span>
+              </label>))}
           </div>
+          {fromNet ? (
+            <label><span>{L('Microsoft 다운로드 링크', 'Microsoft download link')}</span>
+              <span className="desktpl-url">
+                <input value={f.windows_url} placeholder="https://software.download.prss.microsoft.com/…/Win11_…_Korean_x64.iso?…" spellCheck={false}
+                  onChange={(e) => set('windows_url', e.target.value)} />
+                {osd.download_page && <a className="btn small-btn" href={osd.download_page} target="_blank" rel="noopener noreferrer">{L('다운로드 페이지 열기 ↗', 'Open the download page ↗')}</a>}
+              </span>
+              <small className="muted">{osd.server
+                ? L('평가판 다운로드 페이지에서 한국어 64비트 ISO 링크를 복사해 붙여 넣으세요. 받은 ISO는 서버에 남아 다음에는 "로컬 ISO"로 고를 수 있습니다.',
+                  'Copy the Korean 64-bit ISO link from the evaluation page. The ISO stays on the server: next time pick it as a local ISO.')
+                : L('페이지에서 한국어 · 64비트를 고른 뒤 다운로드 버튼의 링크를 복사해 붙여 넣으세요(24시간 유효). 받은 ISO는 서버에 남아 다음에는 "로컬 ISO"로 고를 수 있습니다.',
+                  'Pick Korean and 64-bit on the page, copy the download button link (valid 24 h). The ISO stays on the server: next time pick it as a local ISO.')}</small></label>
+          ) : (
+            <label><span>{L(`${osd.name} ISO (서버)`, `${osd.name} ISO (server)`)}</span>
+              <select value={winIso} onChange={(e) => set('windows_iso', e.target.value)}>
+                {winIsos.length === 0 && <option value="">{L('서버에 ISO가 없습니다 — ISO · 이미지에서 올리세요', 'No ISO on the server - upload one under ISO library')}</option>}
+                {winIsos.map((i) => <option key={i.volid} value={i.volid}>{repack(i.name) ? '⚠ ' : ''}{i.name} · {i.storage}</option>)}
+              </select></label>
+          )}
+          <div className="form-row form-row-even">
+            <label><span>{L('virtio-win 드라이버', 'virtio-win drivers')}</span>
+              <select value={virtioSource === 'net' ? 'auto' : virtio} onChange={(e) => setF((x) => (e.target.value === 'auto'
+                ? { ...x, virtio_source: 'net' } : { ...x, virtio_source: 'local', virtio_iso: e.target.value }))}>
+                <option value="auto">{L('인터넷에서 자동으로 받기 (최신 안정판)', 'Download automatically (latest stable)')}</option>
+                {isoList.filter((i) => /virtio/i.test(i.name)).map((i) => <option key={i.volid} value={i.volid}>{L('로컬', 'Local')}: {i.name} · {i.storage}</option>)}
+              </select></label>
+            <span />
+          </div>
+          {pickedIso && repack(pickedIso.name) && (
+            <div className="alert small error">{L('이 ISO는 이름으로 보아 Microsoft 공식 ISO가 아니라 제3자가 다시 묶은 것 같습니다. 무엇이 바뀌었는지 알 수 없으니 배포용 템플릿에는 공식 ISO나 "인터넷에서 받기"를 쓰세요.',
+              'By its name this ISO was repackaged by someone else, not Microsoft. Use "From the Internet" for templates you deploy.')}</div>
+          )}
           <div className="form-row form-row-even">
             <label><span>{L('에디션 (ISO 안의 이미지 이름)', 'Edition (image name in the ISO)')}</span><input value={edition} onChange={(e) => set('edition', e.target.value)} /></label>
             <label><span>{L('ISO 언어', 'ISO language')}</span>
@@ -229,17 +277,17 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
               ? L('볼륨 라이선스 ISO는 KMS 클라이언트 키가 필요할 수 있습니다. 여러 사람이 함께 쓰려면 원격 데스크톱 서비스(RDS) 역할과 사용자 라이선스(CAL)가 따로 필요합니다.',
                 'A volume-licence ISO may need its KMS client key. Several people at once need the Remote Desktop Services role and CALs.')
               : L('비우면 설치 뒤 활성화합니다.', 'Empty: activate after setup.')}</small></label>
-          {isos.state === 'ok' && !virtioGuess && <div className="alert small">{L('virtio-win ISO가 없습니다. ISO · 이미지에서 URL로 받으세요.', 'No virtio-win ISO: get it under ISO library by URL.')} <Link to="/admin/vms/isos">{L('ISO · 이미지 →', 'ISO library →')}</Link></div>}
           <small className="muted">{L('관리자 계정 moavi-admin 의 비밀번호는 시작할 때 한 번만 보여 드립니다. 저장하지 않습니다.', 'The moavi-admin password is shown once when the build starts. It is not stored.')}</small>
         </>
       )}
-      {!win && (
-        <label><span>{L('설치용 CD를 둘 ISO 스토리지', 'ISO storage for the setup CD')}</span>
+      {(!win || fromNet || virtio === 'auto') && (
+        <label><span>{win ? L('받은 ISO를 둘 스토리지', 'ISO storage for the downloads') : L('설치용 CD를 둘 ISO 스토리지', 'ISO storage for the setup CD')}</span>
           <select value={f.iso_storage} onChange={(e) => set('iso_storage', e.target.value)}>
             <option value="">{L('자동 (local 우선)', 'Automatic (local first)')}</option>
             {isoStores.map((s) => <option key={s.storage} value={s.storage}>{s.storage}</option>)}
           </select>
-          <small className="muted">{L('첫 부팅 설정을 담은 작은 CD를 잠시 두었다가, 다 만든 뒤 지웁니다.', 'A small first-boot CD is kept there during the build and deleted after.')}</small>
+          <small className="muted">{win ? L('공유 스토리지(ceph-fs 등)에 두면 다른 노드에서도 다시 받지 않습니다.', 'On a shared storage (ceph-fs, ...) other nodes use it too.')
+            : L('첫 부팅 설정을 담은 작은 CD를 잠시 두었다가, 다 만든 뒤 지웁니다.', 'A small first-boot CD is kept there during the build and deleted after.')}</small>
         </label>
       )}
       {(preset.id === 'npu' || preset.id === 'fpga') && (
