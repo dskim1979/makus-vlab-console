@@ -635,6 +635,13 @@ export function DepartmentsPage() {
             { label: L('소속 사용자', 'Members'), value: String(list.reduce((a, d) => a + d.members, 0)) },
           ]} />
           <NoticeBar notice={notice} />
+          {tree.length === 0 ? (
+            <div className="empty">
+              <p>{L('아직 부서가 없습니다.', 'No departments yet.')}</p>
+              <p className="muted small">{L('학과 · 연구실 · 팀을 부서로 만들고, 사용자를 넣거나 가입 신청 때 고르게 합니다.', 'Make departments for faculties, labs or teams; add users or let sign-ups pick one.')}</p>
+              <button type="button" className="btn primary" onClick={() => setEditing('new')}><Icon name="plus" size={16} />{L('첫 부서 만들기', 'Make the first department')}</button>
+            </div>
+          ) : (
           <div className="split-2">
             <section className="panel">
               <h3 className="panel-title">{L('부서 트리', 'Tree')}</h3>
@@ -650,7 +657,7 @@ export function DepartmentsPage() {
             </section>
             <section className="panel">
               <div className="panel-head">
-                <h3 className="panel-title">{curDep?.name ?? '-'}</h3>
+                <h3 className="panel-title">{curDep?.name}{curDep && members.state === 'ok' && <span className="muted small"> · {L(`${members.data.length}명`, `${members.data.length} people`)}</span>}</h3>
                 {curDep && <span className="spacer" />}
                 {curDep && <>
                   <button type="button" className="btn-ghost small-btn" onClick={() => setEditing(curDep)}>{L('편집', 'Edit')}</button>
@@ -659,13 +666,13 @@ export function DepartmentsPage() {
                     try { await nextApi.deleteDepartment(curDep.id); setSel(''); deps.reload(); } catch (e) { setNotice({ kind: 'error', text: errText(e) }); }
                   }}>{L('삭제', 'Delete')}</button></>}
               </div>
-              <label className="check"><input id="dep-children" type="checkbox" checked={children} onChange={(e) => setChildren(e.target.checked)} /><span>{L('하위 부서 포함', 'Include sub-departments')}</span></label>
-              <div className="toolbar">
-                <select id="dep-add-user" value={adding} onChange={(e) => setAdding(e.target.value)}>
-                  <option value="">{L('사용자 추가…', 'Add a user…')}</option>
+              <div className="dep-members-bar">
+                <select id="dep-add-user" value={adding} aria-label={L('넣을 사용자', 'User to add')} onChange={(e) => setAdding(e.target.value)}>
+                  <option value="">{L('이 부서에 넣을 사용자…', 'A user to add…')}</option>
                   {(users.state === 'ok' ? users.data : []).filter((u) => !memberNames.has(u.username)).map((u) => <option key={u.username} value={u.username}>{u.display_name || u.username} ({u.username})</option>)}
                 </select>
-                <button type="button" className="btn small-btn" disabled={!adding || !current} onClick={addMember}>{L('추가', 'Add')}</button>
+                <button type="button" className="btn" disabled={!adding || !current} onClick={addMember}><Icon name="plus" size={16} />{L('넣기', 'Add')}</button>
+                <label className="check"><input id="dep-children" type="checkbox" checked={children} onChange={(e) => setChildren(e.target.checked)} /><span>{L('하위 부서 사람도 보기', 'Show sub-departments too')}</span></label>
               </div>
               <LoadState value={members} retry={members.reload}>
                 {(ms) => ms.length === 0 ? <p className="muted small">{L('소속 사용자가 없습니다.', 'No members.')}</p> : (
@@ -678,6 +685,7 @@ export function DepartmentsPage() {
               </LoadState>
             </section>
           </div>
+          )}
           {editing && <DepartmentDialog dep={editing === 'new' ? null : editing} all={list} parent={editing === 'new' ? current : undefined}
             onClose={() => setEditing(null)} onDone={() => { setEditing(null); deps.reload(); }} />}
         </>
