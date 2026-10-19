@@ -30,6 +30,7 @@ import { RolesPage } from './pages/RolesPage';
 import { UsersPage } from './pages/UsersPage';
 import { AccelChecksPage } from './pages/AccelChecksPage';
 import { EnvCatalogPage } from './pages/EnvCatalogPage';
+import { DesktopTemplatesPage } from './pages/DesktopTemplatesPage';
 import { GpuQueuePage, GpuQuotasPage, GpuUsagePage, IdeSessionsPage } from './pages/ResearchPages';
 import { BoardsPage, BuildFarmPage, CardUsagePage, DepartmentsPage, ExternalDesktopsPage, GatewaysPage, GoldenImagesPage, LicenseServersPage, SignupsPage, UsbLibraryPage } from './pages/NextPages';
 
@@ -53,6 +54,7 @@ function pageBody(key: string, subId?: string) {
   if (key === 'accel/mappings') return <MappingsPage />;
   if (key === 'accel/leases') return <LeasesPage />;
   if (key === 'vms/desktops') return <VmDesktopsPage />;
+  if (key === 'vms/desktpl') return <DesktopTemplatesPage />;
   if (key === 'vms/templates') return <TemplatesPage />;
   if (key === 'vms/create') return <VmCreatePage />;
   if (key === 'vms/isos') return <IsoLibraryPage />;

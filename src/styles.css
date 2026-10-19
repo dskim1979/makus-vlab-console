@@ -1584,3 +1584,13 @@ fieldset.plain:disabled { opacity: .55; }
 .oss-note { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: .86rem; color: var(--muted); text-align: center; }
 .oss-note .oss-slogan { font-weight: 600; color: var(--text); }
 .oss-note a { color: inherit; text-decoration: underline; }
+
+/* 가상머신 > 이미지 > 데스크톱 템플릿 */
+.desktpl-grid { margin-bottom: 1rem; }
+.desktpl-card { cursor: default; justify-content: space-between; }
+.desktpl-card:hover { border-color: var(--border); }
+.desktpl-meta { margin-top: auto; }
+.desktpl-state { display: flex; flex-direction: column; gap: .15rem; max-width: 22rem; }
+.desktpl-state .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.desktpl-progress { min-width: 10rem; }
+.desktpl-log { max-height: 60vh; white-space: pre-wrap; }
