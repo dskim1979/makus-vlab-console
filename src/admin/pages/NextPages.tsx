@@ -10,6 +10,7 @@ import { GatewayStateChip } from './JtagGatewayPages';
 import type { Board, BoardProtocol, BoardTarget, BuildJob, CardRow, ClientSettings, Department, ExternalDesktop, GoldenImage, JobPool, JobStatus, LicenseServer, RolloutResult, Signup, SignupSettings, SignupStatus, UsbCategory, UsbDevice, VerifyMode } from '../../api/next';
 import { researchApi, waitText } from '../../api/research';
 import { Dialog } from '../../components/Dialog';
+import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { SettingsStatus } from '../../components/SettingsShell';
@@ -737,8 +738,13 @@ export function BoardsPage() {
     <LoadState value={boards} retry={boards.reload}>
       {(list) => (
         <>
-          <Intro>{L('FPGA 보드의 JTAG를 데스크톱에 빌려줘, 보드 앞에 가지 않고 자리에서 시험합니다. 권장: 네트워크 — 케이블을 랩 서버에 꽂고 hw_server · XVC · Quartus jtagd로 공유하면 VM 설정을 바꾸지 않고 RDP · Warpgate · SPICE 어디서나 씁니다. USB 패스스루는 데스크톱이 보드가 꽂힌 노드에서 돌아야 하고, 케이블이 여러 개면 포트 경로(1-4.2)로 지정합니다.',
-            'Lend a board\'s JTAG to a desktop so people test from their seat. Recommended: network - plug the cable into a lab server and share it with hw_server, XVC or Quartus jtagd; the VM is not changed and it works over RDP, Warpgate or SPICE. USB passthrough needs the desktop on the board\'s node; use a port path (1-4.2) when several cables are alike.')}</Intro>
+          <Intro>{L('FPGA 보드의 JTAG를 데스크톱에 빌려줍니다.', 'Lend FPGA boards\' JTAG to desktops.')}</Intro>
+          <HowTo><ul>
+            <li>{L('네트워크(권장): 케이블을 랩 서버에 꽂고 hw_server · XVC · jtagd로 공유합니다. VM은 바뀌지 않습니다.', 'Network (recommended): share the cable from a lab server over hw_server, XVC or jtagd. The VM is not changed.')}</li>
+            <li>{L('데스크톱 → 랩 서버 포트를 방화벽에서 허용하세요. hw_server · XVC에는 인증이 없습니다.', 'Allow desktop -> lab server ports. hw_server and XVC have no authentication.')}</li>
+            <li>{L('USB: 데스크톱이 보드가 꽂힌 노드에서 돌아야 하고 VM의 usb4 슬롯을 씁니다.', 'USB: the desktop runs on the board\'s node and uses the VM\'s usb4 slot.')}</li>
+            <li>{L('같은 케이블이 여러 개면 포트 경로(1-4.2)로 지정합니다. 보드 전원을 껐다 켜면 다시 연결하세요.', 'Use a port path (1-4.2) for alike cables. Re-attach after power-cycling a board.')}</li>
+          </ul></HowTo>
           <div className="toolbar">
             <button type="button" className="btn primary" onClick={() => setEditing('new')}><Icon name="plus" size={16} />{L('보드 추가', 'Add board')}</button>
             <button type="button" className="btn" onClick={boards.reload}><Icon name="refresh" size={16} />{L('새로 고침', 'Refresh')}</button>
@@ -788,8 +794,6 @@ export function BoardsPage() {
                 </tr>))}</tbody>
             </table></div>
           )}
-          <p className="muted small">{L('USB 보드는 데스크톱 VM의 USB 슬롯 usb4를 씁니다(보드 전원을 껐다 켜면 분리 후 다시 연결). 네트워크 보드는 VM을 바꾸지 않고 대여만 기록해 사용자 포털에 host:port와 사용법을 보여 줍니다. 데스크톱 VM이 케이블 호스트의 그 포트에 닿도록 방화벽 허용(데스크톱 → 랩 서버)을 더하고, 케이블 호스트는 연구자 자리 PC보다 인프라/랩 존의 공용 서버에 두세요. hw_server · XVC에는 인증이 없습니다.',
-            'USB boards use the desktop VM\'s usb4 slot (re-attach after power-cycling a board). Network boards leave the VM alone: the loan is recorded and the user\'s portal shows host:port and how to connect. Allow desktop VMs to reach the cable host\'s port (desktop -> lab server) and keep the cable host on a shared lab server rather than a researcher\'s own PC. hw_server and XVC have no authentication.')}</p>
           {editing && <BoardDialog board={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onDone={() => { setEditing(null); boards.reload(); }} />}
           {attaching && <AttachDialog board={attaching} onClose={() => setAttaching(null)} onDone={() => { setAttaching(null); boards.reload(); }} />}
         </>
@@ -874,8 +878,8 @@ function BoardDialog({ board, onClose, onDone }: { board: Board | null; onClose:
               <input id="brd-serial" list="brd-serials" value={serial} maxLength={64} placeholder="210251A08870" onChange={(e) => setSerial(e.target.value.trim())} />
               <datalist id="brd-serials">{freeCables.map((c) => <option key={c.serial} value={c.serial}>{[c.manufacturer, c.product, c.port].filter(Boolean).join(' · ')}</option>)}</datalist></label>}
             {protocol === 'hw_server' && <p className="muted small">{gw?.cables.length
-              ? L(`게이트웨이에서 읽은 JTAG 케이블 ${freeCables.length}개가 목록에 있습니다(이미 보드가 된 케이블은 빠짐). 한 케이블은 보드 하나에만 등록됩니다.`, `${freeCables.length} JTAG cables read from the gateway are in the list (cables already a board are left out). A cable is one board only.`)
-              : L('JTAG 게이트웨이 탭에서 "케이블 찾기"를 누르면 시리얼을 고를 수 있습니다. Vivado Hardware Manager 대상 이름 끝의 시리얼과 같습니다.', 'Press "Find cables" on the JTAG gateways tab to pick from a list. It is the serial at the end of the Vivado target name.')}</p>}
+              ? L(`남은 케이블 ${freeCables.length}개 중에서 고르세요.`, `Pick one of ${freeCables.length} free cables.`)
+              : L('JTAG 게이트웨이 탭의 "케이블 찾기"로 목록을 읽으세요.', 'Read the list with "Find cables" on the JTAG gateways tab.')}</p>}
             {protocol === 'xvc' && <label><span>{L('이 보드의 XVC 서버 포트 (게이트웨이)', "This board's XVC server port (on the gateway)")}</span>
               <input id="brd-port" inputMode="numeric" value={port} placeholder={String(BOARD_PORTS.xvc)} onChange={(e) => setPort(digits(e.target.value))} /></label>}
           </> : <div className="form-row form-row-wide">
@@ -886,8 +890,7 @@ function BoardDialog({ board, onClose, onDone }: { board: Board | null; onClose:
             <label><span>{L('UART 포트 (ser2net, 선택)', 'UART port (ser2net, optional)')}</span><input id="brd-uart" inputMode="numeric" value={uart} placeholder="7001" onChange={(e) => setUart(digits(e.target.value))} /></label>
             <label><span>{L('표시 이름 (선택)', 'Label (optional)')}</span><input id="brd-label" value={label} maxLength={80} placeholder={L('랙 B-2 · 케이블 1', 'rack B-2 · cable 1')} onChange={(e) => setLabel(e.target.value)} /></label>
           </div>
-          <p className="muted small">{L('데스크톱 VM이 게이트웨이(또는 케이블 호스트)의 포트에 닿아야 합니다(방화벽 허용: 데스크톱 → 게이트웨이). 연구자 자리 PC보다 인프라/랩 존의 게이트웨이 VM을 권장합니다.',
-            'Desktop VMs must reach the gateway\'s (or cable host\'s) ports (allow desktop -> gateway). Prefer a gateway VM in the infra/lab zone over a researcher\'s own PC.')}</p>
+          <p className="muted small">{L('방화벽에서 데스크톱 → 게이트웨이 포트를 허용하세요.', 'Allow desktop -> gateway ports in the firewall.')}</p>
         </>}
       <label><span>{L('보드 종류', 'Kind')}</span><input id="brd-kind" value={kind} maxLength={80} placeholder="ZCU102 · VCK190 · KV260" onChange={(e) => setKind(e.target.value)} /></label>
       <label><span>{L('메모', 'Notes')}</span><input id="brd-notes" value={notes} maxLength={300} onChange={(e) => setNotes(e.target.value)} /></label>
