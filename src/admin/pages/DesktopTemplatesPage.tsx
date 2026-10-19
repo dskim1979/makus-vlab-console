@@ -4,7 +4,7 @@ import { adminApi } from '../../api/admin';
 import { buildApi } from '../../api/build';
 import type { Iso, Network } from '../../api/build';
 import { desktplApi } from '../../api/desktpl';
-import type { DeskBuild, DeskBuildInput, DeskBuildStarted, DeskPreset } from '../../api/desktpl';
+import type { DeskBuild, DeskBuildInput, DeskBuildStarted, DeskDesktop, DeskPreset } from '../../api/desktpl';
 import type { Cluster, ClusterStorage } from '../../api/types';
 import { Dialog } from '../../components/Dialog';
 import { Icon } from '../../components/Icon';
@@ -56,8 +56,9 @@ function DesktopTemplates({ cluster }: { cluster: Cluster }) {
             <div className="profile-grid desktpl-grid">
               {presets.map((p) => (
                 <div key={p.id} className="profile-card desktpl-card">
-                  <span className="os-pick"><OsLogo os={p.os === 'windows' ? 'windows' : 'linux'} size={28} /><span className="strong">{L(p.name, p.name_en)}</span></span>
+                  <span className="os-pick"><OsLogo os={p.platform === 'windows' ? 'windows' : 'linux'} size={28} /><span className="strong">{L(p.name, p.name_en)}</span></span>
                   <span className="muted small">{p.summary}</span>
+                  <span className="desktpl-oses small">{p.os_options.map((o) => <span key={o.id} className="chip">{o.name.replace(' LTS', '')}</span>)}</span>
                   <span className="desktpl-meta muted small">
                     {p.cores} vCPU · {p.memory_mb / 1024} GB · {p.disk_gb} GB · {p.output === 'golden' ? L('골든 이미지', 'Golden image') : L('템플릿', 'Template')}
                   </span>
@@ -74,7 +75,8 @@ function DesktopTemplates({ cluster }: { cluster: Cluster }) {
                   <tbody>{builds.map((b) => (
                     <tr key={b.id}>
                       <td className="strong">{b.name}</td>
-                      <td>{L(d.presets.find((p) => p.id === b.preset)?.name ?? b.preset, d.presets.find((p) => p.id === b.preset)?.name_en ?? b.preset)}</td>
+                      <td>{L(d.presets.find((p) => p.id === b.preset)?.name ?? b.preset, d.presets.find((p) => p.id === b.preset)?.name_en ?? b.preset)}
+                        {typeof b.options.os === 'string' && <span className="muted small"> · {d.presets.flatMap((p) => p.os_options).find((o) => o.id === b.options.os)?.name ?? String(b.options.os)}</span>}</td>
                       <td className="nowrap">{b.node} · {b.vmid || '-'}</td>
                       <td><BuildState b={b} /></td>
                       <td className="desktpl-progress">{b.status === 'running' ? <Meter value={b.progress} label={`${b.progress}%`} /> : <span className="muted small">{b.status === 'completed' ? '100%' : `${b.progress}%`}</span>}</td>
@@ -121,14 +123,17 @@ function BuildState({ b }: { b: DeskBuild }) {
 function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster; preset: DeskPreset; onClose: () => void; onStarted: (s: DeskBuildStarted) => void }) {
   const L = useL();
   const cid = cluster.id;
-  const win = preset.os === 'windows';
+  const win = preset.platform === 'windows';
   const nodes = useLoad(useCallback(() => adminApi.nodes(cid), [cid]), [cid]);
   const storage = useLoad(useCallback(() => adminApi.storage(cid), [cid]), [cid]);
-  const [f, setF] = useState<DeskBuildInput>({ node: '', storage: '', bridge: '', name: `moavi-${preset.id}`, cores: preset.cores, memory_mb: preset.memory_mb, disk_gb: preset.disk_gb,
-    edition: 'Windows 11 Pro', language: 'ko-KR', windows_iso: '', virtio_iso: '', vendor_dir: '', accept_eula: false, iso_storage: '' });
+  const [f, setF] = useState<DeskBuildInput>({ node: '', storage: '', bridge: '', name: '', cores: preset.cores, memory_mb: preset.memory_mb, disk_gb: preset.disk_gb,
+    os: preset.os_default, desktop: 'xfce', edition: '', language: 'ko-KR', windows_iso: '', virtio_iso: '', product_key: '', vendor_dir: '', accept_eula: false, iso_storage: '' });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const set = <K extends keyof DeskBuildInput>(k: K, v: DeskBuildInput[K]) => setF((x) => ({ ...x, [k]: v }));
+  const osd = preset.os_options.find((o) => o.id === f.os) ?? preset.os_options[0];
+  const name = f.name || `moavi-${preset.id}-${osd.id.replace(/-/g, '')}`;
+  const edition = f.edition || osd.edition || '';
   const nodeList = nodes.state === 'ok' ? nodes.data.filter((n) => n.online) : [];
   const node = f.node || nodeList[0]?.node || '';
   const isos = useLoad(useCallback(() => (node && win ? buildApi.isos(cid, node) : Promise.resolve([] as Iso[])), [cid, node, win]), [cid, node, win]);
@@ -144,19 +149,21 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
   const bridge = netList.some((n) => n.iface === f.bridge) ? f.bridge
     : (netList.find((n) => n.type === 'bridge' && /^vmbr/.test(n.iface)) ?? netList.find((n) => n.type !== 'sdn_vnet') ?? netList[0])?.iface ?? '';
   const virtioGuess = isoList.find((i) => /virtio-win/i.test(i.name))?.volid ?? '';
-  const winIso = f.windows_iso || isoList.find((i) => /win(dows)?[ _-]?11/i.test(i.name))?.volid || '';
+  const hint = osd.iso_hint ? new RegExp(osd.iso_hint, 'i') : null;
+  const winIso = f.windows_iso || (hint ? isoList.find((i) => !/virtio-win/i.test(i.name) && hint.test(i.name))?.volid : '') || '';
   const virtio = f.virtio_iso || virtioGuess;
   const vendor = (f.vendor_dir ?? '').trim();
   const needsEula = preset.id === 'fpga' && !!vendor;
 
   async function submit() {
     setError(null);
-    if (win && (!winIso || !virtio)) { setError(L('Windows 11 ISO와 virtio-win ISO를 고르세요.', 'Pick the Windows 11 ISO and the virtio-win ISO.')); return; }
+    if (win && (!winIso || !virtio)) { setError(L(`${osd.name} ISO와 virtio-win ISO를 고르세요.`, `Pick the ${osd.name} ISO and the virtio-win ISO.`)); return; }
     if (needsEula && !f.accept_eula) { setError(L('Vivado를 설치하려면 AMD 라이선스 동의에 체크하세요.', 'Tick the AMD licence agreement to install Vivado.')); return; }
     setBusy(true);
     try {
-      const body: DeskBuildInput = { node, storage: disk, bridge, name: f.name, cores: f.cores, memory_mb: f.memory_mb, disk_gb: f.disk_gb,
-        ...(win ? { windows_iso: winIso, virtio_iso: virtio, edition: f.edition, language: f.language } : {}),
+      const key = (f.product_key ?? '').trim();
+      const body: DeskBuildInput = { node, storage: disk, bridge, name, cores: f.cores, memory_mb: f.memory_mb, disk_gb: f.disk_gb, os: osd.id,
+        ...(win ? { windows_iso: winIso, virtio_iso: virtio, edition, language: f.language, ...(key ? { product_key: key } : {}) } : { desktop: f.desktop }),
         ...(!win && f.iso_storage ? { iso_storage: f.iso_storage } : {}),
         ...(vendor ? { vendor_dir: vendor } : {}), ...(needsEula ? { accept_eula: true } : {}) };
       onStarted(await desktplApi.build(cid, preset.id, body));
@@ -177,11 +184,30 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
         <label><span>{L('네트워크', 'Network')}</span>
           <select value={bridge} onChange={(e) => set('bridge', e.target.value)}>{netList.map((n) => <option key={n.iface} value={n.iface}>{n.iface}</option>)}</select></label>
       </div>
-      <label><span>{L('이름', 'Name')}</span><input value={f.name} maxLength={63} onChange={(e) => set('name', e.target.value.trim())} /></label>
+      <div className="form-row form-row-even">
+        <label><span>{L('운영체제', 'Operating system')}</span>
+          <select value={osd.id} onChange={(e) => setF((x) => ({ ...x, os: e.target.value, edition: '', windows_iso: '' }))}>
+            {preset.os_options.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+          </select></label>
+        <label><span>{L('이름', 'Name')}</span><input value={name} maxLength={63} onChange={(e) => set('name', e.target.value.trim())} /></label>
+      </div>
+      {!win && (
+        <>
+          <span className="field-label">{L('데스크톱 환경', 'Desktop')}</span>
+          <div className="mode-cards mode-cards-2" role="radiogroup" aria-label={L('데스크톱 환경', 'Desktop')}>
+            {([['xfce', 'Xfce', L('가볍고 원격 접속에 가장 잘 맞습니다 (기본)', 'Light, the best fit for remote sessions (default)')],
+              ['gnome', 'GNOME', L('익숙한 화면, 메모리와 대역폭을 더 씁니다', 'The familiar look; more memory and bandwidth')]] as [DeskDesktop, string, string][]).map(([v, t, h]) => (
+              <label key={v} className={`mode-card${f.desktop === v ? ' on' : ''}`}>
+                <input type="radio" name="desktpl-desktop" checked={f.desktop === v} onChange={() => set('desktop', v)} />
+                <span className="strong">{t}</span><span className="muted small">{h}</span>
+              </label>))}
+          </div>
+        </>
+      )}
       {win && (
         <>
           <div className="form-row form-row-even">
-            <label><span>Windows 11 ISO</span>
+            <label><span>{osd.name} ISO</span>
               <select value={winIso} onChange={(e) => set('windows_iso', e.target.value)}>
                 <option value="">{L('고르세요', 'Pick one')}</option>
                 {isoList.filter((i) => !/virtio-win/i.test(i.name)).map((i) => <option key={i.volid} value={i.volid}>{i.name} · {i.storage}</option>)}
@@ -193,10 +219,16 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
               </select></label>
           </div>
           <div className="form-row form-row-even">
-            <label><span>{L('에디션 (ISO 안의 이미지 이름)', 'Edition (image name in the ISO)')}</span><input value={f.edition} onChange={(e) => set('edition', e.target.value)} /></label>
+            <label><span>{L('에디션 (ISO 안의 이미지 이름)', 'Edition (image name in the ISO)')}</span><input value={edition} onChange={(e) => set('edition', e.target.value)} /></label>
             <label><span>{L('ISO 언어', 'ISO language')}</span>
               <select value={f.language} onChange={(e) => set('language', e.target.value as 'ko-KR' | 'en-US')}><option value="ko-KR">한국어 (ko-KR)</option><option value="en-US">English (en-US)</option></select></label>
           </div>
+          <label><span>{L('제품 키 (선택)', 'Product key (optional)')}</span>
+            <input value={f.product_key} placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX" spellCheck={false} onChange={(e) => set('product_key', e.target.value.toUpperCase())} />
+            <small className="muted">{osd.server
+              ? L('볼륨 라이선스 ISO는 KMS 클라이언트 키가 필요할 수 있습니다. 여러 사람이 함께 쓰려면 원격 데스크톱 서비스(RDS) 역할과 사용자 라이선스(CAL)가 따로 필요합니다.',
+                'A volume-licence ISO may need its KMS client key. Several people at once need the Remote Desktop Services role and CALs.')
+              : L('비우면 설치 뒤 활성화합니다.', 'Empty: activate after setup.')}</small></label>
           {isos.state === 'ok' && !virtioGuess && <div className="alert small">{L('virtio-win ISO가 없습니다. ISO · 이미지에서 URL로 받으세요.', 'No virtio-win ISO: get it under ISO library by URL.')} <Link to="/admin/vms/isos">{L('ISO · 이미지 →', 'ISO library →')}</Link></div>}
           <small className="muted">{L('관리자 계정 moavi-admin 의 비밀번호는 시작할 때 한 번만 보여 드립니다. 저장하지 않습니다.', 'The moavi-admin password is shown once when the build starts. It is not stored.')}</small>
         </>
@@ -234,7 +266,8 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
         : preset.id === 'gpu' ? L('패키지를 받아 설치하므로 40분~1시간 30분 걸립니다.', 'Packages are downloaded and installed: 40 min to 1.5 h.')
           : L('패키지를 받아 설치하므로 20분~1시간 걸립니다. Vivado를 넣으면 몇 시간 더 걸립니다.', 'Packages are downloaded and installed: 20 min to an hour; Vivado adds hours.')}</small>
       <small className="muted">{win ? L('Chrome · 7-Zip은 인터넷에서 받습니다. 노드와 VM이 인터넷에 닿아야 합니다.', 'Chrome and 7-Zip come from the Internet: the node and the VM need to reach it.')
-        : L('OS 이미지 · 패키지는 인터넷(Ubuntu · NVIDIA · PyTorch · GitHub)에서 받습니다. 노드와 VM이 인터넷에 닿아야 합니다.', 'The OS image and packages come from the Internet (Ubuntu, NVIDIA, PyTorch, GitHub): the node and the VM need to reach it.')}</small>
+        : L(`${osd.name} 이미지 · 패키지는 인터넷(배포판 저장소 · NVIDIA · PyTorch · GitHub)에서 받습니다. 노드와 VM이 인터넷에 닿아야 합니다.`,
+          `The ${osd.name} image and packages come from the Internet (the distribution, NVIDIA, PyTorch, GitHub): the node and the VM need to reach it.`)}</small>
     </Dialog>
   );
 }
