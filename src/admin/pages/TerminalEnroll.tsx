@@ -363,7 +363,7 @@ function InstallForm({ initial, roles, onSaved }: { initial: InstallSettings; ro
     <label><span>{label}</span><input id={`ti-${k}`} type="number" min={1} value={v[k]} onChange={(e) => setV({ ...v, [k]: Number(e.target.value) || 1 })} /></label>
   );
   return (
-    <section className="panel">
+    <section className="panel form">
       <h3 className="panel-title">{L('실습실 PC 설치 (단말 등록)', 'Room PC install (terminal enrolment)')}</h3>
       <p className="muted small">{L('설치 파일은 이 서버에 올린 MSI를 받아 설치합니다(SHA-256 확인). 포털 링크를 켜면 정한 역할의 사용자(조교, 현장 담당자 등)가 실습실 PC에서 포털에 로그인해 [실습실 PC로 설치]를 누르기만 하면 그 PC가 단말 관리에 승인 대기로 올라옵니다. 승인은 관리자가 합니다.',
         'Install files fetch the MSI uploaded here (SHA-256 checked). With the portal link on, users of the chosen roles (TAs, local staff) sign in to the portal on a room PC and click [Install as a room PC]; the PC shows up under 단말 관리, waiting. An admin approves it.')}</p>
