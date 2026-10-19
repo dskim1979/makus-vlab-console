@@ -140,7 +140,9 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
   const isoList = isos.state === 'ok' ? isos.data : [];
   const netList = nets.state === 'ok' ? nets.data : [];
   const disk = disks.some((s) => s.storage === f.storage) ? f.storage : disks[0]?.storage ?? '';
-  const bridge = netList.some((n) => n.iface === f.bridge) ? f.bridge : netList[0]?.iface ?? '';
+  // default: a plain Linux bridge (vmbr*), not an SDN vnet that sorts first
+  const bridge = netList.some((n) => n.iface === f.bridge) ? f.bridge
+    : (netList.find((n) => n.type === 'bridge' && /^vmbr/.test(n.iface)) ?? netList.find((n) => n.type !== 'sdn_vnet') ?? netList[0])?.iface ?? '';
   const virtioGuess = isoList.find((i) => /virtio-win/i.test(i.name))?.volid ?? '';
   const winIso = f.windows_iso || isoList.find((i) => /win(dows)?[ _-]?11/i.test(i.name))?.volid || '';
   const virtio = f.virtio_iso || virtioGuess;
