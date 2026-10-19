@@ -1632,6 +1632,8 @@ tr.clickable:hover td { background: var(--surface-2); }
 .desktpl-card { cursor: default; justify-content: space-between; }
 .desktpl-card:hover { border-color: var(--border); }
 .desktpl-meta { margin-top: auto; }
+.desktpl-oses { display: flex; flex-wrap: wrap; gap: .3rem; }
+.desktpl-oses .chip { font-size: .72rem; }
 .desktpl-state { display: flex; flex-direction: column; gap: .15rem; max-width: 22rem; }
 .desktpl-state .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .desktpl-progress { min-width: 10rem; }
