@@ -1153,7 +1153,6 @@ a.kcell:hover { background: var(--surface-2); }
 .ver-list li .muted { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .farm-cpu { min-width: 150px; }
 .farm-cpu .bar-track { width: 110px; margin-bottom: .2rem; }
-.settings-narrow { max-width: 52rem; }
 .login-signup { text-align: center; margin: 0; }
 .signup-card { max-width: 460px; }
 .ext-section { margin-top: 1.6rem; display: flex; flex-direction: column; gap: .6rem; }

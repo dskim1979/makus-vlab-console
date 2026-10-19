@@ -1396,7 +1396,7 @@ function ClientForm({ initial, onSaved }: { initial: ClientSettings; onSaved: ()
     catch (e) { setNotice({ kind: 'error', text: errText(e) }); } finally { setBusy(false); }
   }
   return (
-    <section className="panel settings-narrow">
+    <section className="panel">
       <h3 className="panel-title">{L('MOAVI Desk 클라이언트 (Windows)', 'MOAVI Desk Client (Windows)')}</h3>
       <p className="muted small">{L('설치형 클라이언트가 로그인할 때 읽는 값입니다. 최신 버전보다 낮으면 다운로드를 안내하고, 최소 버전보다 낮으면 로그인을 막습니다. 다운로드 주소를 비우면 작업 공간의 "MOAVI Desk Client 받기"는 GitHub 최신 릴리스를 엽니다.',
         'What the installed client reads at sign-in: below the latest it offers the download, below the minimum it refuses to sign in. With no download URL the workspace button opens the latest GitHub release.')}</p>
