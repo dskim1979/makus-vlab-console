@@ -1549,8 +1549,8 @@ fieldset.plain:disabled { opacity: .55; }
 /* 운영 알림 (경보) */
 .ops-notices { display: flex; flex-direction: column; gap: 14px; }
 .ops-row { display: flex; flex-direction: column; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
-.ops-row label.inline { display: flex; align-items: center; gap: 8px; }
-.ops-row label.inline input { width: 90px; }
+.ops-row label.inline { display: flex; align-items: center; gap: .6rem; font-size: .85rem; font-weight: 550; color: var(--text-2); }
+.ops-row label.inline input { width: 6.5rem; }
 .chip-picks { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip-pick { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; cursor: pointer; font-size: .93rem; }
 .chip-pick.on { border-color: var(--accent); }
