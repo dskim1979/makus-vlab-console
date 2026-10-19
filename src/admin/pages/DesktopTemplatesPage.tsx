@@ -53,7 +53,7 @@ function DesktopTemplates({ cluster }: { cluster: Cluster }) {
         const builds = d.builds.filter((b) => b.cluster_id === cluster.id);
         return (
           <>
-            <p className="muted small page-intro">{L('용도에 맞는 데스크톱을 클러스터에서 바로 만듭니다. Linux는 골든 이미지로, Windows는 템플릿으로 등록됩니다.',
+            <p className="muted small page-intro">{L('용도별 데스크톱을 클러스터에서 만듭니다. Linux는 골든 이미지, Windows는 템플릿이 됩니다.',
               'Build a desktop for the job right on the cluster. Linux ends as a golden image, Windows as a template.')}</p>
             <div className="profile-grid desktpl-grid">
               {presets.map((p) => (
@@ -242,10 +242,10 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
                 {osd.download_page && <a className="btn small-btn" href={osd.download_page} target="_blank" rel="noopener noreferrer">{L('다운로드 페이지 열기 ↗', 'Open the download page ↗')}</a>}
               </span>
               <small className="muted">{osd.server
-                ? L('평가판 다운로드 페이지에서 한국어 64비트 ISO 링크를 복사해 붙여 넣으세요. 받은 ISO는 서버에 남아 다음에는 "로컬 ISO"로 고를 수 있습니다.',
-                  'Copy the Korean 64-bit ISO link from the evaluation page. The ISO stays on the server: next time pick it as a local ISO.')
-                : L('페이지에서 한국어 · 64비트를 고른 뒤 다운로드 버튼의 링크를 복사해 붙여 넣으세요(24시간 유효). 받은 ISO는 서버에 남아 다음에는 "로컬 ISO"로 고를 수 있습니다.',
-                  'Pick Korean and 64-bit on the page, copy the download button link (valid 24 h). The ISO stays on the server: next time pick it as a local ISO.')}</small></label>
+                ? L('한국어 64비트 ISO 링크를 붙여 넣으세요. 받은 ISO는 다음부터 로컬 ISO로 고릅니다.',
+                  'Paste the Korean 64-bit ISO link. Next time pick the downloaded ISO as a local ISO.')
+                : L('한국어 64비트 다운로드 링크를 붙여 넣으세요(24시간 유효). 받은 ISO는 다음부터 로컬 ISO로 고릅니다.',
+                  'Paste the Korean 64-bit download link (valid 24 h). Next time pick the downloaded ISO as a local ISO.')}</small></label>
           ) : (
             <label><span>{L(`${osd.name} ISO (서버)`, `${osd.name} ISO (server)`)}</span>
               <select value={winIso} onChange={(e) => set('windows_iso', e.target.value)}>
@@ -263,8 +263,8 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
             <span />
           </div>
           {pickedIso && repack(pickedIso.name) && (
-            <div className="alert small error">{L('이 ISO는 이름으로 보아 Microsoft 공식 ISO가 아니라 제3자가 다시 묶은 것 같습니다. 무엇이 바뀌었는지 알 수 없으니 배포용 템플릿에는 공식 ISO나 "인터넷에서 받기"를 쓰세요.',
-              'By its name this ISO was repackaged by someone else, not Microsoft. Use "From the Internet" for templates you deploy.')}</div>
+            <div className="alert small error">{L('Microsoft 공식 ISO가 아닌 것 같습니다. 배포용에는 공식 ISO를 쓰세요.',
+              'This does not look like an official Microsoft ISO. Use an official one for templates you deploy.')}</div>
           )}
           <div className="form-row form-row-even">
             <label><span>{L('에디션 (ISO 안의 이미지 이름)', 'Edition (image name in the ISO)')}</span><input value={edition} onChange={(e) => set('edition', e.target.value)} /></label>
@@ -274,10 +274,10 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
           <label><span>{L('제품 키 (선택)', 'Product key (optional)')}</span>
             <input value={f.product_key} placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX" spellCheck={false} onChange={(e) => set('product_key', e.target.value.toUpperCase())} />
             <small className="muted">{osd.server
-              ? L('볼륨 라이선스 ISO는 KMS 클라이언트 키가 필요할 수 있습니다. 여러 사람이 함께 쓰려면 원격 데스크톱 서비스(RDS) 역할과 사용자 라이선스(CAL)가 따로 필요합니다.',
-                'A volume-licence ISO may need its KMS client key. Several people at once need the Remote Desktop Services role and CALs.')
+              ? L('볼륨 라이선스 ISO는 KMS 키가 필요할 수 있습니다. 여러 명이 함께 쓰려면 RDS · CAL이 필요합니다.',
+                'A volume-licence ISO may need its KMS key. Several users at once need RDS and CALs.')
               : L('비우면 설치 뒤 활성화합니다.', 'Empty: activate after setup.')}</small></label>
-          <small className="muted">{L('관리자 계정 moavi-admin 의 비밀번호는 시작할 때 한 번만 보여 드립니다. 저장하지 않습니다.', 'The moavi-admin password is shown once when the build starts. It is not stored.')}</small>
+          <small className="muted">{L('moavi-admin 비밀번호는 시작할 때 한 번만 보여 드립니다.', 'The moavi-admin password is shown once, at the start.')}</small>
         </>
       )}
       {(!win || fromNet || virtio === 'auto') && (
@@ -286,18 +286,18 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
             <option value="">{L('자동 (local 우선)', 'Automatic (local first)')}</option>
             {isoStores.map((s) => <option key={s.storage} value={s.storage}>{s.storage}</option>)}
           </select>
-          <small className="muted">{win ? L('공유 스토리지(ceph-fs 등)에 두면 다른 노드에서도 다시 받지 않습니다.', 'On a shared storage (ceph-fs, ...) other nodes use it too.')
-            : L('첫 부팅 설정을 담은 작은 CD를 잠시 두었다가, 다 만든 뒤 지웁니다.', 'A small first-boot CD is kept there during the build and deleted after.')}</small>
+          <small className="muted">{win ? L('공유 스토리지에 두면 다른 노드는 다시 받지 않습니다.', 'On a shared storage other nodes reuse it.')
+            : L('첫 부팅 설정 CD를 잠시 두고, 끝나면 지웁니다.', 'The first-boot CD stays there during the build.')}</small>
         </label>
       )}
       {(preset.id === 'npu' || preset.id === 'fpga') && (
         <label><span>{preset.id === 'fpga' ? L('Vivado 설치 파일 폴더 (NFS, 선택)', 'Vivado installer folder (NFS, optional)') : L('NPU 벤더 패키지 폴더 (NFS, 선택)', 'NPU vendor package folder (NFS, optional)')}</span>
           <input value={f.vendor_dir} placeholder="nas.lab.example:/export/vendor/vivado-2024.2" onChange={(e) => set('vendor_dir', e.target.value)} />
           <small className="muted">{preset.id === 'fpga'
-            ? L('압축을 푼 통합 설치 파일(xsetup)과 install_config.txt(xsetup -b ConfigGen 으로 한 번 만듦)를 둡니다. 비우면 Vivado 없이 라이브러리 · JTAG 설정까지 합니다.',
-              'The unpacked unified installer (xsetup) and install_config.txt (made once with xsetup -b ConfigGen). Empty: libraries and JTAG only.')
-            : L('벤더에서 받은 드라이버 · 런타임 · SDK 파일(.deb, .whl, install.sh)을 둡니다. 비우면 OS · 개발 환경까지만 합니다.',
-              'The vendor driver, runtime and SDK files (.deb, .whl, install.sh). Empty: the OS and dev tools only.')}</small></label>
+            ? L('xsetup과 install_config.txt가 있는 폴더입니다. 비우면 Vivado는 빼고 만듭니다.',
+              'Holds xsetup and install_config.txt. Empty: no Vivado.')
+            : L('벤더 SDK 파일(.deb · .whl · install.sh)이 있는 폴더입니다. 비우면 SDK는 빼고 만듭니다.',
+              'Holds the vendor SDK files (.deb, .whl, install.sh). Empty: no SDK.')}</small></label>
       )}
       {needsEula && (
         <label className="check"><input type="checkbox" checked={!!f.accept_eula} onChange={(e) => set('accept_eula', e.target.checked)} />
@@ -310,12 +310,9 @@ function BuildDialog({ cluster, preset, onClose, onStarted }: { cluster: Cluster
           <label><span>{L('디스크 (GB)', 'Disk (GB)')}</span><input type="number" min={16} value={f.disk_gb} onChange={(e) => set('disk_gb', Number(e.target.value) || 16)} /></label>
         </div>
       </details>
-      <small className="muted">{win ? L('설치 · 업데이트 · 앱 설치까지 30분~1시간 걸립니다.', 'Setup, updates and apps take 30 min to an hour.')
-        : preset.id === 'gpu' ? L('패키지를 받아 설치하므로 40분~1시간 30분 걸립니다.', 'Packages are downloaded and installed: 40 min to 1.5 h.')
-          : L('패키지를 받아 설치하므로 20분~1시간 걸립니다. Vivado를 넣으면 몇 시간 더 걸립니다.', 'Packages are downloaded and installed: 20 min to an hour; Vivado adds hours.')}</small>
-      <small className="muted">{win ? L('Chrome · 7-Zip은 인터넷에서 받습니다. 노드와 VM이 인터넷에 닿아야 합니다.', 'Chrome and 7-Zip come from the Internet: the node and the VM need to reach it.')
-        : L(`${osd.name} 이미지 · 패키지는 인터넷(배포판 저장소 · NVIDIA · PyTorch · GitHub)에서 받습니다. 노드와 VM이 인터넷에 닿아야 합니다.`,
-          `The ${osd.name} image and packages come from the Internet (the distribution, NVIDIA, PyTorch, GitHub): the node and the VM need to reach it.`)}</small>
+      <small className="muted">{(win ? L('30분~1시간', '30 min to 1 h') : preset.id === 'gpu' ? L('40분~1시간 30분', '40 min to 1.5 h')
+        : preset.id === 'fpga' ? L('20분~1시간(Vivado는 몇 시간 더)', '20 min to 1 h (Vivado adds hours)') : L('20분~1시간', '20 min to 1 h'))}
+        {L(' 걸립니다. 노드와 VM이 인터넷에 닿아야 합니다.', '. The node and the VM need the Internet.')}</small>
     </Dialog>
   );
 }
@@ -325,7 +322,7 @@ function PasswordDialog({ started, onClose }: { started: DeskBuildStarted; onClo
   const [copied, setCopied] = useState(false);
   return (
     <Dialog open title={L('관리자 비밀번호 (한 번만 표시)', 'Administrator password (shown once)')} onClose={onClose}>
-      <p className="small">{L(`템플릿의 로컬 관리자 ${started.admin_user} 비밀번호입니다. 지금 안전한 곳에 적어 두세요. 다시 볼 수 없습니다.`,
+      <p className="small">{L(`로컬 관리자 ${started.admin_user} 비밀번호입니다. 다시 볼 수 없으니 지금 적어 두세요.`,
         `The template's local administrator ${started.admin_user}. Note it somewhere safe now: it cannot be shown again.`)}</p>
       <div className="toolbar"><code className="code token-box">{started.admin_password}</code>
         <button type="button" className="btn small-btn" onClick={() => { void navigator.clipboard?.writeText(started.admin_password ?? '').then(() => setCopied(true)).catch(() => {}); }}>
