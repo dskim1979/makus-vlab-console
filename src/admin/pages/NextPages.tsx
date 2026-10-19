@@ -1376,12 +1376,12 @@ function LicenseDialog({ server, onClose, onDone }: { server: LicenseServer | nu
 export function ClientSettingsPage() {
   const data = useLoad(nextApi.clientSettings);
   return (
-    <>
+    <div className="panel-stack">
       <LoadState value={data} retry={data.reload}>
         {(c) => <ClientForm initial={c} onSaved={data.reload} />}
       </LoadState>
       <TerminalInstallPanel />
-    </>
+    </div>
   );
 }
 
@@ -1396,19 +1396,19 @@ function ClientForm({ initial, onSaved }: { initial: ClientSettings; onSaved: ()
     catch (e) { setNotice({ kind: 'error', text: errText(e) }); } finally { setBusy(false); }
   }
   return (
-    <section className="panel">
+    <section className="panel form">
       <h3 className="panel-title">{L('MOAVI Desk 클라이언트 (Windows)', 'MOAVI Desk Client (Windows)')}</h3>
       <p className="muted small">{L('설치형 클라이언트가 로그인할 때 읽는 값입니다. 최신 버전보다 낮으면 다운로드를 안내하고, 최소 버전보다 낮으면 로그인을 막습니다. 다운로드 주소를 비우면 작업 공간의 "MOAVI Desk Client 받기"는 GitHub 최신 릴리스를 엽니다.',
         'What the installed client reads at sign-in: below the latest it offers the download, below the minimum it refuses to sign in. With no download URL the workspace button opens the latest GitHub release.')}</p>
-      <div className="form-row form-row-wide">
+      <div className="form-row form-row-three">
         <label><span>{L('최신 버전', 'Latest version')}</span><input id="cl-latest" value={v.latest_version} placeholder="0.9.0" onChange={(e) => setV({ ...v, latest_version: e.target.value.trim() })} /></label>
         <label><span>{L('최소 버전', 'Minimum version')}</span><input id="cl-min" value={v.min_version} placeholder="0.9.0" onChange={(e) => setV({ ...v, min_version: e.target.value.trim() })} /></label>
+        <label><span>{L('기본 접속 방식', 'Default protocol')}</span>
+          <select id="cl-proto" value={v.protocol} onChange={(e) => setV({ ...v, protocol: e.target.value as ClientSettings['protocol'] })}>
+            <option value="auto">{L('자동 (RDP → SPICE → VNC)', 'Auto (RDP, then SPICE, then VNC)')}</option><option value="rdp">RDP</option><option value="spice">SPICE</option><option value="vnc">VNC</option>
+          </select></label>
       </div>
       <label><span>{L('다운로드 주소 (MSI)', 'Download URL (MSI)')}</span><input id="cl-url" value={v.download_url} placeholder="https://github.com/dskim1979/moavi-desk/releases/latest" onChange={(e) => setV({ ...v, download_url: e.target.value.trim() })} /></label>
-      <label><span>{L('기본 접속 방식', 'Default protocol')}</span>
-        <select id="cl-proto" value={v.protocol} onChange={(e) => setV({ ...v, protocol: e.target.value as ClientSettings['protocol'] })}>
-          <option value="auto">{L('자동 (RDP → SPICE → VNC)', 'Auto (RDP, then SPICE, then VNC)')}</option><option value="rdp">RDP</option><option value="spice">SPICE</option><option value="vnc">VNC</option>
-        </select></label>
       <small className="muted">{L('자동: Windows 데스크톱은 RDP(H.264 · UDP)로, RDP 서버(xrdp)가 없는 Linux 데스크톱은 SPICE로 엽니다. 실습실 키오스크는 SPICE를 씁니다(USB · 전체 화면).',
         'Auto: Windows desktops open with RDP (H.264, UDP); a Linux desktop without an RDP server (xrdp) opens with SPICE. Lab kiosks use SPICE (USB, full screen).')}</small>
       <NoticeBar notice={notice} />
