@@ -4,6 +4,7 @@ import { enrollApi, kioskPasswordHash, msiexecLine, saveFile, serverOfConsole, t
 import type { Lab, Terminal } from '../../api/types';
 import { usersApi } from '../../api/users';
 import { Dialog } from '../../components/Dialog';
+import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
@@ -175,8 +176,13 @@ export function EnrollCodesPanel({ labs }: { labs: Lab[] }) {
         <h3 className="panel-title">{L('등록 코드 · 설치 파일', 'Enrolment codes · install files')}</h3>
         <button type="button" className="btn small-btn" onClick={() => setMaking(true)}><Icon name="plus" size={14} />{L('등록 코드 만들기', 'New code')}</button>
       </div>
-      <p className="muted small">{L('코드를 넣은 설치 파일로 실습실 PC에 설치하면, 함께 깔리는 MOAVI Desk 에이전트(Windows 서비스)가 PC를 켜자마자 이 목록에 승인 대기로 올리고, 승인되면 키오스크 키를 스스로 받아 갑니다. 코드 없이는 어떤 PC도 올라오지 않습니다. 포털의 "실습실 PC로 설치"로 받은 파일은 받은 사람 이름의 코드(포털)로 보입니다.',
-        'Install a room’s PCs with a file that carries a code: the MOAVI Desk Agent (a Windows service installed with the client) puts each PC on this list, waiting, as soon as it starts, and picks up its kiosk key once approved. No PC comes in without a code. Files from the portal’s "Install as a room PC" show as codes in the requester’s name (portal).')}</p>
+      <p className="muted small">{L('등록 코드가 든 설치 파일로 실습실 PC를 등록합니다.', 'Enrol room PCs with an install file that carries a code.')}</p>
+      <HowTo><ul>
+        <li>{L('함께 깔리는 MOAVI Desk 에이전트(Windows 서비스)가 PC를 켜자마자 승인 대기로 올립니다.', 'The MOAVI Desk Agent (a Windows service) lists the PC, waiting, as soon as it starts.')}</li>
+        <li>{L('승인되면 에이전트가 키오스크 키를 스스로 받아 갑니다.', 'Once approved, the agent picks up its kiosk key by itself.')}</li>
+        <li>{L('코드 없이는 어떤 PC도 올라오지 않습니다.', 'No PC comes in without a code.')}</li>
+        <li>{L('포털 "실습실 PC로 설치"로 받은 파일은 받은 사람 이름의 코드(포털)로 보입니다.', 'Files from the portal’s "Install as a room PC" show as codes in the requester’s name (portal).')}</li>
+      </ul></HowTo>
       {error && <div className="alert small error">{error}</div>}
       {codes.state === 'error' && <div className="alert small error">{codes.message}</div>}
       {list.length > 0 && (
@@ -243,8 +249,7 @@ function NewCodeDialog({ labs, onClose, onMade }: { labs: Lab[]; onClose: () => 
       </div>
       <label className="check"><input id="enc-auto" type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} />
         <span>{L('관리자 승인 없이 바로 승인 (코드를 가진 PC를 모두 믿을 때만)', 'Approve at once, no admin review (only when you trust every PC with the code)')}</span></label>
-      <small className="muted">{L('기본은 7일 · 40대 · 관리자 승인입니다. 코드는 만든 직후 한 번만 보입니다. 설치를 마치면 끄세요. 잘못된 코드는 같은 주소에서 몇 번 틀리면 잠시 막힙니다.',
-        'Defaults: 7 days, 40 PCs, admin approval. The code shows only once; switch it off after the roll-out. Wrong codes from one address are blocked for a while after a few tries.')}</small>
+      <small className="muted">{L('코드는 만든 직후 한 번만 보입니다. 설치를 마치면 끄세요.', 'The code shows only once; switch it off after the roll-out.')}</small>
     </Dialog>
   );
 }
@@ -278,18 +283,22 @@ function InstallDialog({ code, row, fresh, onClose }: { code: string; row: Enrol
           </div>
           <div className="alert small">{L('코드는 지금 한 번만 보입니다.', 'The code shows only now.')}</div>
         </>
-      ) : <div className="alert small">{L('코드 전체는 만들 때 한 번만 보였습니다. 아래 줄의 MDE-XXXX-XXXX 부분을 그때 받은 코드로 바꾸세요.', 'The full code showed only when it was made; put it in place of MDE-XXXX-XXXX below.')}</div>}
+      ) : <div className="alert small">{L('아래 MDE-XXXX-XXXX를 만들 때 받은 코드로 바꾸세요.', 'Put the code you got when it was made in place of MDE-XXXX-XXXX below.')}</div>}
       <label className="check"><input type="checkbox" checked={kiosk} onChange={(e) => setKiosk(e.target.checked)} />
         <span>{L('키오스크 모드 (전체 화면, 설정 · 종료에 관리자 비밀번호)', 'Kiosk mode (full screen, admin password for settings and exit)')}</span></label>
       {fresh && (
         <section className="install-way">
           <h4>{L('1. 설치 파일 (더블클릭)', '1. Install file (double-click)')}</h4>
-          <p className="muted small">{L('파일 하나(install.cmd)입니다. PC에서 실행하면 관리자 권한을 한 번 묻고, 서버에서 MSI를 HTTPS로 받아 SHA-256을 확인한 뒤 조용히 설치합니다. MSI는 플랫폼 설정 > 클라이언트에 올려 둔 것을 씁니다.',
-            'One file (install.cmd). Run on a PC, it asks for elevation once, fetches the MSI from the server over HTTPS, checks its SHA-256 and installs it silently. It uses the MSI under 플랫폼 설정 > 클라이언트.')}</p>
+          <p className="muted small">{L('PC에서 실행하면 MSI를 받아 조용히 설치합니다.', 'Run on a PC, it fetches the MSI and installs it silently.')}</p>
+          <HowTo><ul>
+            <li>{L('관리자 권한을 한 번 묻습니다.', 'It asks for elevation once.')}</li>
+            <li>{L('MSI를 HTTPS로 받아 SHA-256을 확인합니다.', 'It fetches the MSI over HTTPS and checks its SHA-256.')}</li>
+            <li>{L('MSI는 플랫폼 설정 > 클라이언트에 올린 것을 씁니다.', 'It uses the MSI under 플랫폼 설정 > 클라이언트.')}</li>
+          </ul></HowTo>
           <button type="button" className="btn small-btn" onClick={download}><Icon name="download" size={14} />{L('이 코드로 설치 파일 받기', 'Download an install file with this code')}</button>
           {fileMsg && <span className={`small ${fileMsg.error ? 'danger-text' : 'muted'}`}> {fileMsg.text}</span>}
-          <div className="alert small warn">{L('이 파일(또는 코드)을 가진 사람은 PC 등록을 요청할 수 있습니다. 승인은 관리자가 하지만, 꼭 필요한 사람에게만 주고 설치가 끝나면 코드를 끄세요.',
-            'Anyone with this file (or the code) can ask to enrol a PC. An admin still approves, but hand it out only where needed and switch the code off afterwards.')}</div>
+          <div className="alert small warn">{L('이 파일(또는 코드)이 있으면 누구나 PC 등록을 요청할 수 있습니다. 필요한 사람에게만 주고, 끝나면 코드를 끄세요.',
+            'Anyone with this file (or the code) can ask to enrol a PC. Hand it out only where needed and switch the code off afterwards.')}</div>
         </section>
       )}
       <section className="install-way">
@@ -311,11 +320,14 @@ function InstallDialog({ code, row, fresh, onClose }: { code: string; row: Enrol
           <code id="enroll-msiexec">{line}</code>
           <button type="button" className="btn small-btn" onClick={() => copyText(line, (ok) => setCopied(ok ? 'line' : null))}>{copied === 'line' ? L('복사했습니다', 'Copied') : L('복사', 'Copy')}</button>
         </div>
-        <p className="muted small">{L('MSI 파일 이름은 받은 파일에 맞게 바꿉니다. MSI와 같은 폴더에 moavi-desk-enroll.json(server, port, https, enroll_code, kiosk)을 두고 MSI를 더블클릭해도 됩니다. 명령 줄 값이 파일보다 앞섭니다.',
-          'Use the MSI’s real file name. You can also put moavi-desk-enroll.json (server, port, https, enroll_code, kiosk) next to the MSI and double-click it; the command line wins over the file.')}</p>
+        <HowTo><ul>
+          <li>{L('MSI 파일 이름은 받은 파일에 맞게 바꾸세요.', 'Use the MSI’s real file name.')}</li>
+          <li>{L('MSI 옆에 moavi-desk-enroll.json(server, port, https, enroll_code, kiosk)을 두고 더블클릭해도 됩니다.', 'Or put moavi-desk-enroll.json (server, port, https, enroll_code, kiosk) next to the MSI and double-click it.')}</li>
+          <li>{L('명령 줄 값이 파일보다 앞섭니다.', 'The command line wins over the file.')}</li>
+          <li>{L('방화벽은 단말 → 서버 443(HTTPS)만 열면 됩니다.', 'Firewall: only terminal → server 443 (HTTPS).')}</li>
+          <li>{L('승인되면 2분 안팎에 "키 전달" 열이 전달됨으로 바뀝니다.', 'Once approved, the Key column turns to Delivered within about 2 minutes.')}</li>
+        </ul></HowTo>
       </section>
-      <p className="muted small">{L('방화벽: 단말 → 서버 443(HTTPS)만 열면 됩니다. 승인되면 에이전트가 2분 안팎에 키를 받아 가고 "키 전달" 열이 전달됨으로 바뀝니다.',
-        'Firewall: only terminal → server 443 (HTTPS). Once approved the agent picks the key up within about 2 minutes and the Key column turns to Delivered.')}</p>
     </Dialog>
   );
 }
@@ -365,8 +377,12 @@ function InstallForm({ initial, roles, onSaved }: { initial: InstallSettings; ro
   return (
     <section className="panel form">
       <h3 className="panel-title">{L('실습실 PC 설치 (단말 등록)', 'Room PC install (terminal enrolment)')}</h3>
-      <p className="muted small">{L('설치 파일은 이 서버에 올린 MSI를 받아 설치합니다(SHA-256 확인). 포털 링크를 켜면 정한 역할의 사용자(조교, 현장 담당자 등)가 실습실 PC에서 포털에 로그인해 [실습실 PC로 설치]를 누르기만 하면 그 PC가 단말 관리에 승인 대기로 올라옵니다. 승인은 관리자가 합니다.',
-        'Install files fetch the MSI uploaded here (SHA-256 checked). With the portal link on, users of the chosen roles (TAs, local staff) sign in to the portal on a room PC and click [Install as a room PC]; the PC shows up under 단말 관리, waiting. An admin approves it.')}</p>
+      <p className="muted small">{L('실습실 PC 설치 파일과 포털의 설치 링크를 설정합니다.', 'Room PC install files and the portal’s install link.')}</p>
+      <HowTo><ul>
+        <li>{L('설치 파일은 이 서버에 올린 MSI를 받아 설치합니다(SHA-256 확인).', 'Install files fetch the MSI uploaded here (SHA-256 checked).')}</li>
+        <li>{L('포털 링크를 켜면 정한 역할(조교, 현장 담당자 등)이 실습실 PC에서 [실습실 PC로 설치]를 누릅니다.', 'With the portal link on, the chosen roles (TAs, local staff) click [Install as a room PC] on a room PC.')}</li>
+        <li>{L('그 PC는 단말 관리에 승인 대기로 올라오고, 관리자가 승인합니다.', 'The PC shows up under 단말 관리, waiting for an admin.')}</li>
+      </ul></HowTo>
 
       <h4>{L('클라이언트 MSI', 'Client MSI')}</h4>
       {v.msi ? (
@@ -400,8 +416,8 @@ function InstallForm({ initial, roles, onSaved }: { initial: InstallSettings; ro
       <div className="role-checks">{roleList.map((r) => (
         <label key={r.id} className="check"><input type="checkbox" checked={v.auto_approve_roles.includes(r.id)} onChange={(e) => toggle('auto_approve_roles', r.id, e.target.checked)} /><span>{r.name}</span></label>
       ))}</div>
-      <small className="muted">{L('이 역할의 사용자가 포털에서 받은 설치 파일로 등록한 PC는 관리자 승인 없이 바로 승인됩니다. 관리자 본인이 받은 파일도 여기서 관리자 역할을 켰을 때만 자동 승인됩니다.',
-        'PCs enrolled with a portal file of these roles are approved at once. Even an admin’s own files are approved at once only with the admin role ticked here.')}</small>
+      <small className="muted">{L('이 역할이 포털에서 받은 파일로 등록한 PC는 바로 승인됩니다. 관리자 파일도 관리자 역할을 켜야 자동 승인됩니다.',
+        'PCs enrolled with a portal file of these roles are approved at once. An admin’s own files too, only with the admin role ticked.')}</small>
 
       <h4>{L('설치 파일에 넣을 값', 'What install files carry')}</h4>
       <label className="check"><input id="ti-kiosk" type="checkbox" checked={v.kiosk} onChange={(e) => setV({ ...v, kiosk: e.target.checked })} /><span>{L('키오스크 모드로 설치', 'Install in kiosk mode')}</span></label>
@@ -409,7 +425,7 @@ function InstallForm({ initial, roles, onSaved }: { initial: InstallSettings; ro
         <input id="ti-url" value={v.server_url} placeholder="https://desk.example.com" onChange={(e) => setV({ ...v, server_url: e.target.value.trim() })} /></label>
       <label><span>{L('사설 인증서 지문 SHA-256 (선택)', 'Private certificate SHA-256 (optional)')}</span>
         <input id="ti-pin" value={v.server_cert_sha256} placeholder="AB12…(64)" onChange={(e) => setV({ ...v, server_cert_sha256: e.target.value.trim() })} /></label>
-      <small className="muted">{L('공인 인증서면 비워 둡니다. 사설 인증서면 그 지문을 넣으면 에이전트 · 클라이언트 · 설치 파일이 그 인증서만 믿습니다.', 'Leave empty with a public certificate. With a private one, its fingerprint makes the agent, the client and the install files trust that one only.')}</small>
+      <small className="muted">{L('공인 인증서면 비워 두세요. 넣으면 에이전트 · 클라이언트 · 설치 파일이 그 인증서만 믿습니다.', 'Leave empty with a public certificate. Set, the agent, client and install files trust that certificate only.')}</small>
       {msg && <div className={`alert small ${msg.error ? 'error' : 'info'}`}>{msg.text}</div>}
       <div className="toolbar"><button type="button" className="btn primary" disabled={busy} onClick={save}>{L('저장', 'Save')}</button></div>
     </section>
@@ -466,8 +482,7 @@ function LabInstallDialog({ info, onClose }: { info: NonNullable<Awaited<ReturnT
     <Dialog open title={L('실습실 PC로 설치', 'Install as a room PC')} onClose={onClose} onSubmit={submit}
       submitLabel={done ? L('닫기', 'Close') : L('설치 파일 받기', 'Download the install file')} busy={busy || (!done && !info.msi_ready)} error={error}>
       {!info.msi_ready && <div className="alert small warn">{L('관리자가 아직 설치 파일(MSI)을 서버에 올리지 않았습니다.', 'The administrator has not put the client MSI on the server yet.')}</div>}
-      <p className="muted small">{L('이 PC(실습실 PC)에서 받은 파일을 실행하면 관리자 권한을 한 번 묻고 MOAVI Desk가 설치됩니다. 설치가 끝나면 이 PC가 관리 콘솔에 승인 대기로 올라갑니다.',
-        'Run the file on this room PC: it asks for elevation once and installs MOAVI Desk. Then the PC waits for an administrator in the console.')}</p>
+      <p className="muted small">{L('이 PC에서 파일을 실행하면 MOAVI Desk가 깔리고 관리자 승인을 기다립니다.', 'Run the file on this PC: it installs MOAVI Desk and waits for an administrator.')}</p>
       <label><span>LAB</span>
         <select id="li-lab" value={lab} onChange={(e) => setLab(e.target.value)} disabled={done}>
           <option value="">{L('모름 (관리자가 지정)', 'Not sure (the admin picks)')}</option>
@@ -475,8 +490,8 @@ function LabInstallDialog({ info, onClose }: { info: NonNullable<Awaited<ReturnT
         </select></label>
       <label><span>{L(`이 파일로 설치할 PC 수 (최대 ${info.max_uses}대)`, `PCs this file installs (up to ${info.max_uses})`)}</span>
         <input id="li-uses" type="number" min={1} max={info.max_uses} value={uses} disabled={done} onChange={(e) => setUses(e.target.value)} /></label>
-      <small className="muted">{L(`파일은 ${info.hours}시간 동안 쓸 수 있습니다. ${info.auto_approve ? '이 계정으로 받은 파일은 바로 승인됩니다.' : '관리자가 승인해야 쓸 수 있습니다.'} 이 파일을 가진 사람은 PC 등록을 요청할 수 있으니 다른 사람에게 주지 마세요.`,
-        `The file works for ${info.hours} hours. ${info.auto_approve ? 'Files of this account are approved at once.' : 'An administrator approves the PCs.'} Anyone with the file can ask to enrol a PC: keep it to yourself.`)}</small>
+      <small className="muted">{L(`파일은 ${info.hours}시간 동안 쓸 수 있습니다. ${info.auto_approve ? '이 계정으로 받은 파일은 바로 승인됩니다.' : '관리자가 승인해야 쓸 수 있습니다.'} 다른 사람에게 주지 마세요.`,
+        `The file works for ${info.hours} hours. ${info.auto_approve ? 'Files of this account are approved at once.' : 'An administrator approves the PCs.'} Keep it to yourself.`)}</small>
       {done && <div className="alert small info">{L('받았습니다. 파일(moavi-desk-lab-install.cmd)을 실행하세요. 끝나면 관리자 승인을 기다립니다.', 'Saved. Run moavi-desk-lab-install.cmd; then the PC waits for approval.')}</div>}
     </Dialog>
   );

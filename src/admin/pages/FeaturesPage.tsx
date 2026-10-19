@@ -56,8 +56,8 @@ export function FeaturesChooser({ firstRun = false, onSaved }: { firstRun?: bool
 
   return (
     <div className="features">
-      {firstRun && <p className="muted page-intro">{L('업무 특성에 맞는 메뉴만 보이게 합니다. 꺼진 기능은 데이터를 지우지 않으며, [플랫폼 설정 › 기능]에서 언제든 바꿀 수 있습니다.',
-        'Only the menus your site needs are shown. Nothing is deleted when a feature is off, and you can change this any time under Platform settings › Features.')}</p>}
+      {firstRun && <p className="muted page-intro">{L('업무에 맞는 메뉴만 보이게 합니다. 꺼도 데이터는 지우지 않습니다.',
+        'Show only the menus your site needs. Turning one off deletes nothing.')}</p>}
       <h2 className="section-title">{L('어떤 곳에서 쓰시나요?', 'Where is it used?')}</h2>
       <div className="profile-grid" role="radiogroup">
         {PROFILES.map((p) => (
@@ -92,8 +92,8 @@ export function FeaturesChooser({ firstRun = false, onSaved }: { firstRun?: bool
               </label>
             ))}
           </div>
-          <p className="muted small">{L('데스크톱 · 풀 · 이미지 · 사용자 · 클러스터 · 경보 · 백업 · 보고서 · 감사 · 공지 · 클라이언트 · 서포트 번들은 항상 켜져 있습니다.',
-            'Desktops, pools, images, users, cluster, alerts, backup, reports, audit, notices, client and the support bundle are always on.')}</p>
+          <p className="muted small">{L('데스크톱 · 풀 · 사용자 같은 기본 메뉴는 항상 켜져 있습니다.',
+            'Core menus such as desktops, pools and users are always on.')}</p>
         </details>
       )}
 

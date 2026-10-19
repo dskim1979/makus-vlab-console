@@ -66,8 +66,11 @@ export function GoldenImagesPage() {
     <LoadState value={images} retry={images.reload}>
       {(list) => (
         <>
-          <Intro>{L('평소처럼 켜서 고친 VM을 골든 이미지로 두고, 고칠 때마다 "버전 만들기"(스냅샷)를 한 뒤 풀에 배포합니다. 배포는 전체 복제라 원본과 따로 돌아갑니다.',
-            'Keep a VM you edit as a golden image, make a version (snapshot) after each change and deploy it to pools as full clones.')}</Intro>
+          <Intro>{L('수정한 VM을 골든 이미지로 두고 버전별로 풀에 배포합니다.', 'Keep an edited VM as a golden image and deploy its versions to pools.')}</Intro>
+          <HowTo><ul>
+            <li>{L('VM을 평소처럼 켜서 고친 뒤 "버전 만들기"로 스냅샷을 남기세요.', 'Edit the VM as usual, then make a version (snapshot).')}</li>
+            <li>{L('배포는 전체 복제라 원본과 따로 돌아갑니다.', 'Deploys are full clones that run apart from the original.')}</li>
+          </ul></HowTo>
           <div className="toolbar">
             <button type="button" className="btn primary" onClick={() => setAdding(true)}><Icon name="plus" size={16} />{L('골든 이미지 등록', 'Add golden image')}</button>
             <button type="button" className="btn" onClick={images.reload}><Icon name="refresh" size={16} />{L('새로 고침', 'Refresh')}</button>
@@ -197,8 +200,8 @@ function VersionDialog({ image, onClose, onDone }: { image: GoldenImage; onClose
   }
   return (
     <Dialog open title={L(`${image.name}: 버전 만들기`, `${image.name}: make a version`)} onClose={onClose} onSubmit={submit} submitLabel={L('만들기', 'Make')} busy={busy} error={error}>
-      <p className="muted small">{L('지금 VM 상태를 스냅샷(gold-날짜-시각)으로 남기고, 새 배포에 이 버전을 씁니다. 이미 배포된 데스크톱은 바뀌지 않습니다.',
-        'Snapshots the VM as it is now (gold-date-time) and deploys that from now on. Desktops already made stay as they are.')}</p>
+      <p className="muted small">{L('지금 VM 상태를 스냅샷으로 남깁니다. 이미 배포된 데스크톱은 그대로입니다.',
+        'Snapshots the VM as it is now. Desktops already made stay as they are.')}</p>
       <label><span>{L('설명', 'Description')}</span><input id="ver-desc" value={desc} maxLength={200} placeholder={L('예: 10월 보안 패치', 'e.g. October patches')} onChange={(e) => setDesc(e.target.value)} /></label>
     </Dialog>
   );
@@ -276,8 +279,11 @@ export function UsbLibraryPage() {
     <LoadState value={devs} retry={devs.reload}>
       {(list) => (
         <>
-          <Intro>{L('풀 정책의 USB 연결에서 고를 장치 목록입니다. VID(벤더)와 PID(제품)로 구분하고, PID를 비우면 그 벤더 장치 전체를 뜻합니다.',
-            'The devices pool USB policies pick from, by vendor (VID) and product (PID). An empty PID means every device of the vendor.')}</Intro>
+          <Intro>{L('풀 정책의 USB 연결에서 고를 장치 목록입니다.', 'The devices pool USB policies pick from.')}</Intro>
+          <HowTo><ul>
+            <li>{L('VID는 벤더, PID는 제품입니다.', 'VID is the vendor, PID the product.')}</li>
+            <li>{L('PID를 비우면 그 벤더 장치 전체입니다.', 'An empty PID means every device of the vendor.')}</li>
+          </ul></HowTo>
           <div className="toolbar">
             <button type="button" className="btn primary" onClick={() => setEditing('new')}><Icon name="plus" size={16} />{L('장치 추가', 'Add device')}</button>
           </div>
@@ -353,8 +359,11 @@ export function ExternalDesktopsPage() {
     <LoadState value={exts} retry={exts.reload}>
       {(list) => (
         <>
-          <Intro>{L('실제 PC(측정 장비 PC, 워크스테이션)를 사용자에게 배정합니다. 보안 게이트웨이가 켜져 있으면 그곳을 거칩니다.',
-            'Physical PCs assigned to users. With the security gateway on, connections go through it.')}</Intro>
+          <Intro>{L('실제 PC(측정 장비 PC, 워크스테이션)를 사용자에게 배정합니다.', 'Physical PCs (instrument PCs, workstations) assigned to users.')}</Intro>
+          <HowTo><ul>
+            <li>{L('사용자는 작업 공간에서 .rdp 파일을 받아 접속합니다.', 'Users get an .rdp file from their workspace.')}</li>
+            <li>{L('보안 게이트웨이가 켜져 있으면 그곳을 거칩니다.', 'With the security gateway on, connections go through it.')}</li>
+          </ul></HowTo>
           <div className="toolbar">
             <button type="button" className="btn primary" onClick={() => setEditing('new')}><Icon name="plus" size={16} />{L('외부 데스크톱 추가', 'Add external desktop')}</button>
           </div>
@@ -443,8 +452,11 @@ export function SignupsPage() {
   const verifyLabel = (m?: string) => m === 'required' ? L('필수', 'required') : m === 'optional' ? L('선택', 'optional') : L('끔', 'off');
   return (
     <>
-      <Intro>{L('로그인 화면의 "가입 신청"으로 들어온 요청을 승인하거나 거절합니다. 승인하면 일반 사용자 계정(작업 공간만)이 생기고, 신청한 부서에 들어갑니다. 가입 설정에서 메일 인증과 기관 메일 자동 승인을 정합니다.',
-        'Approve or reject requests made with 가입 신청 on the sign-in screen. Approving makes a portal-only user in the department asked for. 가입 설정 sets the mail check and the institution domains approved at once.')}</Intro>
+      <Intro>{L('"가입 신청"으로 들어온 요청을 승인하거나 거절합니다.', 'Approve or reject sign-up requests.')}</Intro>
+      <HowTo><ul>
+        <li>{L('승인하면 작업 공간만 쓰는 일반 사용자가 되고, 신청한 부서에 들어갑니다.', 'An approved request becomes a portal-only user in the department asked for.')}</li>
+        <li>{L('메일 인증과 기관 메일 자동 승인은 가입 설정에서 정합니다.', 'The mail check and institution auto-approval are set in 가입 설정.')}</li>
+      </ul></HowTo>
       <div className="toolbar">
         <label className="check"><input id="signup-open" type="checkbox" checked={open} onChange={toggle} /><span>{L('로그인 화면에서 가입 신청 받기', 'Take sign-up requests on the sign-in screen')}</span></label>
         <button type="button" className="btn" disabled={!s} onClick={() => setEditing(true)}><Icon name="gear" size={16} />{L('가입 설정', 'Sign-up settings')}</button>
@@ -546,13 +558,13 @@ function SignupSettingsDialog({ initial, deps, onClose, onDone }: { initial: Sig
           <option value="optional">{L('선택 — 메일을 넣으면 코드로 확인', 'Optional — checked when given')}</option>
           <option value="required">{L('필수 — 메일을 꼭 넣고 확인', 'Required — every request confirms a mail')}</option>
         </select>
-        <small className="muted">{L('신청자에게 6자리 코드와 링크를 보냅니다(30분). 플랫폼 설정 > 일반의 메일(SMTP)을 씁니다. 인증 전에는 대기 목록에 "메일 미인증"으로 보입니다.',
-          'The applicant gets a 6-digit code and a link (30 minutes), sent with the SMTP of Platform settings > General. Until then the request shows "mail not verified".')}</small></label>
+        <small className="muted">{L('플랫폼 설정 > 일반의 메일(SMTP)로 6자리 코드를 보냅니다(30분 유효).',
+          'Sends a 6-digit code (valid 30 minutes) with the SMTP of Platform settings > General.')}</small></label>
       <h3 className="panel-title">{L('기관 메일 자동 승인', 'Institution mail, approved at once')}</h3>
       <label><span>{L('허용 도메인', 'Domains')}</span>
         <input id="su-domains" value={f.domains} placeholder="univ.ac.kr, lab.re.kr" onChange={(e) => setF({ ...f, domains: e.target.value })} />
-        <small className="muted">{L('이 도메인(하위 도메인 포함) 메일을 인증하면 관리자 승인 없이 계정이 생깁니다. 메일 인증이 꺼져 있어도 이 도메인은 인증합니다. 그 밖의 메일은 지금처럼 심사합니다.',
-          'A confirmed mail of these domains (and sub-domains) makes the account without review; these addresses are checked even with the mail check off. Others wait for review.')}</small></label>
+        <small className="muted">{L('이 도메인(하위 도메인 포함) 메일은 인증만 하면 승인 없이 계정이 생깁니다.',
+          'A confirmed mail of these domains (and sub-domains) gets an account without review.')}</small></label>
       <div className="form-row form-row-even">
         <label><span>{L('역할', 'Role')}</span>
           <select id="su-role" value={f.auto_role} onChange={(e) => setF({ ...f, auto_role: e.target.value })}>
@@ -625,8 +637,10 @@ export function DepartmentsPage() {
     <LoadState value={deps} retry={deps.reload}>
       {() => (
         <>
-          <Intro>{L('기관 안의 조직(학과 · 연구실 · 팀)을 트리로 관리합니다. 사용자는 부서 하나에 속하고, 가입 신청 때 고른 부서로 자동으로 들어갑니다.',
-            'The organisation (departments, labs, teams) as a tree. A user belongs to one department; sign-ups join the one they picked.')}</Intro>
+          <Intro>{L('학과 · 연구실 · 팀을 트리로 관리합니다.', 'Departments, labs and teams as a tree.')}</Intro>
+          <HowTo><ul>
+            <li>{L('사용자는 부서 하나에 속하고, 가입 신청 때 고른 부서로 들어갑니다.', 'A user belongs to one department; sign-ups join the one they picked.')}</li>
+          </ul></HowTo>
           <div className="toolbar">
             <button type="button" className="btn primary" onClick={() => setEditing('new')}><Icon name="plus" size={16} />{L('부서 추가', 'Add department')}</button>
           </div>
@@ -946,8 +960,10 @@ export function BuildFarmPage() {
     <LoadState value={farm} retry={farm.reload}>
       {(pools) => (
         <>
-          <Intro>{L('빌드 팜 풀(FPGA 빌드 VM)의 대수 · 사용 중 · 부하를 한눈에 봅니다. 빌드 VM은 풀 관리에서 만들고, 카드 대여처럼 기간을 정해 빌려 줍니다.',
-            'The build farm pools (FPGA build VMs): size, use and load. Build VMs are made under 풀 관리 and lent like cards.')}</Intro>
+          <Intro>{L('빌드 팜 풀의 대수 · 사용 중 · 부하를 봅니다.', 'Build farm pools: size, use and load.')}</Intro>
+          <HowTo><ul>
+            <li>{L('빌드 VM은 풀 관리에서 만들고, 카드처럼 기간을 정해 빌려 줍니다.', 'Build VMs are made under 풀 관리 and lent for a period like cards.')}</li>
+          </ul></HowTo>
           <div className="toolbar"><button type="button" className="btn" onClick={farm.reload}><Icon name="refresh" size={16} />{L('새로 고침', 'Refresh')}</button></div>
           {pools.length === 0 ? <div className="empty"><p>{L('빌드 팜 풀이 없습니다. 풀 관리에서 종류를 "빌드 팜"으로 만드세요.', 'No build farm pools. Make one under 풀 관리 with type build farm.')}</p></div> : pools.map((p) => (
             <section key={p.id} className="panel">
@@ -1094,8 +1110,8 @@ function ResultsDialog({ job, admin, onClose }: { job: BuildJob; admin: boolean;
   return (
     <Dialog open wide title={L(`${job.name} 결과물`, `${job.name}: results`)} onClose={onClose}>
       <p className="muted small">{job.artifacts_kept === 'nas'
-        ? L('작업이 끝날 때 NAS의 결과물 보관함(artifacts/사용자/작업 ID)에 복사해 두었습니다. 보관 기간이 지나면 지워집니다.', 'Copied to the NAS results store (artifacts/<user>/<job>) at the end; removed after the keep period.')
-        : L('작업 폴더에 있는 파일입니다. 스크래치 보관 기간이 지나면 지워질 수 있으니 필요한 것은 받아 두세요.', 'In the work folder: take what you need before the scratch keep period ends.')}</p>
+        ? L('NAS 결과물 보관함에 복사한 파일로, 보관 기간이 지나면 지워집니다.', 'Copied to the NAS results store; removed after the keep period.')
+        : L('작업 폴더의 파일입니다. 스크래치 보관 기간 안에 받아 두세요.', 'Files in the work folder: take them before the scratch keep period ends.')}</p>
       {err && <div className="alert small error" role="alert">{err}</div>}
       <div className="table-scroll"><table className="table compact-head">
         <thead><tr><th>{L('파일', 'File')}</th><th className="num">{L('크기', 'Size')}</th><th className="actions" /></tr></thead>
@@ -1191,15 +1207,19 @@ function JobDialog({ pools, admin, onClose, onDone }: { pools: JobPool[]; admin:
       )}
       <div className="form-row form-row-wide">
         <label><span>{L('작업 폴더 (빌드 VM 안)', 'Folder (on the build VM)')}</span><input id="job-dir" value={workdir} placeholder={folderOf(pool) ? `${folderOf(pool)}/<${L('작업 ID', 'job id')}>` : '/proj/zcu102'} onChange={(e) => setWorkdir(e.target.value.trim())} />
-          {folderOf(pool) && <small className="muted">{L(`비워 두면 내 스크래치 폴더 아래 작업마다 새 폴더(${folderOf(pool)}/작업 ID)에서 내 권한으로 실행합니다. 결과도 거기 남고, 스크래치는 백업되지 않습니다.`,
-            `Left empty, each job runs as you in a new folder under your scratch (${folderOf(pool)}/<job id>); results stay there. Scratch is not backed up.`)}</small>}</label>
+          {folderOf(pool) && <small className="muted">{L(`비우면 ${folderOf(pool)}/작업 ID 폴더에서 내 권한으로 실행합니다. 스크래치는 백업되지 않습니다.`,
+            `Empty: runs as you in ${folderOf(pool)}/<job id>. Scratch is not backed up.`)}</small>}</label>
         {admin && <label><span>{L('사용자 (선택)', 'For user (optional)')}</span><input id="job-user" value={user} placeholder="alice" onChange={(e) => setUser(e.target.value.trim())} /></label>}
       </div>
-      <p className="muted small">{gpuMode
-        ? L('GPU 작업은 받은 GPU만 보입니다(CUDA_VISIBLE_DEVICES). 출력 전체는 작업 폴더의 moavi-job.log에, 마지막 20KB는 여기 남습니다. 최대 실행 시간이 지나면 끝냅니다.',
-          'A GPU job sees only the GPUs it got (CUDA_VISIBLE_DEVICES). The whole output goes to moavi-job.log in its folder, the last 20 KB stays here. It is ended at its time limit.')
-        : L('빌드 VM에는 게스트 에이전트가 있어야 하고, 프로젝트 폴더는 공유 저장소에 두세요(풀 정책 > 공유 저장소를 켜면 시작 전에 마운트를 확인합니다). 출력은 마지막 8KB만 남습니다.',
-          'Build VMs need the guest agent; keep projects on shared storage (pool policy > shared storage mounts it before the job starts). Only the last 8 KB of output is kept.')}</p>
+      <HowTo>{gpuMode ? <ul>
+        <li>{L('GPU 작업에는 받은 GPU만 보입니다(CUDA_VISIBLE_DEVICES).', 'A GPU job sees only the GPUs it got (CUDA_VISIBLE_DEVICES).')}</li>
+        <li>{L('전체 출력은 작업 폴더의 moavi-job.log에, 마지막 20KB는 여기 남습니다.', 'The whole output goes to moavi-job.log in its folder; the last 20 KB stays here.')}</li>
+        <li>{L('최대 실행 시간이 지나면 끝냅니다.', 'It is ended at its time limit.')}</li>
+      </ul> : <ul>
+        <li>{L('빌드 VM에 게스트 에이전트가 있어야 합니다.', 'Build VMs need the guest agent.')}</li>
+        <li>{L('프로젝트 폴더는 공유 저장소에 두세요(풀 정책 > 공유 저장소).', 'Keep projects on shared storage (pool policy > shared storage).')}</li>
+        <li>{L('출력은 마지막 8KB만 남습니다.', 'Only the last 8 KB of output is kept.')}</li>
+      </ul>}</HowTo>
     </Dialog>
   );
 }
@@ -1222,8 +1242,12 @@ export function CardUsagePage() {
     <LoadState value={report} retry={report.reload}>
       {(r) => (
         <>
-          <Intro>{L(`가속 카드(FPGA · NPU · GPU)마다 누가 얼마나 빌려 썼는지 봅니다. 대여율은 기간 전체 시간 대비 대여된 시간, 실사용률은 대여 중 게스트 에이전트로 5분마다 읽은 GPU/NPU 사용률 평균, 유휴 시간은 사용률 ${r.idle_threshold_pct ?? 5}% 미만이거나 데스크톱이 꺼져 있던 시간입니다. 예산 · 증설 근거로 CSV를 받아 쓰세요.`,
-            `Who borrowed each accelerator card and for how long. Loan % is loan hours over the whole period; real use is the average GPU/NPU use read every 5 minutes through the guest agent while lent; idle hours are under ${r.idle_threshold_pct ?? 5}% or with the desktop off. Download the CSV for budgets and expansion plans.`)}</Intro>
+          <Intro>{L('가속 카드마다 누가 얼마나 빌려 썼는지 봅니다.', 'Who borrowed each accelerator card and for how long.')}</Intro>
+          <HowTo><ul>
+            <li>{L('대여율: 기간 전체 시간 대비 대여된 시간', 'Loan %: loan hours over the whole period')}</li>
+            <li>{L('실사용률: 대여 중 5분마다 읽은 GPU/NPU 사용률 평균(게스트 에이전트)', 'Real use: average GPU/NPU use read every 5 minutes through the guest agent while lent')}</li>
+            <li>{L(`유휴 시간: 사용률 ${r.idle_threshold_pct ?? 5}% 미만이거나 데스크톱이 꺼져 있던 시간`, `Idle hours: under ${r.idle_threshold_pct ?? 5}% use or with the desktop off`)}</li>
+          </ul></HowTo>
           <div className="toolbar">
             <div className="seg" role="group">
               {[7, 30, 90].map((d) => <button key={d} type="button" className={`seg-btn${days === d ? ' on' : ''}`} onClick={() => setDays(d)}>{L(`${d}일`, `${d} days`)}</button>)}
@@ -1281,8 +1305,13 @@ export function LicenseServersPage() {
     <LoadState value={servers} retry={servers.reload}>
       {(list) => (
         <>
-          <Intro>{L('설계 툴(FlexLM · FlexNet)과 vGPU 라이선스 서버를 등록하고 포트가 응답하는지 확인합니다. 라이선스 서버 VM은 MAC을 고정하고 Proxmox HA에 올려 두세요. MOAVI Desk는 라이선스 파일 · 키를 다루지 않습니다.',
-            'Register design-tool (FlexLM/FlexNet) and vGPU licence servers and check their ports. Keep the VM\'s MAC fixed and put it under Proxmox HA. MOAVI Desk never handles licence files or keys.')}</Intro>
+          <Intro>{L('설계 툴 · vGPU 라이선스 서버가 포트에 응답하는지 확인합니다.', 'Check that design-tool and vGPU licence servers answer on their ports.')}</Intro>
+          <HowTo><ul>
+            <li>{L('FlexLM · FlexNet과 vGPU 라이선스 서버를 등록할 수 있습니다.', 'FlexLM/FlexNet and vGPU licence servers can be registered.')}</li>
+            <li>{L('라이선스 서버 VM은 MAC을 고정하고 Proxmox HA에 올려 두세요.', 'Keep the VM\'s MAC fixed and put it under Proxmox HA.')}</li>
+            <li>{L('자동 감시를 켜면 5분마다 확인하고, 끊길 때와 살아날 때 알림 채널로 알립니다.', 'Watched servers are checked every 5 minutes; the alert channels hear when one goes down and when it is back.')}</li>
+            <li>{L('MOAVI Desk는 라이선스 파일 · 키를 다루지 않습니다.', 'MOAVI Desk never handles licence files or keys.')}</li>
+          </ul></HowTo>
           <div className="toolbar">
             <button type="button" className="btn primary" onClick={() => setEditing('new')}><Icon name="plus" size={16} />{L('라이선스 서버 추가', 'Add licence server')}</button>
             <button type="button" className="btn" onClick={servers.reload}><Icon name="refresh" size={16} />{L('새로 고침', 'Refresh')}</button>
@@ -1295,8 +1324,6 @@ export function LicenseServersPage() {
             { label: L('자동 감시', 'Watched'), value: String(list.filter((s) => s.watch).length) },
             { label: L('라이선스 수집', 'Seats read'), value: String(list.filter((s) => s.usage_mode && s.usage_mode !== 'off').length) },
           ]} />
-          <p className="muted small">{L('자동 감시를 켠 서버는 5분마다 포트를 확인하고, 응답이 없으면 알림 채널(웹훅 · 메일)로 한 번 알리고 다시 살아나면 또 알립니다.',
-            'Watched servers are checked every 5 minutes; when one stops answering the alert channels (webhook, mail) hear once, and again when it is back.')}</p>
           <NoticeBar notice={notice} />
           {list.length === 0 ? <div className="empty"><p>{L('등록된 라이선스 서버가 없습니다.', 'No licence servers yet.')}</p></div> : (
             <div className="table-scroll"><table className="table compact-head">
@@ -1409,8 +1436,13 @@ function ClientForm({ initial, onSaved }: { initial: ClientSettings; onSaved: ()
   return (
     <section className="panel form">
       <h3 className="panel-title">{L('MOAVI Desk 클라이언트 (Windows)', 'MOAVI Desk Client (Windows)')}</h3>
-      <p className="muted small">{L('설치형 클라이언트가 로그인할 때 읽는 값입니다. 최신 버전보다 낮으면 다운로드를 안내하고, 최소 버전보다 낮으면 로그인을 막습니다. 다운로드 주소를 비우면 작업 공간의 "MOAVI Desk Client 받기"는 GitHub 최신 릴리스를 엽니다.',
-        'What the installed client reads at sign-in: below the latest it offers the download, below the minimum it refuses to sign in. With no download URL the workspace button opens the latest GitHub release.')}</p>
+      <p className="muted small">{L('설치형 클라이언트가 로그인할 때 읽는 설정입니다.', 'What the installed client reads at sign-in.')}</p>
+      <HowTo><ul>
+        <li>{L('최신 버전보다 낮으면 다운로드를 안내합니다.', 'Below the latest version it offers the download.')}</li>
+        <li>{L('최소 버전보다 낮으면 로그인을 막습니다.', 'Below the minimum it refuses to sign in.')}</li>
+        <li>{L('다운로드 주소를 비우면 GitHub 최신 릴리스를 엽니다.', 'With no download URL the latest GitHub release opens.')}</li>
+        <li>{L('실습실 키오스크는 SPICE를 씁니다(USB · 전체 화면).', 'Lab kiosks use SPICE (USB, full screen).')}</li>
+      </ul></HowTo>
       <div className="form-row form-row-three">
         <label><span>{L('최신 버전', 'Latest version')}</span><input id="cl-latest" value={v.latest_version} placeholder="0.9.0" onChange={(e) => setV({ ...v, latest_version: e.target.value.trim() })} /></label>
         <label><span>{L('최소 버전', 'Minimum version')}</span><input id="cl-min" value={v.min_version} placeholder="0.9.0" onChange={(e) => setV({ ...v, min_version: e.target.value.trim() })} /></label>
@@ -1420,8 +1452,8 @@ function ClientForm({ initial, onSaved }: { initial: ClientSettings; onSaved: ()
           </select></label>
       </div>
       <label><span>{L('다운로드 주소 (MSI)', 'Download URL (MSI)')}</span><input id="cl-url" value={v.download_url} placeholder="https://github.com/dskim1979/moavi-desk/releases/latest" onChange={(e) => setV({ ...v, download_url: e.target.value.trim() })} /></label>
-      <small className="muted">{L('자동: Windows 데스크톱은 RDP(H.264 · UDP)로, RDP 서버(xrdp)가 없는 Linux 데스크톱은 SPICE로 엽니다. 실습실 키오스크는 SPICE를 씁니다(USB · 전체 화면).',
-        'Auto: Windows desktops open with RDP (H.264, UDP); a Linux desktop without an RDP server (xrdp) opens with SPICE. Lab kiosks use SPICE (USB, full screen).')}</small>
+      <small className="muted">{L('자동: Windows는 RDP, xrdp가 없는 Linux는 SPICE로 엽니다.',
+        'Auto: Windows opens with RDP, Linux without xrdp with SPICE.')}</small>
       <NoticeBar notice={notice} />
       <div className="toolbar"><button type="button" className="btn primary" disabled={busy} onClick={save}>{L('저장', 'Save')}</button></div>
     </section>

@@ -8,6 +8,7 @@ import { ApiError, isMock } from '../../api/client';
 import { nextApi } from '../../api/next';
 import type { Cluster, ClusterStorage } from '../../api/types';
 import { Dialog } from '../../components/Dialog';
+import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
@@ -147,9 +148,13 @@ function IsoLibrary({ cluster }: { cluster: Cluster }) {
     <LoadState value={nodes} retry={nodes.reload}>
       {() => (
         <>
-          <p className="muted small page-intro">{L(
-            'OS 설치용 ISO를 스토리지에 올리거나, 노드가 URL에서 직접 받게 합니다. 공유 스토리지(NFS 등)에 두면 모든 노드에서 VM 만들기에 쓸 수 있습니다. 큰 파일은 엔진이 잠시 받아 두었다가 노드로 보내므로, 엔진 디스크에 파일 크기만큼 빈 공간이 필요합니다. 큰 ISO는 "URL로 받기"가 빠릅니다.',
-            'Upload an install ISO to a storage, or let the node download it from a URL. On a shared storage (NFS, ...) every node can use it to make VMs. An upload is buffered on the engine before it goes to the node, so the engine needs that much free disk; for a large ISO "Download from URL" is faster.')}</p>
+          <p className="muted small page-intro">{L('OS 설치용 ISO를 스토리지에 올리거나 URL로 받습니다.',
+            'Upload an install ISO to a storage, or download it from a URL.')}</p>
+          <HowTo><ul>
+            <li>{L('공유 스토리지(NFS 등)에 두면 모든 노드에서 씁니다.', 'On a shared storage (NFS, ...) every node can use it.')}</li>
+            <li>{L('올리는 파일은 엔진을 거치므로 엔진 디스크에 그만큼 빈 공간이 필요합니다.', 'An upload is buffered on the engine, so the engine needs that much free disk.')}</li>
+            <li>{L('큰 ISO는 "URL로 받기"가 빠릅니다.', 'For a large ISO "Download from URL" is faster.')}</li>
+          </ul></HowTo>
           <div className="toolbar">
             <select aria-label={L('노드', 'Node')} value={n} onChange={(e) => setNode(e.target.value)}>
               {nodeList.map((x) => <option key={x.node} value={x.node}>{x.node}</option>)}
@@ -261,7 +266,7 @@ function DownloadDialog({ clusterId, node, storage, onClose, onStarted }: {
   }
   return (
     <Dialog open wide title={L('URL로 ISO 받기', 'Download an ISO from a URL')} onClose={onClose} onSubmit={submit} submitLabel={L('받기 시작', 'Start download')} busy={busy || !url} error={error}>
-      <p className="muted small">{L(`노드 ${node}이(가) 주소에서 직접 받아 ${storage}에 둡니다. 엔진을 거치지 않으니 큰 파일도 빠릅니다. 사내 주소(사설 IP)는 보안상 받지 않습니다.`,
+      <p className="muted small">{L(`노드 ${node}이(가) 직접 받아 ${storage}에 둡니다. 사설 IP 주소는 받지 않습니다.`,
         `Node ${node} downloads it straight into ${storage}, not through the engine. Addresses on private networks are refused.`)}</p>
       <label><span>URL</span><input id="iso-url" type="url" required placeholder="https://releases.ubuntu.com/24.04/ubuntu-24.04.1-desktop-amd64.iso" value={url} onChange={(e) => fromUrl(e.target.value)} /></label>
       <label><span>{L('파일 이름', 'File name')}</span><input id="iso-name" value={name} onChange={(e) => { setNamed(true); setName(e.target.value); }} onBlur={() => name && setName(isoFileName(name))} /></label>
@@ -398,8 +403,8 @@ function VmWizard({ cluster }: { cluster: Cluster }) {
       {() => (
         <>
           <p className="muted small page-intro">{L(
-            'ISO로 새 VM을 만들고 바로 콘솔에서 OS를 설치합니다. 설치가 끝나면 게스트 에이전트를 넣은 뒤 템플릿으로 바꾸거나 골든 이미지로 등록해 풀에 씁니다.',
-            'Make a VM from an ISO and install the OS from its console right away. Once installed, add the guest agent, then turn it into a template or register it as a golden image for pools.')}</p>
+            'ISO로 새 VM을 만들고 콘솔에서 OS를 설치합니다.',
+            'Make a VM from an ISO and install the OS from its console.')}</p>
           <div className="vm-wizard">
           <ol className="stepper">
             {STEPS.map((s, i) => (
@@ -455,8 +460,8 @@ function VmWizard({ cluster }: { cluster: Cluster }) {
                     'If Windows Setup shows no disk, choose "Load driver" → vioscsi\\w11 (or w10)\\amd64 on the second CD. The network driver is in NetKVM.')}</p></div>
                 )}
                 {win && !form.virtio_iso && (
-                  <p className="muted small">{L('드라이버 ISO 없이는 느린 SATA 디스크와 e1000e 네트워크를 씁니다. virtio-win ISO는 "ISO · 이미지 관리"에서 URL로 받을 수 있습니다.',
-                    'Without the driver ISO the VM uses a slower SATA disk and an e1000e card. Get virtio-win from "ISO library" by URL.')}</p>
+                  <p className="muted small">{L('드라이버 ISO가 없으면 느린 SATA 디스크와 e1000e 네트워크를 씁니다.',
+                    'Without the driver ISO the VM uses a slower SATA disk and an e1000e card.')}</p>
                 )}
                 {isoList.length === 0 && isos.state === 'ok' && (
                   <div className="alert small">{L(`노드 ${node}에서 쓸 수 있는 ISO가 없습니다.`, `Node ${node} sees no ISOs.`)} <Link to={`/admin/vms/isos?c=${encodeURIComponent(cid)}`}>{L('ISO 올리기 →', 'Upload one →')}</Link></div>
@@ -617,21 +622,25 @@ function AfterCreate({ cluster, vm, onAnother }: { cluster: Cluster; vm: Created
       <ol className="build-steps">
         <li>
           <span className="strong">{L('OS 설치', 'Install the OS')}</span>
-          <span className="muted small">{L('콘솔을 열면 VM을 켜고 ISO로 부팅합니다. "Press any key to boot from CD" 가 보이면 바로 아무 키나 누르세요.',
-            'Opening the console starts the VM and boots the ISO. Press a key when it says "Press any key to boot from CD".')}</span>
+          <span className="muted small">{L('"Press any key to boot from CD"가 보이면 바로 아무 키나 누르세요.',
+            'Press a key as soon as it says "Press any key to boot from CD".')}</span>
           <span><button type="button" className="btn primary small-btn" disabled={opening || task.running || templated} onClick={openConsole}>
             <Icon name="play" size={14} />{opening ? L('여는 중…', 'Opening…') : L('설치 콘솔 열기', 'Open install console')}</button></span>
         </li>
         <li>
           <span className="strong">{L('게스트 에이전트 설치', 'Install the guest agent')}</span>
-          <span className="muted small">{L(
-            'Windows: 두 번째 CD(virtio-win)의 virtio-win-guest-tools.exe 를 실행하면 드라이버·QEMU 게스트 에이전트·SPICE 도구가 함께 들어갑니다. Linux: qemu-guest-agent 패키지를 설치하고 켭니다(apt/dnf install qemu-guest-agent, systemctl enable --now qemu-guest-agent). 필요한 프로그램과 업데이트를 넣은 뒤 Windows는 sysprep으로 일반화하고 VM을 끕니다.',
-            'Windows: run virtio-win-guest-tools.exe from the second CD (virtio-win); it installs the drivers, the QEMU guest agent and the SPICE tools. Linux: install and enable qemu-guest-agent. Add your software and updates, generalise Windows with sysprep, then shut the VM down.')}</span>
+          <span className="muted small">{L('게스트 에이전트와 필요한 프로그램을 넣고 VM을 끕니다.',
+            'Add the guest agent and your software, then shut the VM down.')}</span>
+          <HowTo><ul>
+            <li>{L('Windows: 두 번째 CD의 virtio-win-guest-tools.exe 를 실행합니다(드라이버 · 에이전트 · SPICE 도구).', 'Windows: run virtio-win-guest-tools.exe from the second CD (drivers, agent, SPICE tools).')}</li>
+            <li>{L('Linux: apt/dnf install qemu-guest-agent, systemctl enable --now qemu-guest-agent', 'Linux: apt/dnf install qemu-guest-agent, systemctl enable --now qemu-guest-agent')}</li>
+            <li>{L('Windows는 끄기 전에 sysprep으로 일반화합니다.', 'Generalise Windows with sysprep before the shutdown.')}</li>
+          </ul></HowTo>
         </li>
         <li>
           <span className="strong">{L('풀에 쓸 준비', 'Make it ready for pools')}</span>
-          <span className="muted small">{L('템플릿: 연결 복제로 많은 데스크톱을 빨리 만듭니다(VM을 끈 뒤). 골든 이미지: VM으로 두고 고칠 때마다 버전을 만들어 배포합니다.',
-            'Template: fast linked clones for many desktops (shut the VM down first). Golden image: stays a VM; make a version after each change and deploy it.')}</span>
+          <span className="muted small">{L('템플릿은 빠른 연결 복제용, 골든 이미지는 버전 배포용입니다.',
+            'Template: fast linked clones. Golden image: versions you deploy.')}</span>
           <span className="build-actions">
             {templated ? <Link className="btn small-btn" to={`/admin/vms/templates?c=${encodeURIComponent(cluster.id)}`}>{L('템플릿 관리로 →', 'Go to Templates →')}</Link>
               : <button type="button" className="btn small-btn" disabled={busy || done} onClick={toTemplate}>{L('템플릿으로 변환', 'Convert to template')}</button>}

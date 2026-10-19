@@ -47,7 +47,7 @@ export function MigPanel({ clusterId }: { clusterId: string }) {
         <span className="stat-icon tone-green"><Icon name="layers" size={18} /></span>
         <div>
           <h2 className="section-title">{L('NVIDIA MIG 분할', 'NVIDIA MIG')}</h2>
-          <span className="muted small">{L('A100 · A30 · H100 · H200을 최대 7개 GPU 인스턴스로 나눠 MIG-backed vGPU로 데스크톱에 줍니다.', 'A100, A30, H100 and H200 split into up to seven GPU instances, handed to desktops as MIG-backed vGPU.')}</span>
+          <span className="muted small">{L('카드 한 장을 최대 7개로 나눠 데스크톱에 줍니다.', 'Split a card into up to seven parts for desktops.')}</span>
         </div>
         <div className="panel-actions">
           <button type="button" className="btn" onClick={() => setRefresh((n) => n + 1)}><Icon name="refresh" size={16} />{L('노드에서 다시 읽기', 'Read the nodes again')}</button>
@@ -99,8 +99,12 @@ export function MigPanel({ clusterId }: { clusterId: string }) {
             {r.summary.mig_capable === 0 && <p className="muted small">{L('MIG를 지원하는 카드가 없습니다.', 'No MIG-capable card.')}</p>}
             <details className="small">
               <summary>{L('Proxmox에서 MIG를 데스크톱에 주는 방법', 'How MIG reaches a desktop on Proxmox')}</summary>
-              <p className="muted">{L('MIG 인스턴스는 PCI 장치가 아니라서 그 자체로는 VM에 패스스루할 수 없습니다. 노드에 NVIDIA vGPU 매니저(NVIDIA AI Enterprise · C-series 라이선스)를 설치하고 MIG 모드를 켠 뒤 여기서 GPU 인스턴스를 만들면, 카드의 SR-IOV 가상 함수(VF)를 묶은 리소스 매핑에 MIG-backed vGPU 프로필(A100D-3-40C 같은)이 나타납니다. 풀 GPU 정책에서 그 프로필을 고르세요. 카드 한 장을 통째로 넘기면 VM 안에서 MIG를 직접 쓸 수 있지만 데스크톱끼리 나눠 쓰지는 못합니다.',
-                'A MIG instance is not a PCI device, so it cannot be passed through on its own. Install the NVIDIA vGPU manager (NVIDIA AI Enterprise / C-series licence) on the node, turn MIG mode on and make GPU instances here: the resource mapping of the card\'s SR-IOV virtual functions then offers MIG-backed vGPU profiles (like A100D-3-40C). Pick one in the pool GPU policy. A whole card passed through can use MIG inside that VM, but is not shared between desktops.')}</p>
+              <ul className="muted">
+                <li>{L('노드에 NVIDIA vGPU 매니저(AI Enterprise · C-series 라이선스)를 설치합니다.', 'Install the NVIDIA vGPU manager (AI Enterprise / C-series licence) on the node.')}</li>
+                <li>{L('MIG 모드를 켜고 여기서 GPU 인스턴스를 만듭니다.', 'Turn MIG mode on and make GPU instances here.')}</li>
+                <li>{L('풀 GPU 정책에서 MIG-backed vGPU 프로필(A100D-3-40C 등)을 고릅니다.', 'Pick a MIG-backed vGPU profile (like A100D-3-40C) in the pool GPU policy.')}</li>
+                <li>{L('MIG 인스턴스는 PCI 장치가 아니라 패스스루할 수 없습니다.', 'A MIG instance is not a PCI device and cannot be passed through.')}</li>
+              </ul>
               <table className="table compact-head"><tbody>
                 {Object.entries(r.reference).map(([card, ps]) => <tr key={card}><td className="nowrap">{card}</td><td className="small">{ps.join(' · ')}</td></tr>)}
               </tbody></table>
@@ -146,8 +150,8 @@ function MigDialog({ clusterId, node, card, onClose, onDone }: { clusterId: stri
   return (
     <Dialog open wide title={L(`${node.node} · ${g.name} (GPU ${g.index}) 분할`, `${node.node} · ${g.name} (GPU ${g.index})`)} onClose={onClose} onSubmit={submit}
       submitLabel={L('적용', 'Apply')} busy={busy || confirm !== node.node || (action === 'layout' && slices > 7)} error={error}>
-      <div className="alert small">{L('노드에서 nvidia-smi로 바로 바꿉니다. 이 노드에서 NVIDIA 카드를 쓰는 VM이 켜져 있으면 거절합니다. 분할을 바꾸면 이 카드의 기존 GPU · 컴퓨트 인스턴스는 모두 지워집니다.',
-        'Changes the card with nvidia-smi on the node right away; refused while a running VM on this node uses an NVIDIA card. A new layout removes every GPU and compute instance of the card.')}</div>
+      <div className="alert small">{L('기존 인스턴스는 모두 지워지며, 카드를 쓰는 VM이 켜져 있으면 거절합니다.',
+        'Every instance of the card is removed; refused while a running VM uses an NVIDIA card.')}</div>
       <div className="segmented" role="group">
         <button type="button" className={action === 'layout' ? 'on' : ''} disabled={!on} onClick={() => setAction('layout')}>{L('GPU 인스턴스 분할', 'GPU instance layout')}</button>
         <button type="button" className={action === 'mode' ? 'on' : ''} onClick={() => setAction('mode')}>{on ? L('MIG 모드 끄기', 'Turn MIG off') : L('MIG 모드 켜기', 'Turn MIG on')}</button>
@@ -165,14 +169,14 @@ function MigDialog({ clusterId, node, card, onClose, onDone }: { clusterId: stri
           </div>
           <p className={`small ${slices > 7 ? 'text-danger' : 'muted'}`}>{L(`컴퓨트 슬라이스 ${slices}/7`, `${slices}/7 compute slices`)}</p>
           <label className="check"><input type="checkbox" checked={compute} onChange={(e) => setCompute(e.target.checked)} />
-            <span>{L('기본 컴퓨트 인스턴스도 만들기 (-C). MIG-backed vGPU에는 필요 없습니다 — 노드에서 바로 CUDA를 쓸 때만.', 'Also make the default compute instance (-C). Not needed for MIG-backed vGPU - only for CUDA on the node itself.')}</span></label>
+            <span>{L('기본 컴퓨트 인스턴스도 만들기 (-C, 노드에서 CUDA를 쓸 때만)', 'Also make the default compute instance (-C, only for CUDA on the node)')}</span></label>
         </>
       ) : (
         <>
-          <p className="muted small">{on ? L('MIG를 끄면 카드 한 장 그대로(패스스루 · 시분할 vGPU)로 돌아갑니다. MIG-backed vGPU를 쓰는 풀은 켜지지 않게 됩니다.', 'With MIG off the card is whole again (passthrough or time-sliced vGPU); pools on MIG-backed vGPU no longer start.')
-            : L('MIG를 켜면 시분할 vGPU 프로필은 사라지고 MIG-backed 프로필만 남습니다. 켠 뒤 GPU 인스턴스를 만드세요.', 'With MIG on only MIG-backed vGPU profiles remain; make GPU instances afterwards.')}</p>
+          <p className="muted small">{on ? L('MIG를 끄면 MIG-backed vGPU를 쓰는 풀은 켜지지 않습니다.', 'With MIG off the card is whole again (passthrough or time-sliced vGPU); pools on MIG-backed vGPU no longer start.')
+            : L('MIG를 켜면 MIG-backed 프로필만 남습니다. 켠 뒤 GPU 인스턴스를 만드세요.', 'With MIG on only MIG-backed vGPU profiles remain; make GPU instances afterwards.')}</p>
           <label className="check"><input type="checkbox" checked={reset} onChange={(e) => setReset(e.target.checked)} />
-            <span>{L('바로 GPU 리셋 (nvidia-smi -r). 리셋이 안 되는 환경이면 노드를 재부팅해야 반영됩니다.', 'Reset the GPU right away (nvidia-smi -r). Where a reset is not possible, a node reboot applies it.')}</span></label>
+            <span>{L('바로 GPU 리셋 (nvidia-smi -r, 안 되면 노드 재부팅)', 'Reset the GPU right away (nvidia-smi -r, else reboot the node)')}</span></label>
         </>
       )}
       {busyVms.length > 0 && <div className="alert small error">{L('먼저 끌 VM: ', 'Stop first: ')}{busyVms.map((v) => `${v.name} (${v.vmid})`).join(', ')}</div>}

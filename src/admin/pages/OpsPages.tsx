@@ -5,6 +5,7 @@ import { opsApi } from '../../api/ops';
 import type { ClusterHa, HaGroup, HaResource, MaintPreview, MaintStatus, OpsTask, PairMember, PairStatus } from '../../api/ops';
 import type { Cluster, ClusterNode } from '../../api/types';
 import { Dialog } from '../../components/Dialog';
+import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { SettingsStatus } from '../../components/SettingsShell';
@@ -116,8 +117,7 @@ export function TasksPage() {
         return (
           <>
             <p className="muted small page-intro">{d.scope === 'all'
-              ? L('복제 · 골든 이미지 배포 · 롤아웃 · 마이그레이션 · 백업처럼 시간이 걸리는 Proxmox 작업입니다. 진행 중인 작업이 위에, 끝난 작업이 최근 순으로 나옵니다. 실패한 작업은 로그에서 이유를 볼 수 있습니다.',
-                'The Proxmox work that takes a while: clones, golden-image deploys and rollouts, migrations, backups. Running tasks come first, then the latest that ended. A failed task\'s log says why.')
+              ? L('복제 · 배포 · 마이그레이션 · 백업처럼 오래 걸리는 Proxmox 작업입니다.', 'Proxmox work that takes a while: clones, deploys, migrations, backups.')
               : L('내 데스크톱의 작업과 내가 시작한 작업만 보입니다.', 'Only the tasks of your desktops and the ones you started.')}</p>
             <div className="toolbar">
               <div className="segmented" role="group" aria-label={L('보기', 'Show')}>
@@ -255,8 +255,7 @@ function MaintenanceDialog({ cluster, node, onClose, onDone }: { cluster: Cluste
   return (
     <Dialog open wide title={L(`${node} 유지보수 시작`, `Start maintenance on ${node}`)} onClose={onClose} onSubmit={submit} busy={busy || pv.state !== 'ok'} error={error}
       submitLabel={L('유지보수 시작', 'Start maintenance')}>
-      <p className="muted small">{L('유지보수에 들어가면 이 노드는 새 VM을 받지 않고, 켜져 있는 VM은 다른 노드로 라이브 마이그레이션합니다. 다 옮긴 뒤 노드를 재시작하거나 끌 수 있습니다.',
-        'In maintenance the node takes no new VMs and its running VMs live-migrate to the other nodes. Once they are off you can restart or shut the node down.')}</p>
+      <p className="muted small">{L('새 VM을 받지 않고, 켜진 VM은 다른 노드로 라이브 마이그레이션합니다.', 'The node takes no new VMs; its running VMs live-migrate to the other nodes.')}</p>
       <LoadState value={pv} retry={pv.reload}>{(p) => <PreviewBody p={p} skip={skip} templates={templates} relax={relax}
         setSkip={setSkip} setTemplates={setTemplates} setRelax={setRelax} />}</LoadState>
     </Dialog>
@@ -285,8 +284,8 @@ function PreviewBody({ p, skip, templates, relax, setSkip, setTemplates, setRela
         </table></div>
       )}
       {inUse.length > 0 && !skip && <div className="alert small warn" role="status">{L(
-        `접속 중인 사용자가 ${inUse.length}명 있습니다. 라이브 마이그레이션이라 화면은 대개 이어지지만 몇 초 멈출 수 있으니 미리 알리세요 (플랫폼 설정 > 공지).`,
-        `${inUse.length} user(s) are connected. Live migration usually keeps their session, but it can freeze for a few seconds: tell them first (Platform settings > Notices).`)}</div>}
+        `접속 중인 사용자가 ${inUse.length}명 있습니다. 화면이 몇 초 멈출 수 있으니 미리 알리세요(플랫폼 설정 > 공지).`,
+        `${inUse.length} user(s) are connected. Their screen can freeze for a few seconds: tell them first (Platform settings > Notices).`)}</div>}
       {cap && !skip && (cap.reason === 'no_target_nodes'
         ? <div className="alert small warn" role="status">{L('옮겨 갈 노드가 없습니다. VM은 이 노드에 그대로 남습니다.', 'There is no node to move to: the VMs stay on this node.')}</div>
         : !cap.ok
@@ -301,11 +300,11 @@ function PreviewBody({ p, skip, templates, relax, setSkip, setTemplates, setRela
         )}
         {p.plan && p.plan.blocking_rules.length > 0 && (
           <label className="check"><input type="checkbox" checked={relax} disabled={skip} onChange={(e) => setRelax(e.target.checked)} />
-            <span>{L(`떨어뜨려 두기 규칙(${p.plan.blocking_rules.join(', ')})을 유지보수 동안 끄기 — 끄지 않으면 그 VM은 옮길 자리가 없습니다`,
+            <span>{L(`떨어뜨려 두기 규칙(${p.plan.blocking_rules.join(', ')})을 유지보수 동안 끄기 (끄지 않으면 그 VM은 옮길 자리가 없음)`,
               `Hold the anti-affinity rules (${p.plan.blocking_rules.join(', ')}) off during maintenance; otherwise their VMs have nowhere to go`)}</span></label>
         )}
         <label className="check"><input type="checkbox" checked={skip} onChange={(e) => setSkip(e.target.checked)} />
-          <span>{L('VM을 옮기지 않고 표시만 하기 (재부팅이 없는 업데이트용 — 노드가 멈추면 VM도 멈춥니다)',
+          <span>{L('VM을 옮기지 않고 표시만 하기 (재부팅 없는 업데이트용, 노드가 멈추면 VM도 멈춤)',
             'Only mark it, move no VMs (for updates without a reboot; if the node stops, so do its VMs)')}</span></label>
       </div>
     </>
@@ -491,8 +490,11 @@ function HaBody({ cluster, ha, reload }: { cluster: Cluster; ha: ClusterHa; relo
   }
   return (
     <>
-      <p className="muted small page-intro">{L('Proxmox HA는 노드가 멈추면 등록된 VM을 다른 노드에서 다시 켭니다. 라이선스 서버 · 게이트웨이처럼 늘 살아 있어야 하는 VM을 올리세요. 데스크톱 풀의 VM은 보통 올리지 않습니다 — 노드가 멈추면 사용자는 다른 데스크톱을 받습니다.',
-        'Proxmox HA starts the listed VMs on another node when theirs stops. Put the VMs that must always run on it - licence servers, gateways. Pool desktops usually stay off it: when a node stops, users get another desktop.')}</p>
+      <p className="muted small page-intro">{L('노드가 멈추면 등록한 VM을 다른 노드에서 다시 켭니다.', 'When a node stops, the listed VMs start on another node.')}</p>
+      <HowTo><ul>
+        <li>{L('라이선스 서버 · 게이트웨이처럼 늘 살아 있어야 하는 VM을 올리세요.', 'Put on it the VMs that must always run, such as licence servers and gateways.')}</li>
+        <li>{L('데스크톱 풀의 VM은 보통 올리지 않습니다. 노드가 멈추면 사용자는 다른 데스크톱을 받습니다.', 'Pool desktops usually stay off it: when a node stops, users get another desktop.')}</li>
+      </ul></HowTo>
       <SettingsStatus items={[
         { label: L('HA 쿼럼', 'HA quorum'), value: ha.quorate === null ? '-' : ha.quorate ? L('정상', 'OK') : L('없음', 'None'), tone: ha.quorate === false ? 'warn' : ha.quorate ? 'ok' : undefined },
         { label: L('관리 노드', 'Manager node'), value: ha.master || '-' },
@@ -524,8 +526,10 @@ function HaBody({ cluster, ha, reload }: { cluster: Cluster; ha: ClusterHa; relo
         </table></div>
       )}
       <h2 className="section-title">{L('HA 그룹', 'HA groups')}</h2>
-      <p className="muted small">{L('그룹은 VM이 어느 노드에서 돌지(우선순위)를 정합니다. PVE 9.1부터는 노드 선호 규칙(node-affinity rule)으로 바뀌어 대상 VM을 함께 지정합니다.',
-        'A group says which nodes its VMs prefer. From PVE 9.1 groups are node-affinity rules, which name their VMs.')}</p>
+      <p className="muted small">{L('VM이 돌 노드와 우선순위를 정합니다.', 'Which nodes the VMs prefer.')}</p>
+      <HowTo><ul>
+        <li>{L('PVE 9.1부터는 노드 선호 규칙(node-affinity rule)이며 대상 VM을 함께 지정합니다.', 'From PVE 9.1 groups are node-affinity rules, which name their VMs.')}</li>
+      </ul></HowTo>
       {ha.groups.length === 0 ? <p className="muted small">{L('그룹이 없습니다.', 'No groups.')}</p> : (
         <div className="table-scroll"><table className="table compact-head">
           <thead><tr><th>{L('이름', 'Name')}</th><th>{L('노드 (우선순위)', 'Nodes (priority)')}</th><th>{L('대상', 'VMs')}</th><th>{L('설정', 'Options')}</th><th className="actions" /></tr></thead>
@@ -675,10 +679,14 @@ export function ServerPairPage() {
     <LoadState value={st} retry={st.reload}>
       {(s) => (
         <>
-          <p className="muted small page-intro">{L('MOAVI Desk 서버를 두 대 이상(활성 1 · 대기 최대 3)으로 묶어 둡니다. 대기 서버는 활성 서버의 설정을 계속 받아 두었다가, 활성 서버가 멈추면 관리자가 대기 서버에서 승격해 넘겨받습니다.',
-            'Groups MOAVI Desk servers: one active, up to three standbys. A standby keeps a copy of the active\'s configuration; when the active stops, an administrator promotes a standby there.')}</p>
-          {s.auto === null && <div className="alert small warn" role="status">{L('이 릴리스에는 자동 전환(automatic failover)이 없습니다. 활성 서버가 멈추면 대기 서버의 이 화면에서 직접 [승격]해야 합니다. 그 사이 사용자는 접속할 수 없습니다.',
-            'This release has no automatic failover. When the active server stops, promote a standby from this page on the standby. Users cannot connect until then.')}</div>}
+          <p className="muted small page-intro">{L('MOAVI Desk 서버를 활성 1대 · 대기 최대 3대로 묶습니다.', 'Pairs MOAVI Desk servers: one active, up to three standbys.')}</p>
+          <HowTo><ul>
+            <li>{L('대기 서버는 활성 서버의 설정을 계속 받아 둡니다.', 'A standby keeps a copy of the active\'s configuration.')}</li>
+            <li>{L('활성 서버에서 [대기 서버 추가]로 코드를 만들고, 대기로 쓸 서버에서 [이 서버를 대기로 붙이기]에 넣습니다.', 'Make a code with Add a standby on the active, then paste it under Make this server a standby on the other.')}</li>
+            <li>{L('활성 서버가 멈추면 대기 서버의 이 화면에서 [승격]합니다.', 'When the active stops, promote a standby from this page on it.')}</li>
+          </ul></HowTo>
+          {s.auto === null && <div className="alert small warn" role="status">{L('이 릴리스에는 자동 전환이 없습니다. 승격할 때까지 사용자는 접속할 수 없습니다.',
+            'This release has no automatic failover. Users cannot connect until a standby is promoted.')}</div>}
           <SettingsStatus items={[
             { label: L('이 서버', 'This server'), value: roleL(s.role), tone: s.role === 'standalone' ? 'off' : 'ok' },
             { label: L('구성원', 'Members'), value: `${s.members.length + 1} / ${s.max_members}` },
@@ -720,16 +728,16 @@ export function ServerPairPage() {
           )}
           <section className="panel witness-panel">
             <h2 className="section-title">{L('증인(witness)', 'Witness')}</h2>
-            <p className="small">{L('자동 전환에는 표가 셋 이상 있어야 합니다. 서버 두 대면 표가 둘이라, 세 번째 표를 내는 작은 프로그램인 증인을 둡니다. 증인은 데이터 · 비밀번호를 갖지 않고 투표만 합니다.',
-              'Automatic failover needs at least three votes; two servers have two. The witness is a small process that casts the third vote. It holds no data or passwords; it only votes.')}</p>
-            <ul className="vmm-list small">
-              <li>{L('제3의 장소에 둡니다. 서버 한 대와 같은 방에 두면 그 방이 멈출 때 표 두 개를 함께 잃습니다.', 'Put it at a third site: in the same room as one server, losing the room loses two votes.')}</li>
-              <li>{L('MOAVI Desk가 없는 별도 호스트(라즈베리 파이, 작은 VM · LXC, VPS)면 충분합니다. 메모리 약 40 MB, TCP 5005 포트 하나.', 'A host of its own without MOAVI Desk (Raspberry Pi, small VM or LXC, VPS): about 40 MB of memory and TCP port 5005.')}</li>
+            <p className="small">{L('서버 두 대일 때 자동 전환의 세 번째 표를 냅니다.', 'Casts the third vote for automatic failover with two servers.')}</p>
+            <HowTo><ul>
+              <li>{L('데이터 · 비밀번호 없이 투표만 합니다.', 'It holds no data or passwords; it only votes.')}</li>
+              <li>{L('제3의 장소에 두세요. 서버와 같은 방이면 표 두 개를 함께 잃습니다.', 'Put it at a third site: in a server\'s room, losing the room loses two votes.')}</li>
+              <li>{L('MOAVI Desk가 없는 작은 호스트(라즈베리 파이, VM · LXC, VPS)면 됩니다.', 'Any small host without MOAVI Desk (Raspberry Pi, VM or LXC, VPS).')}</li>
+              <li>{L('메모리 약 40 MB, TCP 5005 포트 하나를 씁니다.', 'About 40 MB of memory and TCP port 5005.')}</li>
               <li>{L('시계가 서버와 5초 이내여야 합니다(NTP).', 'Its clock within 5 seconds of the servers (NTP).')}</li>
-            </ul>
+            </ul></HowTo>
             <p className="muted small">{s.auto === null
-              ? L('이 릴리스는 자동 전환이 없어 증인을 추가할 수 없습니다. 자동 전환이 들어간 릴리스에서 활성 서버의 이 화면에 [증인 추가]가 나타나고, 거기서 설치 명령을 받습니다.',
-                'This release has no automatic failover, so a witness cannot be added. In a release that has it, Add witness appears here on the active server and gives the install command.')
+              ? L('이 릴리스는 자동 전환이 없어 증인을 추가할 수 없습니다.', 'This release has no automatic failover, so a witness cannot be added.')
               : L('증인은 활성 서버의 엔진 HA 화면에서 추가합니다.', 'Add the witness on the active server\'s engine HA page.')}</p>
           </section>
           {dialog === 'code' && <CodeDialog s={s} onClose={() => setDialog(null)} onDone={st.reload} />}
@@ -783,8 +791,8 @@ function CodeDialog({ s, onClose, onDone }: { s: PairStatus; onClose: () => void
   if (code) {
     return (
       <Dialog open title={L('페어링 코드', 'Pairing code')} onClose={onClose}>
-        <p className="small">{L(`대기로 쓸 서버(새로 설치한 MOAVI Desk)에 관리자로 로그인해 플랫폼 설정 > 서버 이중화 > [이 서버를 대기로 붙이기]에 이 코드를 붙여 넣으세요. ${at(code.expires_at)}까지, 한 번만 쓸 수 있습니다.`,
-          `On the server to become the standby (a fresh MOAVI Desk), sign in as administrator, open Platform settings > Server pair > Make this server a standby, and paste this code. Valid until ${at(code.expires_at)}, once.`)}</p>
+        <p className="small">{L(`대기로 쓸 서버의 서버 이중화 > [이 서버를 대기로 붙이기]에 붙여 넣으세요. ${at(code.expires_at)}까지 한 번만 쓸 수 있습니다.`,
+          `Paste it under Server pair > Make this server a standby on the server to become the standby. Valid once, until ${at(code.expires_at)}.`)}</p>
         <textarea readOnly className="code pair-code" rows={4} value={code.code} onFocus={(e) => e.currentTarget.select()} />
         <button type="button" className="btn" onClick={() => navigator.clipboard?.writeText(code.code)}>{L('복사', 'Copy')}</button>
       </Dialog>
@@ -792,8 +800,8 @@ function CodeDialog({ s, onClose, onDone }: { s: PairStatus; onClose: () => void
   }
   return (
     <PasswordDialog title={L('대기 서버 추가', 'Add a standby')} submitLabel={L('코드 만들기', 'Make a code')} onClose={onClose}
-      text={L('대기 서버가 이 서버에 접속할 주소로 일회용 코드(15분)를 만듭니다. 코드를 쓴 대기 서버는 이 서버의 설정과 저장된 비밀번호를 모두 받으므로 비밀번호를 다시 확인합니다.',
-        'Makes a one-time code (15 minutes) with the address the standby reaches this server at. The standby gets this server\'s configuration and stored credentials, so confirm with your password.')}
+      text={L('15분짜리 일회용 코드를 만듭니다. 대기 서버가 설정과 저장된 비밀번호를 모두 받으므로 비밀번호를 확인합니다.',
+        'Makes a one-time code (15 minutes). The standby gets this server\'s configuration and stored credentials, so confirm with your password.')}
       run={async (pw) => { setCode(await opsApi.pairingCode(url.trim(), pw)); onDone(); }}>
       <label><span>{L('이 서버의 주소 (https://)', 'This server\'s address (https://)')}</span>
         <input required type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://moavi-a.example.com:5000" /></label>
@@ -830,8 +838,8 @@ function PromoteDialog({ onClose, onDone }: { onClose: () => void; onDone: (text
   const [needForce, setNeedForce] = useState(false);
   return (
     <PasswordDialog title={L('이 서버 승격', 'Promote this server')} submitLabel={L('승격', 'Promote')} onClose={onClose}
-      text={L('이 대기 서버가 활성 서버가 되어 클러스터를 다룹니다. 예전 활성 서버가 아직 응답하면 먼저 마지막 설정을 받아 오고 물러나게 합니다. 승격 뒤 서버가 다시 시작합니다.',
-        'This standby becomes the active server and acts on the clusters. If the old active still answers, its latest configuration comes over first and it steps down. The server restarts afterwards.')}
+      text={L('이 서버가 활성 서버가 되고 다시 시작합니다. 예전 활성 서버가 응답하면 마지막 설정을 받아 오고 물러나게 합니다.',
+        'This server becomes the active one and restarts. If the old active still answers, its latest configuration comes over first and it steps down.')}
       run={async (pw) => {
         try {
           const r = await opsApi.promote(pw, force);

@@ -3,6 +3,7 @@ import { FOLDER_KEYS, folderName, sizeText, STORAGE_DEFAULTS, storageApi, storag
 import type { FolderTemplate, PoolStorage, PoolStorageInput, StorageRow } from '../../api/storage';
 import type { FolderKey, Pool } from '../../api/types';
 import { Dialog } from '../../components/Dialog';
+import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { useLoad } from '../../components/useLoad';
 import { useL } from './OpsPages';
@@ -45,8 +46,12 @@ export function StorageStep({ s, set, hasPassword }: {
     <div className="wiz-body">
       <label className="check"><input type="checkbox" checked={s.enabled} onChange={(e) => set('enabled', e.target.checked)} />
         <span className="strong">{L('공유 NAS에 사용자별 폴더(홈 · 프로젝트 · 스크래치)를 둡니다', 'Folders per user on a shared NAS (home, project, scratch)')}</span></label>
-      <small className="muted hint-indent">{L('Linux는 autofs로 필요할 때 마운트되고, Windows는 로그인할 때 사용자 권한으로 드라이브가 연결됩니다. 엔진은 접속 · 공유 풀 배정 · 빌드 시작 때 맵과 폴더가 있는지만 확인하고 없을 때만 고칩니다. 실패해도 접속은 막지 않고 경고만 합니다.',
-        'Linux mounts with autofs when used; Windows maps drives at sign-in, as the user. On connect, routing and build start the engine only checks the map and the folders and fixes what is missing. A failure warns and never stops the connect.')}</small>
+      <small className="muted hint-indent">{L('Linux는 autofs로, Windows는 로그인 때 드라이브로 연결됩니다.',
+        'Linux mounts with autofs; Windows maps drives at sign-in.')}</small>
+      <HowTo><ul>
+        <li>{L('엔진은 접속 · 공유 풀 배정 · 빌드 시작 때 맵과 폴더를 확인하고 없는 것만 고칩니다.', 'On connect, routing and build start the engine checks the map and folders and fixes only what is missing.')}</li>
+        <li>{L('실패해도 접속은 막지 않고 경고만 합니다.', 'A failure only warns; it never stops the connect.')}</li>
+      </ul></HowTo>
       <fieldset className="plain" disabled={!s.enabled}>
         <div className="mode-cards mode-cards-2" role="radiogroup" aria-label={L('종류', 'Kind')}>
           {(['nfs', 'smb'] as const).map((k) => (
@@ -99,8 +104,11 @@ export function StorageStep({ s, set, hasPassword }: {
               </tr>);
           })}</tbody>
         </table></div>
-        <small className="muted">{L('홈 · 스크래치 규칙에는 {username}이, 프로젝트 규칙에는 {department} 또는 {pool}이 들어갑니다. 할당량은 NAS 쪽 quota로 걸고, 여기 값은 사용량 경고 기준입니다(0 = 없음). 스크래치 보관 일수가 지난 빌드 작업 폴더(job_*)는 사용자 권한으로 지웁니다.',
-          'Home and scratch rules hold {username}; the project rule {department} or {pool}. Set quotas on the NAS; the value here is the warning line (0 = none). Build job folders (job_*) older than the scratch retention are removed as the user.')}</small>
+        <HowTo><ul>
+          <li>{L('홈 · 스크래치 규칙에는 {username}, 프로젝트 규칙에는 {department} 또는 {pool}을 씁니다.', 'Home and scratch rules hold {username}; the project rule {department} or {pool}.')}</li>
+          <li>{L('할당량은 경고 기준입니다(0 = 없음). 실제 제한은 NAS quota로 겁니다.', 'The quota is the warning line (0 = none); set the real limit on the NAS.')}</li>
+          <li>{L('보관 일수가 지난 빌드 작업 폴더(job_*)는 사용자 권한으로 지웁니다.', 'Build job folders (job_*) past the retention are removed as the user.')}</li>
+        </ul></HowTo>
 
         {s.kind === 'nfs' && (
           <>
@@ -109,12 +117,12 @@ export function StorageStep({ s, set, hasPassword }: {
               <label className={`mode-card${s.create_by === 'user' ? ' on' : ''}`}>
                 <input type="radio" name="nas-create" checked={s.create_by === 'user'} onChange={() => set('create_by', 'user')} aria-label={L('사용자 본인', 'The user')} />
                 <span className="strong">{L('사용자 본인', 'The user')}</span>
-                <span className="muted small">{L('로그인 스크립트 · runuser 로 사용자 권한에서 만듦. NAS의 home/ · scratch/ 는 1777(스티키).', 'Made as the user (sign-in script, runuser). home/ and scratch/ on the NAS are 1777 (sticky).')}</span>
+                <span className="muted small">{L('로그인 때 사용자 권한으로 만듭니다. NAS의 home/ · scratch/ 는 1777.', 'Made as the user at sign-in. home/ and scratch/ on the NAS are 1777.')}</span>
               </label>
               <label className={`mode-card${s.create_by === 'engine' ? ' on' : ''}`}>
                 <input type="radio" name="nas-create" checked={s.create_by === 'engine'} onChange={() => set('create_by', 'engine')} aria-label={L('엔진', 'The engine')} />
                 <span className="strong">{L('엔진 (권장)', 'The engine (recommended)')}</span>
-                <span className="muted small">{L('엔진 호스트에 마운트한 관리용 export(엔진 IP만 no_root_squash)에 만들고 소유자를 맞춤. 첫 접속 · 풀 권한 부여 때.', 'Made on an admin mount of the export on the engine host (no_root_squash for the engine only), given to the user. At first connect and on a grant.')}</span>
+                <span className="muted small">{L('엔진의 관리용 마운트(엔진 IP만 no_root_squash)에서 만듭니다.', 'Made on the engine\'s admin mount (no_root_squash for the engine only).')}</span>
               </label>
             </div>
             {s.create_by === 'engine' && (
@@ -126,7 +134,7 @@ export function StorageStep({ s, set, hasPassword }: {
           </>
         )}
         <label className="check"><input type="checkbox" checked={s.private} onChange={(e) => set('private', e.target.checked)} />
-          <span>{L('홈 · 스크래치는 본인만 읽고 쓰기 (700) — 모든 VM과 NAS의 사용자 ID가 같을 때(AD/LDAP + SSSD)만 보장', 'Home and scratch owner only (700) - guaranteed only when every VM and the NAS share user ids (AD/LDAP + SSSD)')}</span></label>
+          <span>{L('홈 · 스크래치는 본인만 읽고 쓰기 (700, AD/LDAP + SSSD 필요)', 'Home and scratch owner only (700, needs AD/LDAP + SSSD)')}</span></label>
         <label className="check"><input type="checkbox" checked={s.build_workdir} disabled={!s.folders.scratch.enabled} onChange={(e) => set('build_workdir', e.target.checked)} />
           <span>{L('빌드 작업은 스크래치/{username}/{작업 ID} 에서, 사용자 권한으로 실행', 'Build jobs run in scratch/{username}/{job id}, as the user')}</span></label>
         {s.kind === 'smb' && (
@@ -161,23 +169,25 @@ export function StorageStep({ s, set, hasPassword }: {
             <span className="field-label">{L('Windows 데스크톱 저장 위치', 'Where Windows desktops save')}</span>
             <label className="check"><input type="checkbox" checked={!!s.win_redirect} disabled={!s.folders.home.enabled}
               onChange={(e) => { set('win_redirect', e.target.checked); if (!e.target.checked) set('win_block_local', false); }} />
-              <span>{L(`바탕 화면 · 문서 · 다운로드 · 사진을 홈 드라이브(${s.folders.home.drive}:)로 — 파일이 NAS에 저장되고 백업됩니다`,
-                `Desktop, Documents, Downloads and Pictures on the home drive (${s.folders.home.drive}:) - files are kept and backed up on the NAS`)}</span></label>
+              <span>{L(`바탕 화면 · 문서 · 다운로드 · 사진을 홈 드라이브(${s.folders.home.drive}:)에 저장`,
+                `Desktop, Documents, Downloads and Pictures on the home drive (${s.folders.home.drive}:)`)}</span></label>
             <label className="check"><input type="checkbox" checked={!!s.win_block_local} disabled={!s.win_redirect}
               onChange={(e) => set('win_block_local', e.target.checked)} />
-              <span>{L('C 드라이브 숨기고 막기 — 탐색기 · 열기/저장 창에서 C:가 보이지 않습니다(프로그램은 그대로 실행)',
-                'Hide and refuse the C: drive - not shown in Explorer or the open / save dialogs (programs still run)')}</span></label>
-            {s.win_redirect && <small className="muted hint-indent">{L('다음 로그인부터 적용됩니다. C 드라이브 막기는 이 VM의 모든 계정(관리자 포함)에 적용되니, 관리 작업은 관리 콘솔 · 원격 지원으로 하세요. AD가 있으면 GPO 폴더 리디렉션을 써도 됩니다.',
-              'Takes effect at the next sign-in. Hiding C: applies to every account on the VM (administrators too) - do admin work from the console or remote support. With AD a GPO folder redirection works too.')}</small>}
+              <span>{L('C 드라이브 숨기고 막기 (프로그램은 그대로 실행)',
+                'Hide and refuse the C: drive (programs still run)')}</span></label>
+            {s.win_redirect && <small className="muted hint-indent">{L('다음 로그인부터 적용되며, C 막기는 관리자 계정에도 적용됩니다.',
+              'Takes effect at the next sign-in; hiding C: applies to administrators too.')}</small>}
           </>
         )}
-        <div className="callout"><Icon name="info" size={18} />
-          <p>{s.kind === 'nfs'
-            ? L('VM의 root로는 사용자 폴더를 만들지 않습니다(NFS root_squash). NAS는 데스크톱과 같은 데이터센터에 두고, 사용자당 활성 위치는 하나만(다중 마스터 복제 없음) 두세요.',
-              'User folders are never made as root on the VM (NFS root_squash). Keep the NAS in the desktops\' datacenter, one active location per user (no multi-master replication).')
-            : L('Windows 드라이브는 사용자 로그온 세션에서 연결됩니다(게스트 에이전트는 SYSTEM이라 연결해도 사용자에게 안 보임). AD가 있으면 GPO 드라이브 매핑(\\\\서버\\공유\\home\\%USERNAME%)을 써도 됩니다. 2026년 4월 Windows 업데이트부터 Kerberos 기본 암호화가 AES입니다 — NAS 컴퓨터 계정의 AES 지원을 확인하세요.',
-              'Windows drives are mapped in the user\'s sign-in session (the agent runs as SYSTEM). With AD a GPO drive map (\\\\server\\share\\home\\%USERNAME%) works too. Since the April 2026 Windows update Kerberos defaults to AES - check the NAS computer account supports it.')}</p>
-        </div>
+        <HowTo>{s.kind === 'nfs' ? <ul>
+          <li>{L('VM의 root로는 사용자 폴더를 만들지 않습니다(NFS root_squash).', 'User folders are never made as root on the VM (NFS root_squash).')}</li>
+          <li>{L('NAS는 데스크톱과 같은 데이터센터에 두세요.', 'Keep the NAS in the desktops\' datacenter.')}</li>
+          <li>{L('사용자당 활성 위치는 하나만 두세요(다중 마스터 복제 없음).', 'One active location per user (no multi-master replication).')}</li>
+        </ul> : <ul>
+          <li>{L('드라이브는 사용자 로그온 세션에서 연결됩니다.', 'Drives are mapped in the user\'s sign-in session.')}</li>
+          <li>{L('AD가 있으면 GPO 드라이브 매핑(\\\\서버\\공유\\home\\%USERNAME%)도 됩니다.', 'With AD a GPO drive map (\\\\server\\share\\home\\%USERNAME%) works too.')}</li>
+          <li>{L('2026년 4월 업데이트부터 Kerberos 기본 암호화가 AES입니다. NAS 컴퓨터 계정의 AES 지원을 확인하세요.', 'Since the April 2026 update Kerberos defaults to AES; check the NAS computer account supports it.')}</li>
+        </ul>}</HowTo>
       </fieldset>
     </div>
   );
@@ -231,7 +241,7 @@ export function PoolStoragePanel({ pool }: { pool: Pool }) {
         </div>
       </div>
       {notice && <div className={`alert small ${notice.kind === 'error' ? 'error' : 'info'}`} role="status">{notice.text}</div>}
-      {a && s.enabled && a.data_on_nas_only && <div className="alert info small">{L('이 풀의 데스크톱은 로그아웃 · 일정에 따라 처음 상태로 돌아갑니다. 남는 데이터는 NAS 폴더뿐이라고 포털에 표시됩니다.',
+      {a && s.enabled && a.data_on_nas_only && <div className="alert info small">{L('이 풀은 처음 상태로 돌아가므로 데이터는 NAS 폴더에만 남습니다.',
         'Desktops of this pool go back to their base; only the NAS folders keep data - the portal says so.')}</div>}
       {a && s.enabled && a.autofs && (
         <div className="small" style={{ margin: '4px 0 8px' }}>
