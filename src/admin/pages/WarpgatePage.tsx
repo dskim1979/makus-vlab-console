@@ -118,17 +118,17 @@ function WarpgateForm({ initial, onSaved }: { initial: WarpgateConfig; onSaved: 
         </div>
 
         <details className="wg-more">
-          <summary>{L('자세히', 'Details')}</summary>
+          <summary>{L('사용 방법', 'How to')}</summary>
           <ul className="muted small ssh-howto">
-            <li>{L('브라우저 RDP 제공 — 포털 "브라우저 RDP로 열기"가 이 설정을 따릅니다. 보안 게이트웨이로 바꾸면 사용자는 보안 게이트웨이 화면에 로그인해 데스크톱을 엽니다.',
-              'Browser RDP served by - the portal\'s "Open in browser RDP" follows it. With Warpgate, users sign in to Warpgate and open the desktop there.')}</li>
-            <li>{L('앱·RDP 파일 — .rdp가 데스크톱 대신 보안 게이트웨이를 향하고, 사용자 이름에 1회용 티켓이 들어갑니다. 비밀번호는 없습니다.',
+            <li>{L('브라우저 RDP 제공 — 보안 게이트웨이로 두면 사용자는 보안 게이트웨이에 로그인해 데스크톱을 엽니다.',
+              'Browser RDP served by - with Warpgate, users sign in to Warpgate and open the desktop there.')}</li>
+            <li>{L('앱·RDP 파일 — .rdp가 보안 게이트웨이를 향하고 1회용 티켓으로 들어갑니다.',
               'App / RDP file - the .rdp points at Warpgate, with a single-use ticket as the user name and no password.')}</li>
-            <li>{L('장애 시 — 기본은 "보안 게이트웨이에 연결할 수 없습니다"로 막습니다. 직접 접속 허용은 장애 대응 중에만 잠깐 켜세요. 직접 접속을 막은 현장에서는 어차피 실패합니다.',
-              'When Warpgate is down - connects are refused by default. Allow the direct path only briefly during an outage; it fails anyway where direct access is blocked.')}</li>
-            <li>{L('RDP 로그인 — 자동 로그인하지 않고 데스크톱 로그온 화면을 띄웁니다. 사용자는 본인 계정으로 들어갑니다. NLA 서비스 계정은 네트워크 수준 인증용이며 사용자 비밀번호가 아닙니다. NLA를 끈 데스크톱이면 비워 두세요.',
-              'RDP sign-in - no auto logon; the desktop\'s logon screen asks for the user\'s own account. The NLA service account only passes network-level auth and is not a user password. Leave it empty if NLA is off.')}</li>
-            <li>{L('API 토큰 — 보안 게이트웨이 관리 화면에서 관리자 역할 토큰을 만드세요. 자체 서명 인증서면 TLS 검증을 끄세요.',
+            <li>{L('장애 시 — 기본은 접속을 막습니다. 직접 접속 허용은 장애 대응 중에만 잠깐 켜세요.',
+              'When Warpgate is down - connects are refused by default. Allow the direct path only briefly during an outage.')}</li>
+            <li>{L('RDP 로그인 — 사용자는 데스크톱 로그온 화면에서 본인 계정으로 들어갑니다. NLA 서비스 계정은 NLA를 끈 데스크톱이면 비워 두세요.',
+              'RDP sign-in - users sign in with their own account on the desktop logon screen. Leave the NLA service account empty if NLA is off.')}</li>
+            <li>{L('API 토큰 — 보안 게이트웨이 관리 화면에서 관리자 토큰을 만드세요. 자체 서명 인증서면 TLS 검증을 끄세요.',
               'API token - create an admin-role token in the Warpgate admin UI. Turn TLS verification off for a self-signed certificate.')}</li>
           </ul>
         </details>
@@ -186,10 +186,10 @@ function DevicesSection() {
             <ul className="muted small ssh-howto">
               <li>{L('켜기 — 서버 .env에 VLAB_RDPGW=1, VLAB_RDPGW_KEY(32자, openssl rand -hex 16)를 넣고 docker compose up -d.',
                 'Turn on - in the .env of the server set VLAB_RDPGW=1 and VLAB_RDPGW_KEY (32 characters, openssl rand -hex 16), then docker compose up -d.')}</li>
-              <li>{L('사용자 PC — 자체 서명 인증서면 처음 접속할 때 포털이 설치 도우미를 안내합니다. PC가 많으면 그룹 정책(컴퓨터 구성 › Windows 설정 › 보안 설정 › 공개 키 정책 › 신뢰할 수 있는 루트 인증 기관)으로 이 인증서를 배포하세요. 공인 인증서면 필요 없습니다.',
-                'User PCs - with a self-signed certificate the portal walks users through the installer on the first connect. For many PCs, deploy this certificate by Group Policy (Computer Configuration › Windows Settings › Security Settings › Public Key Policies › Trusted Root Certification Authorities). Not needed with a public certificate.')}</li>
-              <li>{L('USB — 사용자 PC에서 RemoteFX USB 리디렉션 정책을 켜야 보이는 장치가 있습니다. 데스크톱 쪽 허용·차단은 풀 정책을 따릅니다.',
-                'USB - some devices need RemoteFX USB redirection allowed by policy on the PC of the user. The desktop side follows the pool policy.')}</li>
+              <li>{L('사용자 PC — 자체 서명 인증서면 포털이 처음 접속할 때 설치를 안내합니다. PC가 많으면 그룹 정책(신뢰할 수 있는 루트 인증 기관)으로 배포하세요.',
+                'User PCs - with a self-signed certificate the portal guides the install on the first connect. For many PCs, deploy it by Group Policy (Trusted Root Certification Authorities).')}</li>
+              <li>{L('USB — 일부 장치는 사용자 PC에서 RemoteFX USB 리디렉션 정책을 켜야 보입니다.',
+                'USB - some devices need the RemoteFX USB redirection policy on the user\'s PC.')}</li>
             </ul>
           </details>
         </>
