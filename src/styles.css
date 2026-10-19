@@ -1306,9 +1306,9 @@ dialog.dialog { white-space: normal; text-align: start; }
 .support-period { display: flex; flex-wrap: wrap; gap: 1rem; margin: .6rem 0 .2rem; }
 .support-period label { display: flex; flex-direction: column; gap: .3rem; font-size: .85rem; }
 .support-period input { min-width: 220px; }
-.support-parts { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .6rem; }
+.support-parts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .6rem; }
 .support-sub { margin: 1rem 0 .3rem; font-size: .9rem; }
-.support-counts { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: .6rem; margin-bottom: .8rem; }
+.support-counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: .6rem; margin-bottom: .8rem; }
 .support-counts > div { display: flex; flex-direction: column; gap: .15rem; padding: .6rem .75rem; border-radius: 10px; background: var(--surface-2); }
 .support-cmd { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; padding: .45rem .6rem; border-radius: 8px; background: var(--surface-2); }
 
@@ -1531,14 +1531,14 @@ fieldset.plain:disabled { opacity: .55; }
 
 /* 플랫폼 설정 > 기능 · 시작하기 */
 .features { display: flex; flex-direction: column; gap: .9rem; }
-.profile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: .7rem; }
+.profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: .7rem; }
 .profile-card { display: flex; flex-direction: column; gap: .35rem; text-align: left; padding: 1rem; border-radius: var(--radius); border: 1.5px solid var(--border);
   background: var(--surface); color: inherit; cursor: pointer; font: inherit; }
 .profile-card:hover { border-color: var(--accent); }
 .profile-card.on { border-color: var(--accent); background: var(--accent-soft); }
 .profile-icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
 .features-sub { margin: .4rem 0 0; font-size: .95rem; }
-.bundle-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: .6rem; }
+.bundle-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: .6rem; }
 .features-detail summary { cursor: pointer; font-weight: 600; }
 .group-list { display: flex; flex-direction: column; gap: .45rem; margin: .6rem 0; }
 .group-list label.check { display: flex; align-items: flex-start; gap: .5rem; }
