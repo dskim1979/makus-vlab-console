@@ -1626,3 +1626,13 @@ tr.clickable:hover td { background: var(--surface-2); }
 .ad-list .table td.nowrap, .ad-list .table th { white-space: nowrap; }
 .ad-list .table td.ad-desc { min-width: 12rem; }
 @media (max-width: 1100px) { .ad-split { grid-template-columns: 1fr; } .ad-tree { max-height: 40vh; } }
+
+/* 가상머신 > 이미지 > 데스크톱 템플릿 */
+.desktpl-grid { margin-bottom: 1rem; }
+.desktpl-card { cursor: default; justify-content: space-between; }
+.desktpl-card:hover { border-color: var(--border); }
+.desktpl-meta { margin-top: auto; }
+.desktpl-state { display: flex; flex-direction: column; gap: .15rem; max-width: 22rem; }
+.desktpl-state .muted { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.desktpl-progress { min-width: 10rem; }
+.desktpl-log { max-height: 60vh; white-space: pre-wrap; }
