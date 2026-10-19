@@ -17,7 +17,7 @@ export type DeskBuild = {
 export type DeskBuildInput = {
   node: string; storage: string; bridge: string; name?: string; cores?: number; memory_mb?: number; disk_gb?: number;
   windows_iso?: string; virtio_iso?: string; edition?: string; language?: 'ko-KR' | 'en-US';
-  vendor_dir?: string; accept_eula?: boolean; snippets_storage?: string;
+  vendor_dir?: string; accept_eula?: boolean; iso_storage?: string;   // where the cloud-init CD of a Linux build goes
 };
 export type DeskBuildStarted = { build: DeskBuild; admin_password?: string; admin_user?: string };
 
