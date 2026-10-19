@@ -28,8 +28,8 @@ export function AccelChecksPage() {
         list.forEach((f) => { const k = f.name ?? '-'; groups.set(k, [...(groups.get(k) ?? []), f]); });
         return (
           <>
-            <p className="muted small page-intro">{L('카드를 단 데스크톱 VM · 보드 · 라이선스 서버를 보고, GPU · AMD Xilinx Alveo · NPU 패스스루에서 알려진 문제(켜지지 않음, 카드 리셋, 비트스트림 지워짐, vGPU 성능 제한, 라이선스 멈춤 등)가 생길 만한 설정을 미리 알려 줍니다. 아무것도 바꾸지 않습니다.',
-              'Looks at the desktop VMs with a card, the boards and the licence servers and flags settings known to cause trouble with GPU, AMD Xilinx Alveo and NPU passthrough (VM will not start, card reset, bitstream lost, vGPU throttled, licence stopped). Changes nothing.')}</p>
+            <p className="muted small page-intro">{L('GPU · Alveo · NPU 패스스루에서 문제가 될 설정을 찾습니다. 아무것도 바꾸지 않습니다.',
+              'Flags settings known to break GPU, Alveo and NPU passthrough. Changes nothing.')}</p>
             <div className="toolbar">
               <div className="seg" role="group">
                 {(['all', 'error', 'warn', 'info'] as const).map((k) => (
@@ -68,8 +68,8 @@ export function AccelChecksPage() {
                 <li>{L('BIOS: VT-d / AMD-Vi, Above 4G Decoding(큰 BAR), SR-IOV(NPU VF)를 켭니다.', 'BIOS: VT-d / AMD-Vi, Above 4G Decoding (large BARs), SR-IOV (NPU VFs).')}</li>
                 <li>{L('카드는 노드에서 vfio-pci에 묶습니다. Alveo를 VM에 통째로 넘기면 노드에 xclmgmt · xocl을 올리지 않습니다(블랙리스트).', 'Bind the cards to vfio-pci on the node. When an Alveo goes to the VM whole, keep xclmgmt and xocl off the node (blacklist).')}</li>
                 <li>{L('카드마다 IOMMU 그룹이 따로인지 확인합니다. 다른 장치와 같은 그룹이면 슬롯을 바꿉니다.', 'Each card should be in its own IOMMU group; move the slot if it shares one.')}</li>
-                <li>{L('Alveo 플래시(shell) 갱신 뒤에는 노드를 완전히 껐다 켭니다. 팬이 계속 최고 속도면 카드 온도와 BMC 로그를 봅니다.', 'After an Alveo flash (shell) update, cold-reboot the node. If the fans stay at full speed, check the card temperature and the BMC log.')}</li>
-                <li>{L('Vivado · Vitis 라이선스는 MAC에 묶인 노드 고정보다 플로팅(라이선스 서버)을 씁니다. 골든 이미지 · 복제 VM은 MAC이 바뀝니다.', 'Use floating (licence server) Vivado / Vitis licences rather than node-locked ones: golden images and clones get new MACs.')}</li>
+                <li>{L('Alveo 플래시(shell) 갱신 뒤에는 노드를 완전히 껐다 켭니다.', 'After an Alveo flash (shell) update, cold-reboot the node.')}</li>
+                <li>{L('Vivado · Vitis 라이선스는 플로팅(라이선스 서버)을 씁니다. 복제 VM은 MAC이 바뀝니다.', 'Use floating (licence server) Vivado / Vitis licences rather than node-locked ones: golden images and clones get new MACs.')}</li>
               </ul>
             </section>
           </>

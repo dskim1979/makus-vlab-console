@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from '../../api/admin';
 import type { Clipboard, Pool, PoolPolicy } from '../../api/types';
 import { Dialog } from '../../components/Dialog';
+import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
@@ -130,10 +131,12 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
           </div>
           <label className="check"><input type="checkbox" checked={p.rdp_tune ?? true} disabled={!p.protocols.includes('rdp') && !p.protocols.includes('guac')}
             onChange={(e) => set('rdp_tune', e.target.checked)} />
-            <span>{L('Windows 데스크톱 RDP 자동 준비 — 처음 RDP로 접속할 때 원격 데스크톱 켜기 · 방화벽 · H.264/AVC 444 · UDP 설정',
-              'Prepare Windows desktops for RDP - at the first RDP connect: Remote Desktop on, firewall, H.264/AVC 444, UDP')}</span></label>
-          <small className="muted hint-indent">{L('Linux 데스크톱은 xrdp(또는 gnome-remote-desktop)가 있을 때만 RDP로 열리고, 없으면 전용 앱이 SPICE · VNC로 엽니다. AD가 없는 VM은 그 VM의 로컬 계정이 RDP로 들어오게 하고, AD가 있으면 도메인 사용자를 GPO로 원격 데스크톱 사용자 그룹에 넣으세요.',
-            'A Linux desktop opens with RDP only when it runs xrdp (or gnome-remote-desktop); otherwise the client opens SPICE or VNC. Off a domain the VM\'s own accounts may sign in over RDP; with AD put the domain users in Remote Desktop Users by GPO.')}</small>
+            <span>{L('Windows 데스크톱 RDP 자동 준비 (첫 접속 때 원격 데스크톱 · 방화벽 · H.264 설정)',
+              'Prepare Windows desktops for RDP (Remote Desktop, firewall, H.264 at the first connect)')}</span></label>
+          <HowTo><ul>
+            <li>{L('Linux 데스크톱은 xrdp(또는 gnome-remote-desktop)가 있을 때만 RDP로 열고, 없으면 SPICE · VNC로 엽니다.', 'A Linux desktop opens with RDP only when it runs xrdp (or gnome-remote-desktop); otherwise SPICE or VNC.')}</li>
+            <li>{L('AD가 있으면 도메인 사용자를 GPO로 원격 데스크톱 사용자 그룹에 넣으세요.', 'With AD put the domain users in Remote Desktop Users by GPO.')}</li>
+          </ul></HowTo>
           <label className="check"><input type="checkbox" checked={p.spice_fullscreen} disabled={!p.protocols.includes('spice')}
             onChange={(e) => set('spice_fullscreen', e.target.checked)} /><span>{t('pol.fullscreen')}</span></label>
           <span className="field-label">{L('웹 IDE (브라우저)', 'Web IDE (browser)')}</span>
@@ -159,8 +162,8 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
                   onChange={(e) => set('web_ide_idle_min', Math.max(10, Math.min(10080, Number(e.target.value) || 240)))} />
                 <span className="muted small">{t('pol.min')}</span>
               </span>
-              <small className="muted">{L('Linux 데스크톱 · 빌드 VM에 JupyterLab(과 code-server)이 설치돼 있어야 합니다. 가속 자원 > 웹 IDE 세션의 "템플릿 준비"를 보세요.',
-                'Linux desktops and build VMs need JupyterLab (and code-server) installed; see 가속 자원 > 웹 IDE 세션, "preparing the template".')}</small>
+              <small className="muted">{L('템플릿에 JupyterLab(과 code-server)이 있어야 합니다.',
+                'The template needs JupyterLab (and code-server).')}</small>
             </label>
           )}
         </div>
@@ -193,8 +196,8 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
           <span className="field-label">{L('RDP 접속 (Windows 앱 · 브라우저 RDP)', 'RDP connections (Windows app, browser RDP)')}</span>
           <label className="check"><input type="checkbox" checked={!!p.client_drives} onChange={(e) => set('client_drives', e.target.checked)} />
             <span className="strong">{L('내 PC 드라이브 연결 허용', 'Allow the PC\'s drives')}</span></label>
-          <small className="muted hint-indent">{L('사용자 PC의 C: · USB 메모리가 데스크톱 안에 보입니다. 끄면 이 길로 파일을 들이거나 내갈 수 없습니다(기본: 끔).',
-            'The user\'s PC drives and USB sticks show inside the desktop. Off, files cannot be carried in or out that way (default: off).')}</small>
+          <small className="muted hint-indent">{L('켜면 PC의 드라이브 · USB 메모리로 파일을 옮길 수 있습니다.',
+            'On, files can move through PC drives and USB sticks.')}</small>
           <label className="check"><input type="checkbox" checked={p.client_printers ?? true} onChange={(e) => set('client_printers', e.target.checked)} />
             <span className="strong">{L('내 PC 프린터로 인쇄', 'Print to the PC\'s printers')}</span></label>
           <small className="muted hint-indent">{L('브라우저 RDP는 PDF로 내려받아 인쇄합니다.', 'Browser RDP prints to a PDF the browser downloads.')}</small>
@@ -276,8 +279,13 @@ function BusyFields({ p, set }: { p: PoolPolicy; set: <K extends keyof PoolPolic
       <legend>{L('장시간 작업 보호', 'Long jobs')}</legend>
       <label className="check"><input type="checkbox" checked={p.defer_when_busy} onChange={(e) => set('defer_when_busy', e.target.checked)} />
         <span className="strong">{L('작업 중이면 미루기', 'Wait while the desktop is working')}</span></label>
-      <small className="muted hint-indent">{L('미사용 자동 종료 · 최대 접속 시간 · LAB 수업/예약 정리 · 예약 작업이 끄거나 초기화하기 전에, GPU/NPU 사용률 · CPU 부하(게스트 에이전트) · 실행 중인 빌드 작업 · 사용자가 켠 "작업 중"을 확인합니다. 작업 중이면 미루고 사용자와 관리자에게 알립니다.',
-        'Before the idle shutdown, the session limit, LAB class / booking clean-up or a scheduled action stops or resets a desktop, the engine checks GPU/NPU use and CPU load (guest agent), running build jobs and the user’s "Working" switch. While it works, the step waits and the user and admins are told.')}</small>
+      <small className="muted hint-indent">{L('작업 중인 데스크톱은 자동으로 끄거나 초기화하지 않고 미룹니다.',
+        'A working desktop is not stopped or reset automatically; the step waits.')}</small>
+      <HowTo><ul>
+        <li>{L('대상: 미사용 자동 종료 · 최대 접속 시간 · LAB 수업/예약 정리 · 예약 작업', 'Applies to idle shutdown, session limit, LAB class / booking clean-up and scheduled actions.')}</li>
+        <li>{L('GPU/NPU 사용률 · CPU 부하 · 빌드 작업 · 사용자의 "작업 중"을 봅니다.', 'Checks GPU/NPU use, CPU load, build jobs and the user’s "Working" switch.')}</li>
+        <li>{L('미루면 사용자와 관리자에게 알립니다.', 'The user and admins are told.')}</li>
+      </ul></HowTo>
       <div className="form-row form-row-even">
         <label><span>{L('GPU/NPU 사용률 기준', 'GPU/NPU use from')}</span>
           <span className="with-unit"><input type="number" min={1} max={100} value={p.busy_gpu_pct} disabled={!p.defer_when_busy} onChange={num('busy_gpu_pct', 1, 100)} /><span className="muted small">%</span></span></label>

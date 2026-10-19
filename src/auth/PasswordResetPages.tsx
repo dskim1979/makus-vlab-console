@@ -46,8 +46,8 @@ export function ForgotPasswordPage() {
     <Frame title={L('비밀번호 찾기', 'Forgot password')}>
       {sent ? (
         <div className="alert info" role="status">
-          {L('계정이 있고 메일 주소가 등록되어 있으면 재설정 링크를 보냈습니다. 메일함(스팸함 포함)을 확인하세요. 링크는 30분 동안 한 번만 쓸 수 있습니다.',
-            'If the account exists and has a mail address, a reset link is on its way. Check your inbox (and spam). The link works once, for 30 minutes.')}
+          {L('계정이 있으면 재설정 링크를 메일로 보냈습니다. 링크는 30분 동안 한 번 쓸 수 있습니다.',
+            'If the account exists, a reset link is on its way. It works once, for 30 minutes.')}
           {isMock && <div className="small"><Link to="/reset-password?token=mock-reset">{L('모의 모드: 링크 열기', 'Mock mode: open the link')}</Link></div>}
         </div>
       ) : (

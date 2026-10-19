@@ -270,9 +270,9 @@ function SnapshotsTab({ v, onNotice, onChanged }: TabProps) {
               return done(L(`스냅샷 '${name}'을(를) 만들었습니다.`, `Snapshot '${name}' taken.`));
             })}>{L('만들기', 'Take')}</button>
         </div>
-        <p className="muted small">{L('이름은 영문자로 시작하고 영문자 · 숫자 · - _ . 만 씁니다. GPU 패스스루 VM은 메모리 포함 스냅샷이 안 될 수 있습니다.',
-          'A name starts with a letter and uses letters, digits, - _ . only. VMs with a passed-through GPU may refuse a snapshot with memory.')}
-          {v.passthrough.length > 0 && L(' 이 VM은 패스스루 장치가 있어 메모리 포함 스냅샷을 만들 수 없습니다(되돌리면 카드 상태가 맞지 않음).', ' This VM has a passthrough device, so a snapshot with memory is not possible (a rollback would not match the card).')}</p>
+        <p className="muted small">{L('이름은 영문자로 시작하고 영문자 · 숫자 · - _ . 만 씁니다.',
+          'A name starts with a letter and uses letters, digits, - _ . only.')}
+          {v.passthrough.length > 0 && L(' 패스스루 장치가 있어 메모리 포함 스냅샷은 안 됩니다.', ' With a passthrough device a snapshot with memory is not possible.')}</p>
       </section>
       <LoadState value={snaps} retry={snaps.reload}>
         {({ snapshots }) => snapshots.length === 0 ? <div className="empty"><p>{L('스냅샷이 없습니다.', 'No snapshots.')}</p></div> : (
@@ -340,8 +340,8 @@ function MoveTab({ v, onNotice, onChanged }: TabProps) {
     return (
       <div className="alert">
         <p className="strong">{L('이 VM은 노드를 옮길 수 없습니다.', 'This VM cannot move to another node.')}</p>
-        <p>{L(`이 노드의 장치를 직접 쓰고 있습니다 (GPU · PCI · USB 패스스루). 장치를 빼거나 대상 노드에 같은 장치가 있게 한 뒤에 옮기세요.`,
-          'It uses devices of this node directly (GPU, PCI or USB passthrough). Take them off, or have the same device on the target, first.')}</p>
+        <p>{L(`패스스루 장치를 쓰는 VM입니다. 장치를 빼거나 대상 노드에 같은 장치를 두세요.`,
+          'It uses passthrough devices. Take them off, or have the same device on the target.')}</p>
         <ul className="vmm-list">{v.passthrough.map((p) => <li key={p.key}><code className="code">{p.key}</code> <span className="small">{p.value}</span></li>)}</ul>
       </div>
     );
@@ -377,8 +377,8 @@ function MoveTab({ v, onNotice, onChanged }: TabProps) {
             : job.exit === 'OK' ? L(`이동 완료 (${elapsed}초)`, `Moved (${elapsed}s)`) : L(`이동 실패: ${job.exit}`, `Failed: ${job.exit}`)}
         </div>
       )}
-      <p className="muted small">{L('공유 스토리지(Ceph 등)에 있는 디스크는 그대로 두고 메모리만 옮깁니다. 로컬 디스크 VM은 Proxmox가 거절할 수 있습니다.',
-        'Disks on shared storage (Ceph and the like) stay where they are; only memory moves. Proxmox may refuse a VM on local disks.')}</p>
+      <p className="muted small">{L('메모리만 옮기므로 디스크는 공유 스토리지(Ceph 등)에 있어야 합니다.',
+        'Only memory moves: disks have to be on shared storage (Ceph and the like).')}</p>
     </section>
   );
 }
@@ -396,8 +396,8 @@ function ManageTab({ v, name, onNotice, onGone }: { v: VmInfo; name: string; onN
     <>
       <section className="vmm-sec">
         <h3>{L('템플릿으로 변환', 'Make it a template')}</h3>
-        <p className="small">{L('이 VM을 템플릿으로 바꿉니다. 템플릿 관리에서 이것으로 새 데스크톱을 복제할 수 있습니다. 템플릿은 데스크톱이 아니므로 풀에서 빠지고, 배정된 사용자는 더 쓸 수 없습니다. 되돌릴 수 없습니다.',
-          'Turns the VM into a template that 템플릿 관리 clones new desktops from. A template is no desktop: it leaves the pool and its user loses it. This cannot be undone.')}</p>
+        <p className="small">{L('풀에서 빠지고 배정된 사용자는 더 쓸 수 없습니다. 되돌릴 수 없습니다.',
+          'It leaves the pool and its user loses it. This cannot be undone.')}</p>
         {!stopped && <p className="muted small">{L('먼저 VM을 종료하세요.', 'Shut the VM down first.')}</p>}
         <button type="button" className="btn small-btn" disabled={busy || !stopped || v.type !== 'qemu'}
           onClick={() => {
@@ -407,8 +407,8 @@ function ManageTab({ v, name, onNotice, onGone }: { v: VmInfo; name: string; onN
       </section>
       <section className="vmm-sec vmm-danger">
         <h3>{L('VM 삭제', 'Delete the VM')}</h3>
-        <p className="small">{L('Proxmox에서 VM과 디스크를 지우고 풀에서도 뺍니다. 되돌릴 수 없습니다. 확인을 위해 데스크톱 이름을 그대로 입력하세요.',
-          'Deletes the VM and its disks on Proxmox and takes it out of its pool. This cannot be undone. Type the desktop name to confirm.')}</p>
+        <p className="small">{L('VM과 디스크를 지웁니다. 되돌릴 수 없으니 데스크톱 이름을 입력해 확인하세요.',
+          'Deletes the VM and its disks; this cannot be undone. Type the desktop name to confirm.')}</p>
         <div className="vmm-row">
           <label className="vmm-grow">{L(`'${name}' 입력`, `Type '${name}'`)}
             <input value={typed} autoComplete="off" spellCheck={false} onChange={(e) => setTyped(e.target.value)} /></label>

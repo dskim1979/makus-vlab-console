@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AB_WHY_KO, accelBookingsApi, type ABSettings, type AccelBooking } from '../../api/accelBookings';
 import { buildsApi, ciSnippet, type ArtifactSettings, type CiKind, type CiLink, type CiLinkInput, type CiLinks } from '../../api/builds';
 import { Dialog } from '../../components/Dialog';
+import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { SettingsStatus } from '../../components/SettingsShell';
@@ -45,8 +46,15 @@ export function CiLinksPage() {
     <LoadState value={data} retry={data.reload}>
       {(d) => (
         <>
-          <p className="muted small page-intro">{L('GitLab CI · Jenkins 같은 CI가 커밋마다 빌드를 빌드 팜 큐에 넣고 결과(성공 · 실패, 출력, 결과물)를 받아 갑니다. 연결마다 풀 하나와 실행할 사용자(그 사람의 스크래치 · 할당량 · 알림)가 정해지고, 토큰은 그 연결의 빌드만 넣고 읽을 수 있습니다.',
-            'A CI (GitLab CI, Jenkins) puts a build in the build farm queue per commit and reads its result. Each connection has one pool and one user it runs as; its token can only send and read that connection\'s builds.')}</p>
+          <p className="muted small page-intro">{L('CI(GitLab CI · Jenkins)가 커밋마다 빌드 팜에 빌드를 넣고 결과를 받아 갑니다.',
+            'A CI (GitLab CI, Jenkins) puts a build in the build farm per commit and reads its result.')}</p>
+          <HowTo><ul>
+            <li>{L('연결마다 풀 하나와 실행 사용자가 정해집니다.', 'Each connection has one pool and one user it runs as.')}</li>
+            <li>{L('토큰은 그 연결의 빌드만 넣고 읽을 수 있습니다.', 'Its token can only send and read that connection\'s builds.')}</li>
+            <li>{L('명령에 MOAVI_CI_REPO · MOAVI_CI_REF · MOAVI_CI_COMMIT · MOAVI_CI_URL · MOAVI_CI_PIPELINE 환경 변수가 들어갑니다.', 'The command gets MOAVI_CI_REPO, MOAVI_CI_REF, MOAVI_CI_COMMIT, MOAVI_CI_URL and MOAVI_CI_PIPELINE.')}</li>
+            <li>{L('빌드 VM에서 그 커밋을 받아(git fetch · checkout) 빌드하세요.', 'Fetch and check out that commit on the build VM.')}</li>
+            <li>{L('결과물은 결과물 보관 규칙대로 남고, CI가 내려받을 수 있습니다.', 'Results are kept by the 결과물 보관 rules and the CI can download them.')}</li>
+          </ul></HowTo>
           <div className="toolbar">
             <button type="button" className="btn primary" disabled={d.pools.length === 0} onClick={() => setEditing('new')}><Icon name="plus" size={16} />{L('연결 만들기', 'New connection')}</button>
             <button type="button" className="btn" onClick={data.reload}><Icon name="refresh" size={16} /></button>
@@ -72,8 +80,6 @@ export function CiLinksPage() {
                 </tr>))}</tbody>
             </table></div>
           )}
-          <p className="muted small">{L('명령에는 MOAVI_CI_REPO · MOAVI_CI_REF · MOAVI_CI_COMMIT · MOAVI_CI_URL · MOAVI_CI_PIPELINE 환경 변수가 들어갑니다. 빌드 VM에서 저장소를 받아(git fetch · checkout) 그 커밋으로 빌드하게 쓰세요. 작업 결과물은 빌드 팜 › 결과물 보관의 규칙대로 남고, CI가 내려받아 갈 수 있습니다.',
-            'The command gets MOAVI_CI_REPO, _REF, _COMMIT, _URL and _PIPELINE: fetch and check out that commit on the build VM. Results are kept by the Results kept rules and the CI can download them.')}</p>
           {editing && <CiLinkDialog d={d} link={editing === 'new' ? null : editing} onClose={() => setEditing(null)}
             onDone={(r) => { setEditing(null); data.reload(); if (r) setShown(r); }} />}
           {shown && <TokenDialog shown={shown} onClose={() => setShown(null)} onSnippet={() => { setSnip(shown.link); setShown(null); }} />}
@@ -112,7 +118,7 @@ function CiLinkDialog({ d, link, onClose, onDone }: { d: CiLinks; link: CiLink |
         <label><span>{L('빌드 팜 풀', 'Build farm pool')}</span><select value={f.pool_id} onChange={(e) => set({ pool_id: e.target.value })}>
           {d.pools.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
         <label><span>{L('실행 사용자', 'Runs as')}</span><input required value={f.owner ?? ''} placeholder="alice" onChange={(e) => set({ owner: e.target.value.trim() })} />
-          <small className="muted">{L('이 풀의 이용 권한이 있는 사용자. 그 사람의 스크래치 폴더 · 할당량 · 알림을 씁니다. 팀 공용 계정을 만들어 두면 편합니다.', 'Someone granted the pool; their scratch, quota and notices are used. A team account works well.')}</small></label>
+          <small className="muted">{L('이 풀 권한이 있는 사용자로, 그 사람의 스크래치 · 할당량 · 알림을 씁니다.', 'Someone granted the pool; their scratch, quota and notices are used.')}</small></label>
       </div>
       <label><span>{L('빌드 명령', 'Build command')}</span><textarea rows={3} required value={f.command ?? ''} onChange={(e) => set({ command: e.target.value })} /></label>
       <div className="form-row form-row-even">
@@ -120,7 +126,7 @@ function CiLinkDialog({ d, link, onClose, onDone }: { d: CiLinks; link: CiLink |
         <label><span>{L('토큰 만료일 (선택)', 'Token expires (optional)')}</span><input type="date" value={f.expires_at ?? ''} onChange={(e) => set({ expires_at: e.target.value })} /></label>
       </div>
       <label className="check"><input type="checkbox" checked={!!f.allow_command} onChange={(e) => set({ allow_command: e.target.checked })} />
-        <span>{L('CI가 명령을 직접 보내게 허용 (토큰을 가진 사람이 실행 사용자 권한으로 아무 명령이나 돌릴 수 있습니다)', 'Let the CI send its own command (anyone with the token runs any command as that user)')}</span></label>
+        <span>{L('CI가 명령을 직접 보내게 허용 (토큰이 있으면 실행 사용자 권한으로 아무 명령이나 돌릴 수 있습니다)', 'Let the CI send its own command (anyone with the token runs any command as that user)')}</span></label>
     </Dialog>
   );
 }
@@ -131,8 +137,12 @@ function TokenDialog({ shown, onClose, onSnippet }: { shown: { link: CiLink; tok
   return (
     <Dialog open title={L('CI 토큰 — 지금 한 번만 보입니다', 'CI token - shown once')} onClose={onClose}
       extra={<button type="button" className="btn" onClick={onSnippet}>{L('설정 예시 보기', 'Show the example')}</button>}>
-      <p className="muted small">{L(`'${shown.link.name}'의 토큰입니다. CI의 비밀 변수(GitLab: 설정 › CI/CD › 변수, Masked · Protected / Jenkins: Credentials의 Secret text)에 MOAVI_CI_TOKEN 으로 넣으세요. 창을 닫으면 다시 볼 수 없습니다.`,
-        `The token of '${shown.link.name}'. Put it in the CI's secret variables as MOAVI_CI_TOKEN. It cannot be shown again.`)}</p>
+      <p className="muted small">{L(`'${shown.link.name}'의 토큰을 CI 비밀 변수 MOAVI_CI_TOKEN 으로 넣으세요.`,
+        `Put the token of '${shown.link.name}' in the CI's secret variables as MOAVI_CI_TOKEN.`)}</p>
+      <HowTo><ul>
+        <li>{L('GitLab: 설정 › CI/CD › 변수 (Masked · Protected)', 'GitLab: Settings › CI/CD › Variables (masked, protected)')}</li>
+        <li>{L('Jenkins: Credentials의 Secret text', 'Jenkins: a Secret text credential')}</li>
+      </ul></HowTo>
       <pre className="job-output token-box">{shown.token}</pre>
       <button type="button" className="btn" onClick={() => { void navigator.clipboard?.writeText(shown.token).then(() => setCopied(true)); }}>
         <Icon name="code" size={14} />{copied ? L('복사했습니다', 'Copied') : L('복사', 'Copy')}</button>
@@ -150,8 +160,13 @@ function SnippetDialog({ link, onClose }: { link: CiLink; onClose: () => void })
         {(['gitlab', 'jenkins', 'generic'] as CiKind[]).map((k) => (
           <button key={k} type="button" role="tab" className={kind === k ? 'on' : ''} aria-selected={kind === k} onClick={() => setKind(k)}>{k === 'generic' ? 'curl' : ciKindText(k)}</button>))}
       </div>
-      <p className="muted small">{L('빌드를 넣고, 끝날 때까지 30초마다 상태를 보고, 출력과 결과물을 받아 옵니다. 빌드가 실패하면 CI 단계도 실패합니다. (curl · jq 필요, X-Requested-With 헤더는 꼭 넣으세요)',
-        'Sends the build, checks every 30 s until it ends, then takes the output and result files. A failed build fails the CI step. (needs curl and jq; keep the X-Requested-With header)')}</p>
+      <p className="muted small">{L('빌드를 넣고 끝날 때까지 기다린 뒤 출력과 결과물을 받아 옵니다.',
+        'Sends the build, waits for it to end, then takes the output and result files.')}</p>
+      <HowTo><ul>
+        <li>{L('30초마다 상태를 확인합니다.', 'The state is checked every 30 s.')}</li>
+        <li>{L('빌드가 실패하면 CI 단계도 실패합니다.', 'A failed build fails the CI step.')}</li>
+        <li>{L('curl · jq가 필요하고, X-Requested-With 헤더는 꼭 넣으세요.', 'Needs curl and jq; keep the X-Requested-With header.')}</li>
+      </ul></HowTo>
       <pre className="job-output snippet">{ciSnippet(kind, server)}</pre>
     </Dialog>
   );
@@ -167,16 +182,21 @@ export function ArtifactSettingsPage() {
     <LoadState value={data} retry={data.reload}>
       {(d) => (
         <>
-          <p className="muted small page-intro">{L('빌드 · GPU 작업이 끝나면 작업 폴더에서 아래 패턴에 맞는 파일(비트스트림 · 리포트 · 로그 · 모델)을 찾아 NAS의 결과물 보관함 artifacts/사용자/작업 ID 로 복사하고, 작업 목록의 [결과물]과 CI에서 내려받게 합니다. 공유 저장소가 없거나 artifacts 폴더가 없으면 작업 폴더에 있는 그대로 목록만 남깁니다.',
-            'When a build or GPU job ends, the files matching these patterns are copied to artifacts/<user>/<job> on the NAS and can be downloaded from the job list and by the CI. Without shared storage (or the artifacts folder) they are only listed where they are.')}</p>
+          <p className="muted small page-intro">{L('작업이 끝나면 결과물 파일을 NAS에 모아 내려받게 합니다.',
+            'When a job ends its result files are kept on the NAS for download.')}</p>
+          <HowTo><ul>
+            <li>{L('아래 패턴에 맞는 파일을 artifacts/사용자/작업 ID 로 복사합니다.', 'Files matching the patterns are copied to artifacts/<user>/<job>.')}</li>
+            <li>{L('작업 목록의 [결과물]과 CI에서 내려받을 수 있습니다.', 'They can be downloaded from the job list and by the CI.')}</li>
+            <li>{L('공유 저장소나 artifacts 폴더가 없으면 작업 폴더의 파일을 목록으로만 보여 줍니다.', 'Without shared storage (or the artifacts folder) files are only listed where they are.')}</li>
+            <li>{L('NAS 준비: 공유 저장소 루트에 artifacts 폴더를 만들고 1777 권한을 주세요(mkdir artifacts && chmod 1777 artifacts).', 'On the NAS: make an artifacts folder at the share root, mode 1777 like scratch.')}</li>
+            <li>{L('큰 파일은 엔진 서버의 NAS 관리용 마운트로 받고, 없으면 게스트 에이전트로 10 MB까지 받습니다.', 'Large files need the engine\'s NAS admin mount; through the guest agent up to 10 MB.')}</li>
+          </ul></HowTo>
           <ArtifactRow L={L} title={L('기본 (모든 빌드 팜 풀)', 'Default (every build farm pool)')} s={d.default} badge={null} onEdit={() => setEditing({ scope: '_default', name: L('기본', 'Default'), s: d.default, own: true })} />
           {d.pools.map((p) => (
             <ArtifactRow key={p.id} L={L} title={p.name} s={p.settings} badge={p.own ? L('풀 설정', 'own') : L('기본 따름', 'default')}
               warn={!p.storage ? L('공유 저장소가 없어 작업 폴더에 남은 파일만 목록으로 보입니다.', 'No shared storage: files are only listed in the work folder.') : null}
               onEdit={() => setEditing({ scope: p.id, name: p.name, s: p.settings, own: p.own })} />
           ))}
-          <p className="muted small">{L('NAS 준비: 공유 저장소 루트에 artifacts 폴더를 만들고 scratch 와 같이 1777 권한을 주세요(mkdir artifacts && chmod 1777 artifacts). 큰 파일은 엔진 서버에 NAS 관리용 마운트가 있으면 그대로, 없으면 빌드 VM의 게스트 에이전트로 10 MB까지 받습니다.',
-            'On the NAS: make an artifacts folder at the share root, mode 1777 like scratch. Large files need the engine\'s NAS admin mount; through the guest agent up to 10 MB.')}</p>
           {editing && <ArtifactDialog e={editing} onClose={() => setEditing(null)} onDone={() => { setEditing(null); data.reload(); }} />}
         </>
       )}
@@ -266,8 +286,13 @@ export function AccelBookingsAdmin() {
         const upcoming = d.bookings.filter((r) => r.status === 'approved' && !r.finished_at).sort((a, b) => a.start_at.localeCompare(b.start_at));
         return (
           <>
-            <p className="muted small page-intro">{L('사용자가 포털 [예약] › 카드 · 보드에서 GPU · NPU · FPGA 카드나 보드(JTAG)를 자기 데스크톱에 쓸 시간을 예약합니다. 시작 5분 전에 자동으로 대여(보드는 연결)하고, 끝나면 반납합니다. 카드는 데스크톱을 다시 시작해야 보입니다.',
-              'Users book a GPU, NPU or FPGA card or a board for their desktop in the portal. It is lent 5 minutes before the start and given back at the end; a card shows after the desktop restarts.')}</p>
+            <p className="muted small page-intro">{L('사용자가 카드 · 보드를 쓸 시간을 포털에서 예약합니다.',
+              'Users book a card or a board for their desktop in the portal.')}</p>
+            <HowTo><ul>
+              <li>{L('포털 [예약] › 카드 · 보드에서 GPU · NPU · FPGA 카드나 JTAG 보드를 예약합니다.', 'Portal [예약] › cards and boards: a GPU, NPU or FPGA card or a JTAG board.')}</li>
+              <li>{L('시작 5분 전에 자동으로 빌려 주고(보드는 연결), 끝나면 반납합니다.', 'Lent 5 minutes before the start (boards attached) and given back at the end.')}</li>
+              <li>{L('카드는 데스크톱을 다시 시작해야 보입니다.', 'A card shows after the desktop restarts.')}</li>
+            </ul></HowTo>
             <div className="toolbar">
               <button type="button" className="btn" onClick={data.reload}><Icon name="refresh" size={16} /></button>
               <button type="button" className="btn" onClick={() => setSettings(true)}><Icon name="gear" size={16} />{L('예약 규칙', 'Booking rules')}</button>

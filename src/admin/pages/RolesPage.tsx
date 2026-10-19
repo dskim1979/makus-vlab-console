@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { usersApi, type Account, type Permission, type Role, type RoleTemplate } from '../../api/users';
 import { Dialog } from '../../components/Dialog';
+import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
@@ -51,8 +52,12 @@ export function RolesPage() {
 
   return (
     <>
-      <p className="muted small page-intro">{L('역할은 권한 묶음입니다. 기본 역할(관리자 · 사용자 · 조회 전용)은 바꿀 수 없고, 필요한 권한만 고른 역할을 만들어 사용자에게 줍니다. 자기가 가진 권한보다 넓은 역할은 만들 수 없습니다.',
-        'A role is a set of permissions. The built-in roles cannot change; make roles with just the permissions needed and give them to users. Nobody can make a role wider than their own permissions.')}</p>
+      <p className="muted small page-intro">{L('필요한 권한만 묶은 역할을 만들어 사용자에게 줍니다.',
+        'Make roles with just the permissions needed and give them to users.')}</p>
+      <HowTo><ul>
+        <li>{L('기본 역할(관리자 · 사용자 · 조회 전용)은 바꿀 수 없습니다.', 'The built-in roles (administrator, user, read-only) cannot change.')}</li>
+        <li>{L('자기 권한보다 넓은 역할은 만들 수 없습니다.', 'Nobody can make a role wider than their own permissions.')}</li>
+      </ul></HowTo>
       <div className="toolbar">
         <button type="button" className="btn primary" onClick={() => setEditing('new')}><Icon name="plus" size={16} />{L('역할 만들기', 'Add role')}</button>
         <button type="button" className="btn" onClick={() => { roles.reload(); users.reload(); }}><Icon name="refresh" size={16} />{t('common.refresh')}</button>

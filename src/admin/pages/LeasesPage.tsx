@@ -261,8 +261,8 @@ function ReclaimPanel({ onChanged }: { onChanged: () => void }) {
         <span className="stat-icon tone-orange"><Icon name="fpga" size={18} /></span>
         <div>
           <h2 className="section-title">{L('회수 제안', 'Reclaim suggestions')}</h2>
-          <p className="muted small" style={{ margin: 0 }}>{L(`${rules.idle_hours}시간 동안 사용률 ${rules.threshold_pct}% 미만(또는 데스크톱 꺼짐)인 대여 카드입니다. 사용자에게는 메일로 알렸습니다.`,
-            `Loaned cards under ${rules.threshold_pct}% (or on a stopped desktop) for ${rules.idle_hours} h. The users were told by mail.`)}
+          <p className="muted small" style={{ margin: 0 }}>{L(`${rules.idle_hours}시간 동안 사용률 ${rules.threshold_pct}% 미만인 대여 카드입니다.`,
+            `Loaned cards under ${rules.threshold_pct}% for ${rules.idle_hours} h.`)}
             {rules.auto_return ? ' ' + L(`제안 ${rules.auto_return_hours}시간 뒤 자동 반납됩니다.`, `They go back by themselves ${rules.auto_return_hours} h after the suggestion.`) : ''}</p>
         </div>
       </div>
@@ -335,8 +335,8 @@ function ReclaimRulesDialog({ onClose }: { onClose: () => void }) {
             <label><span>{L('"작업 중" 최대 (시간)', '"Working" at most (h)')}</span>
               <input type="number" min={1} max={720} value={s.hold_max_hours} onChange={(e) => setS({ ...s, hold_max_hours: whole(e.target.value, 1, 720) })} /></label>
           </div>
-          <small className="muted">{L('사용률은 카드가 꽂힌 켜진 데스크톱에서 게스트 에이전트로 nvidia-smi · rocm-smi · furiosa-smi · rbln-stat 를 읽어 얻습니다. 도구가 없으면 "측정 불가"로 남고, 측정 불가인 카드는 회수 제안하지 않습니다.',
-            'Use is read through the guest agent from nvidia-smi, rocm-smi, furiosa-smi or rbln-stat on running card desktops. Without a tool it shows as not measured, and such a card is never suggested for a reclaim.')}</small>
+          <small className="muted">{L('사용률은 게스트 에이전트로 읽으며, 측정 불가인 카드는 제안하지 않습니다.',
+            'Use is read through the guest agent; cards not measured are never suggested.')}</small>
         </>
       )}
     </Dialog>

@@ -6,6 +6,7 @@ import type { CompatCell, EnvComponent, EnvKind, EnvProbe, Environment } from '.
 import { nextApi } from '../../api/next';
 import type { PoolType } from '../../api/types';
 import { Dialog } from '../../components/Dialog';
+import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
@@ -41,8 +42,12 @@ export function EnvCatalogPage() {
   const [tab, setTab] = useState<'catalog' | 'compat'>('catalog');
   return (
     <>
-      <p className="muted small page-intro">{L('골든 이미지마다 무엇이 깔려 있는지(OS · 드라이버 · CUDA · 프레임워크 · FPGA 툴 · NPU SDK)와 어떤 카드용인지를 적어 둡니다. 연구 환경은 드라이버 · CUDA · 프레임워크 버전이 서로 맞아야 돌아가므로, 버전 읽기로 VM 안에서 직접 읽고 노드와의 호환을 확인한 뒤 풀을 만드세요.',
-        'Note what each golden image carries (OS, driver, CUDA, frameworks, FPGA tools, NPU SDKs) and which cards it is for. Research stacks only run when driver, CUDA and framework versions match: read them inside the VM, check them against the nodes, then make the pool.')}</p>
+      <p className="muted small page-intro">{L('골든 이미지마다 설치된 드라이버 · CUDA · 프레임워크 버전을 기록합니다.',
+        'What each golden image carries: driver, CUDA and framework versions.')}</p>
+      <HowTo><ul>
+        <li>{L('드라이버 · CUDA · 프레임워크 버전이 서로 맞아야 돌아갑니다.', 'Research stacks run only when driver, CUDA and framework versions match.')}</li>
+        <li>{L('버전 읽기로 VM 안에서 읽고, 노드와의 호환을 확인한 뒤 풀을 만드세요.', 'Read the versions inside the VM, check them against the nodes, then make the pool.')}</li>
+      </ul></HowTo>
       <div className="segmented" role="group">
         <button type="button" className={tab === 'catalog' ? 'on' : ''} aria-pressed={tab === 'catalog'} onClick={() => setTab('catalog')}>{L('카탈로그', 'Catalogue')}</button>
         <button type="button" className={tab === 'compat' ? 'on' : ''} aria-pressed={tab === 'compat'} onClick={() => setTab('compat')}>{L('호환표', 'Compatibility')}</button>
@@ -275,8 +280,13 @@ function ProbeDialog({ env, onClose, onDone }: { env: Environment; onClose: () =
       busy={state === 'busy'} error={error}>
       {!found ? (
         <>
-          <p className="muted small">{L('골든 이미지 VM 안에서 게스트 에이전트로 있는 도구만 실행해 버전을 읽습니다: nvidia-smi, nvcc --version, cuDNN 헤더, python -c "import torch" · tensorflow · jax, /opt/rocm, vivado -version, v++, quartus_sh, furiosa-smi, rbln 도구. VM이 켜져 있고 qemu-guest-agent가 돌아야 합니다. Vivado가 있으면 1분쯤 걸립니다.',
-            'Runs only the tools that are there, inside the golden image VM through the guest agent: nvidia-smi, nvcc --version, the cuDNN header, python -c "import torch" / tensorflow / jax, /opt/rocm, vivado -version, v++, quartus_sh, furiosa-smi, the rbln tools. The VM has to run with qemu-guest-agent; with Vivado it takes about a minute.')}</p>
+          <p className="muted small">{L('VM 안에서 게스트 에이전트로 설치된 도구의 버전을 읽습니다.',
+            'Reads tool versions inside the VM through the guest agent.')}</p>
+          <HowTo><ul>
+            <li>{L('VM이 켜져 있고 qemu-guest-agent가 돌아야 합니다.', 'The VM has to run with qemu-guest-agent.')}</li>
+            <li>{L('읽는 도구: nvidia-smi, nvcc, cuDNN 헤더, torch · tensorflow · jax, /opt/rocm, vivado, v++, quartus_sh, furiosa-smi, rbln', 'Tools read: nvidia-smi, nvcc, the cuDNN header, torch, tensorflow, jax, /opt/rocm, vivado, v++, quartus_sh, furiosa-smi, rbln')}</li>
+            <li>{L('Vivado가 있으면 1분쯤 걸립니다.', 'With Vivado it takes about a minute.')}</li>
+          </ul></HowTo>
           {env.status !== 'running' && <div className="alert small">{L('VM이 꺼져 있습니다. 골든 이미지 VM을 켠 뒤 읽으세요.', 'The VM is off: start the golden image VM first.')}</div>}
           {state === 'busy' && <p className="muted small" role="status">{L('읽는 중…', 'Reading…')}</p>}
         </>
@@ -393,8 +403,11 @@ function CompatTable() {
                   </tbody>
                 </table>
               </div>
-              <div className="callout"><Icon name="info" size={18} /><p>{L('NVIDIA vGPU는 노드의 vGPU 매니저와 게스트 드라이버가 같은 릴리스 브랜치(예: vGPU 17 = R550)여야 붙습니다. 게스트가 더 새것이면 vGPU가 올라오지 않고, 더 오래된 것은 NVIDIA가 지원하는 조합일 때만 됩니다. 패스스루는 호스트 드라이버와 상관없이 게스트 드라이버가 CUDA(PyTorch 빌드의 CUDA 포함)에 필요한 버전 이상이면 됩니다. 노드는 SSH로 nvidia-smi를 읽고 1분 동안 기억합니다.',
-                'NVIDIA vGPU comes up only when the node\'s vGPU manager and the guest driver are on the same release branch (e.g. vGPU 17 = R550). A newer guest does not come up; an older one only in combinations NVIDIA supports. With passthrough the host driver does not matter: the guest driver has to be new enough for the CUDA (including the one PyTorch was built for). The nodes are read over SSH (nvidia-smi) and kept for a minute.')}</p></div>
+              <HowTo label={L('호환 기준', 'What has to match')}><ul>
+                <li>{L('vGPU: 노드의 vGPU 매니저와 게스트 드라이버가 같은 릴리스 브랜치여야 합니다(예: vGPU 17 = R550).', 'vGPU: the node vGPU manager and the guest driver on the same release branch (e.g. vGPU 17 = R550).')}</li>
+                <li>{L('게스트가 더 새것이면 vGPU가 올라오지 않습니다.', 'A newer guest driver does not come up.')}</li>
+                <li>{L('패스스루: 게스트 드라이버가 CUDA에 필요한 버전 이상이면 됩니다.', 'Passthrough: the guest driver has to be new enough for the CUDA.')}</li>
+              </ul></HowTo>
             </>
           )}
         </LoadState>
