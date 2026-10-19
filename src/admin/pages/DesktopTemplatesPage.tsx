@@ -15,7 +15,7 @@ import { useFeatures } from '../../features';
 import { useI18n } from '../../i18n';
 import { bytes, ClusterFrame, Meter } from './ClusterPages';
 
-// 가상머신 > 이미지 > 데스크톱 템플릿: ready-made desktops built on the cluster - 일반 업무 (Windows 11 from the
+// 가상머신 > 이미지 > 템플릿 만들기: ready-made desktops built on the cluster - 일반 업무 (Windows 11 from the
 // admin's ISO, unattended), 연구원, GPU · AI, NPU, FPGA (Ubuntu cloud images + first-boot setup). Linux ones end
 // as golden images with their environment card, Windows as a Proxmox template (makus-vlab pegaprox/api/vlab_desktpl.py).
 

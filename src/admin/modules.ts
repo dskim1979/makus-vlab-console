@@ -38,13 +38,13 @@ export const MODULES: AdminModule[] = [
   {
     id: 'vms', icon: 'vm', tone: 'blue',
     label: { ko: '가상머신', en: 'Virtual machines' },
-    summary: { ko: '데스크톱 VM(만들기 · ISO · 상태), 이미지(데스크톱 템플릿 · 템플릿 · 골든 이미지 · 환경 카탈로그)', en: 'Desktop VMs (make, ISO, status), images (desktop templates, templates, golden images, environments)' },
+    summary: { ko: '데스크톱 VM(만들기 · ISO · 상태), 이미지(템플릿 만들기 · 템플릿 · 골든 이미지 · 환경 카탈로그)', en: 'Desktop VMs (make, ISO, status), images (build templates, templates, golden images, environments)' },
     pages: [
       { id: 'desktops', label: { ko: '데스크톱(VM)', en: 'Desktop VMs' }, phase: 1, tabs: [
         T('list', '목록', 'List', 'vms/desktops'), T('create', 'VM 만들기', 'Make a VM', 'vms/create'),
         T('isos', 'ISO · 이미지', 'ISO library', 'vms/isos'), T('status', '풀별 상태', 'By pool', 'pools/status')] },
       { id: 'images', label: { ko: '이미지', en: 'Images' }, phase: 1, tabs: [
-        T('desktpl', '데스크톱 템플릿', 'Desktop templates', 'vms/desktpl'),
+        T('desktpl', '템플릿 만들기', 'Build templates', 'vms/desktpl'),
         T('templates', '템플릿', 'Templates', 'vms/templates'), T('golden', '골든 이미지', 'Golden images', 'vms/golden'),
         T('environments', '환경 카탈로그', 'Environments', 'vms/environments', ['gpuai', 'fpga'])] },
     ],

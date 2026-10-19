@@ -1585,7 +1585,7 @@ fieldset.plain:disabled { opacity: .55; }
 .oss-note .oss-slogan { font-weight: 600; color: var(--text); }
 .oss-note a { color: inherit; text-decoration: underline; }
 
-/* 가상머신 > 이미지 > 데스크톱 템플릿 */
+/* 가상머신 > 이미지 > 템플릿 만들기 */
 .desktpl-grid { margin-bottom: 1rem; }
 .desktpl-card { cursor: default; justify-content: space-between; }
 .desktpl-card:hover { border-color: var(--border); }
