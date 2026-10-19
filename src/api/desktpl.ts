@@ -1,4 +1,4 @@
-// 데스크톱 템플릿 (가상머신 > 이미지): ready-made desktops - a use (일반 업무, 연구원, GPU · AI, NPU, FPGA) on the OS
+// 템플릿 만들기 (가상머신 > 이미지): ready-made desktops - a use (일반 업무, 연구원, GPU · AI, NPU, FPGA) on the OS
 // of your choice (Ubuntu, Debian, Rocky, AlmaLinux, Windows 11 / 10 / Server) - built on the cluster
 // (makus-vlab pegaprox/api/vlab_desktpl.py, the catalog and texts in pegaprox/vlab/desktpl.py).
 import { ApiError, isMock, request } from './client';
