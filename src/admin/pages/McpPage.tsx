@@ -53,6 +53,8 @@ export function McpPage() {
           <>
             <p className="muted small page-intro">{L('PC의 Claude Desktop · Claude Code · 로컬 LLM에서 대화로 VM을 만들고 관리합니다.',
               'Create and manage VMs from Claude Desktop, Claude Code or a local LLM on your PC.')}</p>
+            <p className="muted small">{L('폐쇄망(인터넷 없음)에서는 로컬 LLM을 쓰세요. 다른 클라이언트는 모델이 클라우드에 있어 동작하지 않습니다.',
+              'On a closed network (no Internet) use a local LLM: the other clients need their cloud model.')}</p>
             <HowTo><ul>
               <li>{L('서버는 인터넷에 열지 않습니다. 허용 네트워크에서 온 호출만 받습니다.', 'The server stays off the Internet; only the allowed networks reach it.')}</li>
               <li>{L('토큰은 만든 사람의 권한 그대로 움직이고, 정한 출발지(기본: 발급한 PC의 대역)에서만 쓸 수 있습니다.', 'A token acts with its maker\'s permissions, only from its sources (default: the issuing PC\'s network).')}</li>
