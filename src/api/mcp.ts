@@ -73,19 +73,36 @@ export const mcpApi = isMock ? {
   revoke: (id: string) => call<{ record: McpToken }>('DELETE', `/api/vlab/admin/mcp/tokens/${encodeURIComponent(id)}`),
 };
 
-export type McpClient = 'claude' | 'gemini' | 'codex' | 'openai' | 'local' | 'stdio';
-export const MCP_CLIENTS: McpClient[] = ['claude', 'gemini', 'codex', 'openai', 'local', 'stdio'];
+export type McpClient = 'claude' | 'desktop' | 'gemini' | 'codex' | 'openai' | 'local' | 'stdio';
+export const MCP_CLIENTS: McpClient[] = ['desktop', 'claude', 'gemini', 'codex', 'openai', 'local', 'stdio'];
+
+// the console's own certificate (nginx /moavi-gateway.crt) and the Claude Desktop extension (engine)
+export const MCP_CERT_URL = '/moavi-gateway.crt';
+export const MCP_MCPB_URL = '/api/vlab/mcp/moavi-desk.mcpb';
 
 /** How an AI client is told about the server. TOKEN is a placeholder unless the token was just made. */
 // 'moavi-desk', not 'moavi': MOAVI (makus-virt) has its own MCP server and an admin may have both.
 export function mcpSnippet(client: McpClient, url: string, token = '<mcp_토큰>', name = 'moavi-desk') {
   const origin = url.replace(/\/api\/vlab\/mcp$/, '');
   switch (client) {
+    case 'desktop':
+      return `# Claude Desktop - 쉬운 방법: 확장 설치 (Node.js 설치 필요 없음)\n` +
+        `#   1) [확장 내려받기]의 moavi-desk.mcpb 를 두 번 클릭 (또는 설정 › 확장 › 고급 설정 › 확장 설치)\n` +
+        `#   2) 주소는 그대로 두고 토큰을 넣습니다. 자체 서명 인증서면 [서버 인증서]로 받은 파일을 고릅니다.\n\n` +
+        `# 직접 설정 - 설정 › 개발자 › 구성 편집 (claude_desktop_config.json), Node.js 필요\n` +
+        `#   Windows: %APPDATA%\\Claude\\claude_desktop_config.json\n` +
+        `#   macOS:   ~/Library/Application Support/Claude/claude_desktop_config.json\n` +
+        `{\n  "mcpServers": {\n    "${name}": {\n      "command": "npx",\n` +
+        `      "args": ["-y", "mcp-remote", "${url}", "--header", "Authorization:\${MOAVI_DESK_AUTH}"],\n` +
+        `      "env": {\n        "MOAVI_DESK_AUTH": "Bearer ${token}",\n` +
+        `        "NODE_EXTRA_CA_CERTS": "C:\\\\Users\\\\<사용자>\\\\Downloads\\\\moavi-gateway.crt"\n      }\n    }\n  }\n}\n` +
+        `# Windows에서 npx를 못 찾으면 "command": "cmd", "args": ["/c", "npx", "-y", "mcp-remote", ...]\n` +
+        `# 저장 후 Claude Desktop을 완전히 끝냈다가 다시 엽니다.`;
     case 'claude':
-      return `# Claude Code (터미널) - 이 프로젝트 폴더에서만 (local)\nclaude mcp add --transport http --scope local ${name} ${url} \\\n  --header "Authorization: Bearer ${token}"\n\n` +
+      return `# Claude Code (터미널) - 이 프로젝트 폴더에서만 (local)\nclaude mcp add --transport http --scope local ${name} ${url} \\n  --header "Authorization: Bearer ${token}"\n\n` +
         `# 팀이 함께 쓰려면 --scope project (.mcp.json) 로 하고 토큰은 환경 변수로: --header "Authorization: Bearer \${MOAVI_DESK_MCP_TOKEN}"\n` +
         `# 확인: claude mcp list\n` +
-        `# 사설 인증서면 먼저: export NODE_EXTRA_CA_CERTS=/path/moavi-ca.pem`;
+        `# 자체 서명 인증서면 먼저: export NODE_EXTRA_CA_CERTS=/path/moavi-gateway.crt`;
     case 'gemini':
       return `# Gemini CLI - ~/.gemini/settings.json (프로젝트는 .gemini/settings.json)\n{\n  "mcpServers": {\n    "${name}": {\n` +
         `      "httpUrl": "${url}",\n      "headers": { "Authorization": "Bearer ${token}" },\n      "timeout": 120000\n    }\n  }\n}\n\n` +
@@ -101,12 +118,15 @@ export function mcpSnippet(client: McpClient, url: string, token = '<mcp_토큰>
     case 'local':
       return `# LM Studio - mcp.json (Program › Install › Edit mcp.json)\n{\n  "mcpServers": {\n    "${name}": {\n      "url": "${url}",\n` +
         `      "headers": { "Authorization": "Bearer ${token}" }\n    }\n  }\n}\n\n` +
-        `# Ollama + Open WebUI - 관리자 설정 › 외부 도구 › MCP (Streamable HTTP)\n#   URL: ${url}\n#   인증: Bearer, 키: ${token}\n` +
+        `# Cherry Studio - 설정 › MCP › 추가 › JSON으로 가져오기\n{\n  "mcpServers": {\n    "${name}": {\n      "type": "streamableHttp",\n` +
+        `      "baseUrl": "${url}",\n      "headers": { "Authorization": "Bearer ${token}" }\n    }\n  }\n}\n\n` +
+        `# Ollama + Open WebUI - 관리자 설정 › 외부 도구 › MCP (Streamable HTTP), URL과 Bearer 키\n` +
+        `# Jan 등 URL을 못 받는 앱은 Claude Desktop 탭의 mcp-remote 설정을 그대로 씁니다.\n` +
         `# 도구 호출을 지원하는 모델(qwen3, llama3.1, gpt-oss 등)을 고르세요.`;
     case 'stdio':
-      return `# 로컬 프로그램만 띄울 수 있는 클라이언트(Claude Desktop 등): stdio 브리지\ncurl -fsSO ${origin}/api/vlab/mcp/stdio.py\n\n` +
+      return `# Python으로 띄우는 stdio 브리지 (Node.js가 없는 PC용, 표준 라이브러리만)\ncurl -fsSO ${origin}/api/vlab/mcp/stdio.py\n\n` +
         `{\n  "mcpServers": {\n    "${name}": {\n      "command": "python3",\n      "args": ["/path/stdio.py"],\n` +
         `      "env": { "MOAVI_MCP_URL": "${url}", "MOAVI_MCP_TOKEN": "${token}" }\n    }\n  }\n}\n` +
-        `# 사설 인증서: "MOAVI_MCP_CA": "/path/moavi-ca.pem" 추가`;
+        `# 자체 서명 인증서: "MOAVI_MCP_CA": "/path/moavi-gateway.crt" 추가`;
   }
 }
