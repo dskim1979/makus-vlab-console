@@ -77,20 +77,22 @@ export type McpClient = 'claude' | 'gemini' | 'codex' | 'openai' | 'local' | 'st
 export const MCP_CLIENTS: McpClient[] = ['claude', 'gemini', 'codex', 'openai', 'local', 'stdio'];
 
 /** How an AI client is told about the server. TOKEN is a placeholder unless the token was just made. */
-export function mcpSnippet(client: McpClient, url: string, token = '<mcp_토큰>', name = 'moavi') {
+// 'moavi-desk', not 'moavi': MOAVI (makus-virt) has its own MCP server and an admin may have both.
+export function mcpSnippet(client: McpClient, url: string, token = '<mcp_토큰>', name = 'moavi-desk') {
   const origin = url.replace(/\/api\/vlab\/mcp$/, '');
   switch (client) {
     case 'claude':
-      return `# Claude Code (터미널)\nclaude mcp add --transport http ${name} ${url} \\\n  --header "Authorization: Bearer ${token}"\n\n` +
-        `# 프로젝트 전체가 함께 쓰려면 --scope project (.mcp.json), 확인: claude mcp list\n` +
+      return `# Claude Code (터미널) - 이 프로젝트 폴더에서만 (local)\nclaude mcp add --transport http --scope local ${name} ${url} \\\n  --header "Authorization: Bearer ${token}"\n\n` +
+        `# 팀이 함께 쓰려면 --scope project (.mcp.json) 로 하고 토큰은 환경 변수로: --header "Authorization: Bearer \${MOAVI_DESK_MCP_TOKEN}"\n` +
+        `# 확인: claude mcp list\n` +
         `# 사설 인증서면 먼저: export NODE_EXTRA_CA_CERTS=/path/moavi-ca.pem`;
     case 'gemini':
       return `# Gemini CLI - ~/.gemini/settings.json (프로젝트는 .gemini/settings.json)\n{\n  "mcpServers": {\n    "${name}": {\n` +
         `      "httpUrl": "${url}",\n      "headers": { "Authorization": "Bearer ${token}" },\n      "timeout": 120000\n    }\n  }\n}\n\n` +
         `# 또는: gemini mcp add --transport http ${name} ${url} --header "Authorization: Bearer ${token}"\n# 확인: gemini 안에서 /mcp`;
     case 'codex':
-      return `# OpenAI Codex CLI - ~/.codex/config.toml\n[mcp_servers.${name}]\nurl = "${url}"\nbearer_token_env_var = "MOAVI_MCP_TOKEN"\n\n` +
-        `# 셸에서 토큰을 환경 변수로:\nexport MOAVI_MCP_TOKEN=${token}\n# 확인: codex mcp list`;
+      return `# OpenAI Codex CLI - ~/.codex/config.toml\n[mcp_servers.${name}]\nurl = "${url}"\nbearer_token_env_var = "MOAVI_DESK_MCP_TOKEN"\n\n` +
+        `# 셸에서 토큰을 환경 변수로:\nexport MOAVI_DESK_MCP_TOKEN=${token}\n# 확인: codex mcp list`;
     case 'openai':
       return `# OpenAI Responses API (Python) - 서버가 인터넷에서 HTTPS로 열려 있어야 합니다\nfrom openai import OpenAI\n\nclient = OpenAI()\n` +
         `resp = client.responses.create(\n    model="gpt-5",\n    tools=[{\n        "type": "mcp",\n        "server_label": "${name}",\n` +
