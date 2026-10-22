@@ -11,16 +11,18 @@ import { ClientSettingsPage } from './NextPages';
 import { SupportPage } from './SupportPage';
 import { FeaturesPage } from './FeaturesPage';
 import { WarpgatePage } from './WarpgatePage';
+import { McpPage } from './McpPage';
 import { useFeatures } from '../../features';
 
 // 운영 > 플랫폼 설정: everything that sets how the platform behaves, in one place -
 // 일반 (sign-in, passwords, audit, mail), 도메인 (AD/LDAP sign-in), 화이트라벨 (the look) and
 // 클라이언트 (the Windows client's version and download), 공지 (the bars on top of every screen) and
 // 서버 이중화 (MOAVI Desk's own active and standby servers) and 지원 (the support bundle for a period),
-// 계정 · 약관 (account expiry, the address in mails, terms of use and privacy with the consents).
+// 계정 · 약관 (account expiry, the address in mails, terms of use and privacy with the consents),
+// MCP 연동 (AI clients that manage VMs: tokens and client setup).
 const TABS: { id: string; key: MessageKey }[] = [
   { id: 'general', key: 'hub.general' }, { id: 'features', key: 'hub.features' }, { id: 'accounts', key: 'hub.accounts' }, { id: 'directory', key: 'hub.directory' }, { id: 'branding', key: 'hub.branding' }, { id: 'client', key: 'hub.client' },
-  { id: 'warpgate', key: 'hub.warpgate' },
+  { id: 'warpgate', key: 'hub.warpgate' }, { id: 'mcp', key: 'hub.mcp' },
   { id: 'notices', key: 'hub.notices' }, { id: 'pair', key: 'hub.pair' }, { id: 'support', key: 'hub.support' },
 ];
 
@@ -48,6 +50,7 @@ export function SettingsHub({ tab }: { tab?: string }) {
       {id === 'branding' && <BrandingPage />}
       {id === 'client' && <ClientSettingsPage />}
       {id === 'warpgate' && <WarpgatePage />}
+      {id === 'mcp' && <McpPage />}
       {id === 'notices' && <NoticesPage />}
       {id === 'pair' && <ServerPairPage />}
       {id === 'support' && <SupportPage />}
