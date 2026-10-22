@@ -47,6 +47,8 @@ export function McpPage() {
     <LoadState value={data} retry={data.reload}>
       {(d) => {
         const locked = !d.inside;
+        const live = d.tokens.filter((t) => t.active);
+        const gone = d.tokens.filter((t) => !t.active);
         const lockedWhy = L(`지금 주소(${d.client_ip})가 허용 네트워크 밖이라 켜기 · 발급 · 설정 변경을 할 수 없습니다.`,
           `Your address (${d.client_ip}) is outside the allowed networks: switching on, issuing and changing settings are blocked.`);
         return (
@@ -92,23 +94,13 @@ export function McpPage() {
               <button type="button" className="btn" onClick={data.reload}><Icon name="refresh" size={16} /></button>
             </div>
             {err && <div className="alert small error" role="alert">{err}</div>}
-            {d.tokens.length === 0 ? <div className="empty"><p>{L('발급한 토큰이 없습니다.', 'No tokens yet.')}</p></div> : (
-              <div className="table-scroll"><table className="table compact-head">
-                <thead><tr><th>{L('이름', 'Name')}</th>{d.all_tokens && <th>{L('주인', 'Owner')}</th>}<th>{L('범위', 'Scope')}</th><th>{L('출발지', 'Sources')}</th>
-                  <th>{L('만료', 'Expires')}</th><th>{L('최근 사용', 'Last used')}</th><th className="actions" /></tr></thead>
-                <tbody>{d.tokens.map((t) => (
-                  <tr key={t.id} className={t.active ? '' : 'row-off'}>
-                    <td><span className="strong">{t.name}</span><br /><code className="code">mcp_…{t.token_hint}</code></td>
-                    {d.all_tokens && <td>{t.owner}</td>}
-                    <td><span className={`chip ${t.scope === 'manage' ? 'chip-accent' : ''}`}>{t.scope === 'manage' ? L('관리', 'Manage') : L('읽기 전용', 'Read only')}</span></td>
-                    <td className="muted small">{t.sources.join(', ') || '-'}</td>
-                    <td className="muted small">{t.revoked_at
-                      ? (t.revoked_by === 'idle' ? L(`미사용 폐기 ${when(t.revoked_at)}`, `revoked (unused) ${when(t.revoked_at)}`) : L(`폐기됨 ${when(t.revoked_at)}`, `revoked ${when(t.revoked_at)}`))
-                      : when(t.expires_at)}</td>
-                    <td className="muted small">{when(t.last_used_at)}{t.last_ip && <><br />{t.last_ip} · {L(`${t.uses}회`, `${t.uses} calls`)}</>}</td>
-                    <td className="actions nowrap">{t.active && <button type="button" className="btn-ghost small-btn danger" onClick={() => revoke(t)}>{L('폐기', 'Revoke')}</button>}</td>
-                  </tr>))}</tbody>
-              </table></div>
+            {live.length === 0 ? <div className="empty"><p>{L('쓸 수 있는 토큰이 없습니다.', 'No usable tokens.')}</p></div>
+              : <TokenTable rows={live} owners={d.all_tokens} onRevoke={revoke} />}
+            {gone.length > 0 && (
+              <HowTo label={L(`폐기 · 만료된 토큰 ${gone.length}개`, `${gone.length} revoked or expired`)}>
+                <p className="muted small">{L('90일 뒤 목록에서 지워집니다. 기록은 감사 로그에 남습니다.', 'Removed after 90 days; the audit log keeps the record.')}</p>
+                <TokenTable rows={gone} owners={d.all_tokens} />
+              </HowTo>
             )}
 
             <h3 className="section-title">{L('클라이언트 설정', 'Client setup')}</h3>
@@ -134,6 +126,32 @@ export function McpPage() {
         );
       }}
     </LoadState>
+  );
+}
+
+function TokenTable({ rows, owners, onRevoke }: { rows: McpToken[]; owners: boolean; onRevoke?: (t: McpToken) => void }) {
+  const { L, when } = useL();
+  const ended = (t: McpToken) => {
+    if (!t.revoked_at) return L(`만료 ${when(t.expires_at)}`, `expired ${when(t.expires_at)}`);
+    if (t.revoked_by === 'idle') return L(`미사용 폐기 ${when(t.revoked_at)}`, `revoked (unused) ${when(t.revoked_at)}`);
+    if (t.revoked_by === 'legacy') return L(`재발급 필요 — 규칙 이전 토큰 ${when(t.revoked_at)}`, `re-issue: made before the rules ${when(t.revoked_at)}`);
+    return L(`폐기 ${when(t.revoked_at)} · ${t.revoked_by}`, `revoked ${when(t.revoked_at)} by ${t.revoked_by}`);
+  };
+  return (
+    <div className="table-scroll"><table className="table compact-head">
+      <thead><tr><th>{L('이름', 'Name')}</th>{owners && <th>{L('주인', 'Owner')}</th>}<th>{L('범위', 'Scope')}</th><th>{L('출발지', 'Sources')}</th>
+        <th>{onRevoke ? L('만료', 'Expires') : L('끝남', 'Ended')}</th><th>{L('최근 사용', 'Last used')}</th>{onRevoke && <th className="actions" />}</tr></thead>
+      <tbody>{rows.map((t) => (
+        <tr key={t.id} className={t.active ? '' : 'row-off'}>
+          <td><span className="strong">{t.name}</span><br /><code className="code">mcp_…{t.token_hint}</code></td>
+          {owners && <td>{t.owner}</td>}
+          <td><span className={`chip ${t.scope === 'manage' ? 'chip-accent' : ''}`}>{t.scope === 'manage' ? L('관리', 'Manage') : L('읽기 전용', 'Read only')}</span></td>
+          <td className="muted small">{t.sources.join(', ') || '-'}</td>
+          <td className="muted small">{t.active ? when(t.expires_at) : ended(t)}</td>
+          <td className="muted small">{when(t.last_used_at)}{t.last_ip && <><br />{t.last_ip} · {L(`${t.uses}회`, `${t.uses} calls`)}</>}</td>
+          {onRevoke && <td className="actions nowrap"><button type="button" className="btn-ghost small-btn danger" onClick={() => onRevoke(t)}>{L('폐기', 'Revoke')}</button></td>}
+        </tr>))}</tbody>
+    </table></div>
   );
 }
 
