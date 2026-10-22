@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MCP_CLIENTS, mcpApi, mcpSnippet, type McpClient, type McpScope, type McpState, type McpToken } from '../../api/mcp';
+import { MCP_CERT_URL, MCP_CLIENTS, MCP_MCPB_URL, mcpApi, mcpSnippet, type McpClient, type McpScope, type McpState, type McpToken } from '../../api/mcp';
 import { Dialog } from '../../components/Dialog';
 import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
@@ -7,11 +7,11 @@ import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 
-// 운영 > 플랫폼 설정 › MCP 연동: Claude Code, Gemini CLI, OpenAI (Codex, Responses API) or a local LLM client
+// 운영 > 플랫폼 설정 › MCP 연동: Claude Desktop (an .mcpb extension), Claude Code, Gemini CLI, OpenAI (Codex, Responses API) or a local LLM client
 // manages VMs through the engine's MCP server, with a token per person and per client.
 
 const CLIENT_NAME: Record<McpClient, string> = {
-  claude: 'Claude Code', gemini: 'Gemini CLI', codex: 'OpenAI Codex', openai: 'OpenAI API', local: '로컬 LLM', stdio: 'stdio',
+  desktop: 'Claude Desktop', claude: 'Claude Code', gemini: 'Gemini CLI', codex: 'OpenAI Codex', openai: 'OpenAI API', local: '로컬 LLM', stdio: 'stdio',
 };
 
 function useL() {
@@ -27,7 +27,7 @@ export function McpPage() {
   const data = useLoad(mcpApi.get);
   const [issuing, setIssuing] = useState(false);
   const [shown, setShown] = useState<{ token: string; record: McpToken } | null>(null);
-  const [client, setClient] = useState<McpClient>('claude');
+  const [client, setClient] = useState<McpClient>('desktop');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const url = `${window.location.origin}/api/vlab/mcp`;
@@ -54,6 +54,8 @@ export function McpPage() {
             <li>{L('비밀번호(템플릿 관리자 암호 등)는 AI 클라이언트에 넘기지 않습니다.', 'Passwords (such as a template\'s administrator password) are not handed to the AI client.')}</li>
             <li>{L('클라우드 모델(Claude · Gemini · OpenAI)을 쓰면 VM 이름 · 사용자 이름 같은 조회 결과가 그 회사로 전송됩니다. 외부 전송이 안 되는 곳은 로컬 LLM을 쓰세요.',
               'With a cloud model, what the tools return (VM and user names) goes to that provider; use a local LLM where that is not allowed.')}</li>
+            <li>{L('Claude 웹·앱의 원격 커넥터(설정 › 커넥터)는 Anthropic 클라우드에서 접속하므로 사내 주소에는 닿지 않고 OAuth도 필요해 지금은 쓸 수 없습니다. Claude Desktop은 아래 확장을 쓰세요.',
+              'Claude remote connectors (Settings › Connectors) come from Anthropic\'s cloud, cannot reach an internal address and need OAuth: use the Claude Desktop extension below.')}</li>
           </ul></HowTo>
 
           <section className="panel">
@@ -115,14 +117,17 @@ export function McpPage() {
 
 function ClientExamples({ client, setClient, url, token }: { client: McpClient; setClient: (c: McpClient) => void; url: string; token?: string }) {
   const { L } = useL();
+  const [copied, setCopied] = useState<McpClient | null>(null);
+  const text = mcpSnippet(client, url, token);
   const note: Record<McpClient, string> = {
+    desktop: L('확장(.mcpb)을 설치하고 토큰을 넣으면 됩니다.', 'Install the extension (.mcpb) and enter the token.'),
     claude: L('터미널에서 한 번 실행하면 됩니다.', 'Run it once in a terminal.'),
     gemini: L('settings.json에 넣거나 gemini mcp add로 추가합니다.', 'Put it in settings.json or use gemini mcp add.'),
     codex: L('토큰은 config.toml 대신 환경 변수로 줍니다.', 'The token goes in an environment variable, not config.toml.'),
     openai: L('OpenAI 서버가 직접 접속하므로 MOAVI Desk가 인터넷에 HTTPS로 열려 있어야 합니다. ChatGPT 앱 커넥터는 OAuth만 받아 지금은 쓸 수 없습니다.',
       'OpenAI\'s servers connect themselves: MOAVI Desk must be reachable over HTTPS from the Internet. ChatGPT app connectors need OAuth and do not work yet.'),
-    local: L('Ollama는 MCP를 직접 다루지 않으니 Open WebUI · LM Studio 같은 클라이언트에 붙입니다.', 'Ollama itself speaks no MCP: use a client such as Open WebUI or LM Studio.'),
-    stdio: L('URL을 받지 못하는 클라이언트용 브리지(Python 3, 표준 라이브러리만)입니다.', 'A bridge (Python 3, standard library) for clients that take no URL.'),
+    local: L('LM Studio · Cherry Studio · Open WebUI(Ollama) 같은 데스크톱 앱에 붙입니다.', 'Desktop apps such as LM Studio, Cherry Studio or Open WebUI (Ollama).'),
+    stdio: L('URL을 받지 못하고 Node.js도 없는 PC용 브리지(Python 3)입니다.', 'A bridge (Python 3) for clients that take no URL on a PC without Node.js.'),
   };
   return (
     <>
@@ -132,7 +137,13 @@ function ClientExamples({ client, setClient, url, token }: { client: McpClient; 
             {c === 'local' ? L('로컬 LLM', 'Local LLM') : CLIENT_NAME[c]}</button>))}
       </div>
       <p className="muted small">{note[client]}</p>
-      <pre className="job-output snippet">{mcpSnippet(client, url, token)}</pre>
+      <div className="toolbar">
+        {client === 'desktop' && <a className="btn primary" href={MCP_MCPB_URL} download><Icon name="download" size={16} />{L('확장 내려받기', 'Download the extension')}</a>}
+        <a className="btn" href={MCP_CERT_URL} download><Icon name="download" size={16} />{L('서버 인증서', 'Server certificate')}</a>
+        <button type="button" className="btn" onClick={() => { void navigator.clipboard?.writeText(text).then(() => setCopied(client)); }}>
+          <Icon name="code" size={16} />{copied === client ? L('복사했습니다', 'Copied') : L('설정 복사', 'Copy')}</button>
+      </div>
+      <pre className="job-output snippet">{text}</pre>
     </>
   );
 }
@@ -167,7 +178,7 @@ function IssueDialog({ canManage, onClose, onDone }: { canManage: boolean; onClo
 function TokenDialog({ shown, url, onClose }: { shown: { token: string; record: McpToken }; url: string; onClose: () => void }) {
   const { L } = useL();
   const [copied, setCopied] = useState(false);
-  const [client, setClient] = useState<McpClient>('claude');
+  const [client, setClient] = useState<McpClient>('desktop');
   return (
     <Dialog open wide title={L('MCP 토큰 — 지금 한 번만 보입니다', 'MCP token - shown once')} onClose={onClose}>
       <p className="muted small">{L(`'${shown.record.name}' 토큰입니다. 창을 닫으면 다시 볼 수 없으니 클라이언트 설정에 바로 넣으세요.`,
