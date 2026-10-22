@@ -1,20 +1,27 @@
 // The MCP server for administrators (makus-vlab pegaprox/api/vlab_mcp.py):
-//   GET/PUT /api/vlab/admin/mcp             on / off, the tokens, the tools
-//   POST    /api/vlab/admin/mcp/tokens       {name, scope, days} -> the token, shown once
+//   GET/PUT /api/vlab/admin/mcp             on / off, allowed networks, the tokens, the tools
+//   POST    /api/vlab/admin/mcp/tokens       {name, scope, days, sources, password} -> the token, shown once
 //   DELETE  /api/vlab/admin/mcp/tokens/<id>  revoke
-// AI clients call POST /api/vlab/mcp with Authorization: Bearer mcp_...
+// AI clients call POST /api/vlab/mcp with Authorization: Bearer mcp_..., from the allowed networks only.
+// Switching on, changing the networks and making a token ask for the password again (and the 2FA code).
 import { ApiError, isMock, request } from './client';
 
 export type McpScope = 'read' | 'manage';
 export type McpToken = {
   id: string; name: string; owner: string; scope: McpScope; token_hint: string; created_by: string; created_at: string;
   expires_at: string; revoked_at: string | null; revoked_by: string; last_used_at: string | null; last_ip: string; uses: number; active: boolean;
+  sources: string[]; seen_ips: string[];
 };
 export type McpTool = { name: string; title: string; scope: McpScope; destructive: boolean };
+/** what a re-check asks: the password (+ the 2FA code), or a sign-in under 10 minutes old */
+export type McpReauthNeed = 'password' | 'otp' | 'recent';
+export type McpReauth = { user_password?: string; otp?: string };
 export type McpState = {
-  enabled: boolean; by: string; at: string; tokens: McpToken[]; all_tokens: boolean; can_manage: boolean;
-  tools: McpTool[]; path: string; protocol: string;
+  enabled: boolean; networks: string[]; by: string; at: string; tokens: McpToken[]; all_tokens: boolean; can_manage: boolean;
+  tools: McpTool[]; path: string; protocol: string; client_ip: string; inside: boolean; own_network: string | null;
+  lifetime: Record<McpScope, { default: number; max: number }>; idle_days: number; reauth: McpReauthNeed[];
 };
+export type McpIssue = { name: string; scope: McpScope; days: number; sources: string[] } & McpReauth;
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
   const { status, data } = await request<T & { error?: string; code?: string }>(method, path, body);
@@ -23,7 +30,7 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
 }
 const delay = <T,>(v: T) => new Promise<T>((r) => setTimeout(() => r(v), 120));
 
-// --- mock --------------------------------------------------------------------------------------
+// --- mock: the PC is 192.168.0.50; any password but 'wrong' passes ------------------------------
 const T = (name: string, title: string, scope: McpScope, destructive = false): McpTool => ({ name, title, scope, destructive });
 const mockTools: McpTool[] = [
   T('list_clusters', '클러스터 목록', 'read'), T('list_nodes', '노드 목록', 'read'), T('list_storage', '스토리지 목록', 'read'),
@@ -41,23 +48,38 @@ const mockTools: McpTool[] = [
 ];
 const days = (n: number) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 19) + '+00:00';
 const mockTokens: McpToken[] = [
-  { id: 'mcp_1', name: 'Claude Code (김관리)', owner: 'admin', scope: 'manage', token_hint: 'x7Qa', created_by: 'admin', created_at: days(-12),
-    expires_at: days(78), revoked_at: null, revoked_by: '', last_used_at: days(-0.02), last_ip: '10.0.3.21', uses: 412, active: true },
-  { id: 'mcp_2', name: 'LM Studio 조회용', owner: 'admin', scope: 'read', token_hint: 'Lm42', created_by: 'admin', created_at: days(-30),
-    expires_at: days(60), revoked_at: null, revoked_by: '', last_used_at: days(-2), last_ip: '10.0.3.40', uses: 57, active: true },
+  { id: 'mcp_1', name: 'Claude Desktop (김관리)', owner: 'admin', scope: 'manage', token_hint: 'x7Qa', created_by: 'admin', created_at: days(-2),
+    expires_at: days(5), revoked_at: null, revoked_by: '', last_used_at: days(-0.02), last_ip: '192.168.0.50', uses: 41, active: true,
+    sources: ['192.168.0.0/24'], seen_ips: ['192.168.0.50'] },
+  { id: 'mcp_2', name: 'LM Studio 조회용', owner: 'admin', scope: 'read', token_hint: 'Lm42', created_by: 'admin', created_at: days(-10),
+    expires_at: days(20), revoked_at: null, revoked_by: '', last_used_at: days(-2), last_ip: '10.0.3.40', uses: 57, active: true,
+    sources: ['10.0.3.0/24'], seen_ips: ['10.0.3.40'] },
 ];
-const mock = { enabled: false, by: '', at: '' };
+const mock = { enabled: false, networks: ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'], by: '', at: '' };
 let seq = 3;
 const rnd = () => Math.random().toString(36).slice(2);
+function mockCheck(a: McpReauth) {
+  if (!a.user_password) throw new ApiError(403, 'Confirm with your password', { code: 'MCP_REAUTH', needs: ['password'] });
+  if (a.user_password === 'wrong') throw new ApiError(403, 'The password is not correct', { code: 'MCP_REAUTH' });
+}
 
 export const mcpApi = isMock ? {
   get: () => delay<McpState>({ ...mock, tokens: mockTokens.map((x) => ({ ...x })), all_tokens: true, can_manage: true,
-    tools: mockTools, path: '/api/vlab/mcp', protocol: '2025-11-25' }),
-  setEnabled: (enabled: boolean) => { Object.assign(mock, { enabled, by: 'admin', at: days(0) }); return delay({ ...mock }); },
-  issue: (b: { name: string; scope: McpScope; days: number }) => {
+    tools: mockTools, path: '/api/vlab/mcp', protocol: '2025-11-25', client_ip: '192.168.0.50', inside: true,
+    own_network: '192.168.0.0/24', lifetime: { manage: { default: 7, max: 90 }, read: { default: 30, max: 365 } }, idle_days: 30,
+    reauth: ['password'] }),
+  save: async (b: { enabled?: boolean; networks?: string[] } & McpReauth) => {
+    if (!(b.enabled === false && !b.networks)) mockCheck(b);
+    if (b.networks && b.networks.length === 0) throw new ApiError(400, 'networks: at least one network', {});
+    Object.assign(mock, { ...(b.enabled !== undefined ? { enabled: b.enabled } : {}), ...(b.networks ? { networks: b.networks } : {}), by: 'admin', at: days(0) });
+    return delay({ ...mock });
+  },
+  issue: async (b: McpIssue) => {
+    mockCheck(b);
     const token = `mcp_${rnd()}${rnd()}${rnd()}`;
     const record: McpToken = { id: `mcp_${seq++}`, name: b.name, owner: 'admin', scope: b.scope, token_hint: token.slice(-4), created_by: 'admin',
-      created_at: days(0), expires_at: days(b.days), revoked_at: null, revoked_by: '', last_used_at: null, last_ip: '', uses: 0, active: true };
+      created_at: days(0), expires_at: days(b.days), revoked_at: null, revoked_by: '', last_used_at: null, last_ip: '', uses: 0, active: true,
+      sources: b.sources.length ? b.sources : ['192.168.0.0/24'], seen_ips: ['192.168.0.50'] };
     mockTokens.unshift(record);
     return delay({ token, record: { ...record } });
   },
@@ -68,13 +90,12 @@ export const mcpApi = isMock ? {
   },
 } : {
   get: () => call<McpState>('GET', '/api/vlab/admin/mcp'),
-  setEnabled: (enabled: boolean) => call<{ enabled: boolean; by: string; at: string }>('PUT', '/api/vlab/admin/mcp', { enabled }),
-  issue: (b: { name: string; scope: McpScope; days: number }) => call<{ token: string; record: McpToken }>('POST', '/api/vlab/admin/mcp/tokens', b),
+  save: (b: { enabled?: boolean; networks?: string[] } & McpReauth) =>
+    call<{ enabled: boolean; networks: string[]; by: string; at: string }>('PUT', '/api/vlab/admin/mcp', b),
+  issue: (b: McpIssue) => call<{ token: string; record: McpToken }>('POST', '/api/vlab/admin/mcp/tokens', b),
   revoke: (id: string) => call<{ record: McpToken }>('DELETE', `/api/vlab/admin/mcp/tokens/${encodeURIComponent(id)}`),
 };
 
-// Only clients that run on the admin's PC or an internal server and reach /api/vlab/mcp at its internal
-// address: MOAVI Desk is not opened to the Internet, so nothing that connects from a vendor's cloud.
 export type McpClient = 'claude' | 'desktop' | 'gemini' | 'codex' | 'local' | 'stdio';
 export const MCP_CLIENTS: McpClient[] = ['desktop', 'claude', 'gemini', 'codex', 'local', 'stdio'];
 // where the model runs: 'cloud' sends what the tools return to the model's vendor, 'local' keeps it inside
