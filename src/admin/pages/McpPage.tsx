@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MCP_CERT_URL, MCP_CLIENTS, MCP_MCPB_URL, mcpApi, mcpSnippet, type McpClient, type McpScope, type McpState, type McpToken } from '../../api/mcp';
+import { MCP_CERT_URL, MCP_CLIENTS, MCP_MCPB_URL, MCP_MODEL_AT, mcpApi, mcpSnippet, type McpClient, type McpScope, type McpState, type McpToken } from '../../api/mcp';
 import { Dialog } from '../../components/Dialog';
 import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
@@ -7,11 +7,11 @@ import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 
-// 운영 > 플랫폼 설정 › MCP 연동: Claude Desktop (an .mcpb extension), Claude Code, Gemini CLI, OpenAI (Codex, Responses API) or a local LLM client
-// manages VMs through the engine's MCP server, with a token per person and per client.
+// 운영 > 플랫폼 설정 › MCP 연동: Claude Desktop, Claude Code, Gemini CLI, Codex CLI or a local LLM app on the admin's PC
+// manages VMs through the engine's MCP server at its internal address, with a token per person and per client.
 
 const CLIENT_NAME: Record<McpClient, string> = {
-  desktop: 'Claude Desktop', claude: 'Claude Code', gemini: 'Gemini CLI', codex: 'OpenAI Codex', openai: 'OpenAI API', local: '로컬 LLM', stdio: 'stdio',
+  desktop: 'Claude Desktop', claude: 'Claude Code', gemini: 'Gemini CLI', codex: 'Codex CLI', local: '로컬 LLM', stdio: 'stdio',
 };
 
 function useL() {
@@ -44,18 +44,15 @@ export function McpPage() {
     <LoadState value={data} retry={data.reload}>
       {(d) => (
         <>
-          <p className="muted small page-intro">{L('Claude Code · Gemini · OpenAI · 로컬 LLM에서 대화로 VM을 만들고 관리합니다.',
-            'Create and manage VMs from Claude Code, Gemini, OpenAI or a local LLM.')}</p>
+          <p className="muted small page-intro">{L('PC의 Claude Desktop · Claude Code · 로컬 LLM에서 대화로 VM을 만들고 관리합니다.',
+            'Create and manage VMs from Claude Desktop, Claude Code or a local LLM on your PC.')}</p>
           <HowTo><ul>
             <li>{L('토큰은 만든 사람의 권한 그대로 움직입니다. 풀 관리자는 자기 풀만 다룹니다.', 'A token acts with its maker\'s own permissions; a pool admin reaches their own pools only.')}</li>
             <li>{L('읽기 전용 토큰은 조회 도구만, 관리 토큰은 만들기 · 전원 · 스냅샷 · 삭제까지 씁니다.', 'A read token gets the list tools; a manage token also creates, powers, snapshots and deletes.')}</li>
             <li>{L('삭제 · 되돌리기 · 강제 종료는 AI가 확인(confirm)을 보내야 실행됩니다. 실행 전 물어보게 하세요.', 'Delete, roll back and power off run only with confirm: let the AI ask you first.')}</li>
             <li>{L('모든 호출은 감사 로그에 "vlab.mcp.call"과 "(MCP: 토큰 이름)"으로 남습니다.', 'Every call is in the audit log as vlab.mcp.call and "(MCP: token name)".')}</li>
             <li>{L('비밀번호(템플릿 관리자 암호 등)는 AI 클라이언트에 넘기지 않습니다.', 'Passwords (such as a template\'s administrator password) are not handed to the AI client.')}</li>
-            <li>{L('클라우드 모델(Claude · Gemini · OpenAI)을 쓰면 VM 이름 · 사용자 이름 같은 조회 결과가 그 회사로 전송됩니다. 외부 전송이 안 되는 곳은 로컬 LLM을 쓰세요.',
-              'With a cloud model, what the tools return (VM and user names) goes to that provider; use a local LLM where that is not allowed.')}</li>
-            <li>{L('Claude 웹·앱의 원격 커넥터(설정 › 커넥터)는 Anthropic 클라우드에서 접속하므로 사내 주소에는 닿지 않고 OAuth도 필요해 지금은 쓸 수 없습니다. Claude Desktop은 아래 확장을 쓰세요.',
-              'Claude remote connectors (Settings › Connectors) come from Anthropic\'s cloud, cannot reach an internal address and need OAuth: use the Claude Desktop extension below.')}</li>
+            <li>{L('서버는 인터넷에 열지 않습니다. 클라이언트가 PC나 내부 서버에서 돌며 내부 주소로 붙습니다.', 'The server stays off the Internet: clients run on a PC or an internal server and use the internal address.')}</li>
           </ul></HowTo>
 
           <section className="panel">
@@ -119,14 +116,13 @@ function ClientExamples({ client, setClient, url, token }: { client: McpClient; 
   const { L } = useL();
   const [copied, setCopied] = useState<McpClient | null>(null);
   const text = mcpSnippet(client, url, token);
+  const at = MCP_MODEL_AT[client];
   const note: Record<McpClient, string> = {
-    desktop: L('확장(.mcpb)을 설치하고 토큰을 넣으면 됩니다.', 'Install the extension (.mcpb) and enter the token.'),
+    desktop: L('구성 파일에 넣고 다시 엽니다. Node.js가 없으면 확장(.mcpb)을 씁니다.', 'Put it in the config file and reopen; without Node.js use the extension (.mcpb).'),
     claude: L('터미널에서 한 번 실행하면 됩니다.', 'Run it once in a terminal.'),
     gemini: L('settings.json에 넣거나 gemini mcp add로 추가합니다.', 'Put it in settings.json or use gemini mcp add.'),
     codex: L('토큰은 config.toml 대신 환경 변수로 줍니다.', 'The token goes in an environment variable, not config.toml.'),
-    openai: L('OpenAI 서버가 직접 접속하므로 MOAVI Desk가 인터넷에 HTTPS로 열려 있어야 합니다. ChatGPT 앱 커넥터는 OAuth만 받아 지금은 쓸 수 없습니다.',
-      'OpenAI\'s servers connect themselves: MOAVI Desk must be reachable over HTTPS from the Internet. ChatGPT app connectors need OAuth and do not work yet.'),
-    local: L('LM Studio · Cherry Studio · Open WebUI(Ollama) 같은 데스크톱 앱에 붙입니다.', 'Desktop apps such as LM Studio, Cherry Studio or Open WebUI (Ollama).'),
+    local: L('LM Studio · Cherry Studio · Open WebUI(Ollama) · Jan에 붙입니다.', 'LM Studio, Cherry Studio, Open WebUI (Ollama) or Jan.'),
     stdio: L('URL을 받지 못하고 Node.js도 없는 PC용 브리지(Python 3)입니다.', 'A bridge (Python 3) for clients that take no URL on a PC without Node.js.'),
   };
   return (
@@ -136,12 +132,19 @@ function ClientExamples({ client, setClient, url, token }: { client: McpClient; 
           <button key={c} type="button" role="tab" className={client === c ? 'on' : ''} aria-selected={client === c} onClick={() => setClient(c)}>
             {c === 'local' ? L('로컬 LLM', 'Local LLM') : CLIENT_NAME[c]}</button>))}
       </div>
+      <p className="muted small">
+        <span className={`chip ${at === 'local' ? 'chip-ok' : at === 'cloud' ? 'chip-gap' : ''}`}>
+          {at === 'local' ? L('완전 내부', 'Fully internal') : at === 'cloud' ? L('모델이 클라우드', 'Cloud model') : L('모델에 따라', 'Depends on the model')}</span>{' '}
+        {at === 'local' ? L('모델도 내부에서 돕니다.', 'The model runs inside too.')
+          : at === 'cloud' ? L('인터넷이 필요하고 조회 결과가 모델 회사로 전송됩니다.', 'Needs the Internet; what the tools return goes to the model vendor.')
+            : L('로컬 LLM이면 완전 내부, 클라우드 모델이면 외부로 전송됩니다.', 'Internal with a local LLM, sent out with a cloud model.')}
+      </p>
       <p className="muted small">{note[client]}</p>
       <div className="toolbar">
-        {client === 'desktop' && <a className="btn primary" href={MCP_MCPB_URL} download><Icon name="download" size={16} />{L('확장 내려받기', 'Download the extension')}</a>}
-        <a className="btn" href={MCP_CERT_URL} download><Icon name="download" size={16} />{L('서버 인증서', 'Server certificate')}</a>
-        <button type="button" className="btn" onClick={() => { void navigator.clipboard?.writeText(text).then(() => setCopied(client)); }}>
+        <button type="button" className="btn primary" onClick={() => { void navigator.clipboard?.writeText(text).then(() => setCopied(client)); }}>
           <Icon name="code" size={16} />{copied === client ? L('복사했습니다', 'Copied') : L('설정 복사', 'Copy')}</button>
+        <a className="btn" href={MCP_CERT_URL} download><Icon name="download" size={16} />{L('서버 인증서', 'Server certificate')}</a>
+        {client === 'desktop' && <a className="btn" href={MCP_MCPB_URL} download><Icon name="download" size={16} />{L('확장 내려받기 (선택)', 'Extension (optional)')}</a>}
       </div>
       <pre className="job-output snippet">{text}</pre>
     </>
