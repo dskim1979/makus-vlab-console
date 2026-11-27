@@ -17,10 +17,12 @@ export type OpsTask = {
 export type TaskList = { scope: 'all' | 'mine'; running: number; tasks: OpsTask[] };
 export type TaskLog = { upid: string; node: string; type: string; running: boolean; ok: boolean; status: string; lines: string[] };
 
-export type MaintDesk = { id: string; name: string; vmid: number; pool_id: string; pool: string; status: string; assigned_user: string; in_use: boolean };
+// stays: why live migration leaves it on the node (PCI / USB passthrough, local disks); absent = it moves
+export type MaintStays = 'pci' | 'usb' | 'local_disk' | 'unknown_storage' | 'template' | null;
+export type MaintDesk = { id: string; name: string; vmid: number; pool_id: string; pool: string; status: string; assigned_user: string; in_use: boolean; stays?: MaintStays };
 export type MaintPreview = {
   node: string; desktops: MaintDesk[];
-  guests: { vmid: number; name: string; type: string; status: string }[];
+  guests: { vmid: number; name: string; type: string; status: string; stays?: MaintStays }[];
   capacity: { ok: boolean; reason?: string; threshold?: number; guest_count: number; over_threshold: string[]; headroom_sufficient: boolean;
     nodes: { node: string; current_pct: number; projected_pct: number }[] } | null;
   plan: { templates: number; blocking_rules: string[]; online_nodes: number } | null;
@@ -178,6 +180,12 @@ const haMeta = new Map<number, { state: string; group: string; max_restart: numb
 const haGroups: HaGroup[] = [{ group: 'lab-nodes', nodes: 'pve1:2,pve2:1', restricted: false, nofailback: false, comment: '', rule: true, resources: 'vm:210' }];
 const extraGuests = [{ vmid: 210, name: 'lic-flexlm', node: 'pve1', type: 'qemu' as const, status: 'running' },
   { vmid: 220, name: 'lic-cadence', node: 'pve2', type: 'qemu' as const, status: 'running' }];
+export function mockHaAdd(vmid: number, state: string, comment: string) {
+  mockHaVmids.add(vmid);
+  haMeta.set(vmid, { state, group: '', max_restart: 1, max_relocate: 1, comment });
+}
+export function mockHaRemove(vmid: number) { mockHaVmids.delete(vmid); haMeta.delete(vmid); }
+const MOCK_STAYS: Record<number, MaintStays> = { 400: 'pci', 401: 'local_disk', 410: 'usb' };
 const guestOf = (vmid: number) => mockVmStore.guests.find((g) => g.vmid === vmid) ?? extraGuests.find((g) => g.vmid === vmid);
 
 const pair: PairStatus = {
@@ -219,8 +227,8 @@ const mockOpsApi: OpsApi = {
       node,
       desktops: on.map((d) => ({ id: d.id, name: d.name, vmid: d.vmid, pool_id: d.pool_id, pool: d.pool_id,
         status: mockVmStore.guests.find((g) => g.vmid === d.vmid)?.status ?? 'unknown', assigned_user: d.assigned_user ?? '',
-        in_use: d.assigned_user === 'alice' })),
-      guests: others.map((g) => ({ vmid: g.vmid, name: g.name, type: g.type, status: g.status })),
+        in_use: d.assigned_user === 'alice', stays: MOCK_STAYS[d.vmid] ?? null })),
+      guests: others.map((g) => ({ vmid: g.vmid, name: g.name, type: g.type, status: g.status, stays: g.status === 'running' ? MOCK_STAYS[g.vmid] ?? null : null })),
       capacity: rest.length ? { ok: !over.length, threshold: 90, guest_count: running, over_threshold: over, headroom_sufficient: true, nodes: projected }
         : { ok: running === 0, reason: 'no_target_nodes', guest_count: running, over_threshold: [], headroom_sufficient: running === 0, nodes: [] },
       plan: { templates: node === 'pve1' || node === 'pve3' ? 1 : 0, blocking_rules: [], online_nodes: 3 },

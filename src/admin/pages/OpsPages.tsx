@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { adminApi } from '../../api/admin';
 import { ApiError } from '../../api/client';
 import { opsApi } from '../../api/ops';
-import type { ClusterHa, HaGroup, HaResource, MaintPreview, MaintStatus, OpsTask, PairMember, PairStatus } from '../../api/ops';
+import type { ClusterHa, MaintPreview, MaintStatus, OpsTask, PairMember, PairStatus } from '../../api/ops';
 import type { Cluster, ClusterNode } from '../../api/types';
 import { Dialog } from '../../components/Dialog';
 import { HowTo } from '../../components/HowTo';
@@ -11,7 +11,6 @@ import { LoadState } from '../../components/LoadState';
 import { SettingsStatus } from '../../components/SettingsShell';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
-import { ClusterFrame, useCluster } from './ClusterPages';
 
 // 운영 기본: 운영 > 작업 진행 (the long Proxmox tasks), the node actions of 클러스터 > 노드
 // (maintenance, restart, shut down, the node's log, sensors and tasks), 클러스터 > 고가용성
@@ -266,6 +265,19 @@ export function MaintenanceDialog({ cluster, node, onClose, onDone }: { cluster:
   );
 }
 
+export function staysText(r: string | null | undefined, L: (ko: string, en: string) => string) {
+  switch (r) {
+    case 'pci': return L('PCI 패스스루 (GPU · FPGA 카드)', 'PCI passthrough (GPU, FPGA card)');
+    case 'usb': return L('USB 장치 연결', 'Host USB device');
+    case 'local_disk': return L('노드 로컬 디스크', 'Disks on node-local storage');
+    case 'container': return L('컨테이너 (옮기면 재시작)', 'Container (restarts when moved)');
+    case 'template': return L('템플릿', 'Template');
+    case 'excluded': return L('분산에서 제외됨', 'Excluded from balancing');
+    case 'unknown_storage': return L('디스크 위치를 알 수 없음', 'Disk storage unknown');
+    default: return r ?? '';
+  }
+}
+
 function PreviewBody({ p, skip, templates, relax, setSkip, setTemplates, setRelax }: {
   p: MaintPreview; skip: boolean; templates: boolean; relax: boolean;
   setSkip: (v: boolean) => void; setTemplates: (v: boolean) => void; setRelax: (v: boolean) => void;
@@ -273,6 +285,7 @@ function PreviewBody({ p, skip, templates, relax, setSkip, setTemplates, setRela
   const { L } = useL();
   const inUse = p.desktops.filter((d) => d.in_use);
   const cap = p.capacity;
+  const stuck = [...p.desktops.filter((d) => d.stays && d.status === 'running'), ...p.guests.filter((g) => g.stays)];
   return (
     <>
       <h3 className="dialog-sub">{L(`이 노드의 데스크톱 ${p.desktops.length}대`, `${p.desktops.length} desktop(s) on this node`)}
@@ -283,9 +296,16 @@ function PreviewBody({ p, skip, templates, relax, setSkip, setTemplates, setRela
           <tbody>{p.desktops.map((d) => (
             <tr key={d.id}><td className="strong">{d.name} <span className="muted small">{d.vmid}</span></td><td className="small">{d.pool}</td>
               <td className="small">{d.assigned_user || '-'}{d.in_use && <span className="chip chip-warn vmm-chip">{L('접속 중', 'connected')}</span>}</td>
-              <td className="small">{d.status === 'running' ? L('켜짐', 'Running') : d.status === 'stopped' ? L('꺼짐', 'Stopped') : d.status}</td></tr>
+              <td className="small">{d.status === 'running' ? L('켜짐', 'Running') : d.status === 'stopped' ? L('꺼짐', 'Stopped') : d.status}
+                {d.stays && d.status === 'running' && <span className="chip chip-warn vmm-chip">{L('못 옮김', 'stays')}</span>}</td></tr>
           ))}</tbody>
         </table></div>
+      )}
+      {stuck.length > 0 && !skip && (
+        <div className="alert small warn" role="status">
+          {L(`${stuck.length}대는 라이브 마이그레이션이 안 되어 이 노드에 남습니다. 먼저 끄세요.`, `${stuck.length} VM(s) cannot live-migrate and stay on this node. Shut them down first.`)}
+          <ul className="vmm-list">{stuck.map((x) => <li key={x.vmid}><span className="strong">{x.name || x.vmid}</span> <span className="muted">{x.vmid}</span> — {staysText(x.stays, L)}</li>)}</ul>
+        </div>
       )}
       {inUse.length > 0 && !skip && <div className="alert small warn" role="status">{L(
         `접속 중인 사용자가 ${inUse.length}명 있습니다. 화면이 몇 초 멈출 수 있으니 미리 알리세요(플랫폼 설정 > 공지).`,
@@ -463,96 +483,11 @@ function MaintView({ m }: { m: MaintStatus }) {
 
 // --- 클러스터 > 고가용성 (Proxmox HA) ---------------------------------------------------
 
-export function ClusterHaPage() {
-  const { current } = useCluster();
-  const ha = useLoad(useCallback(() => (current ? opsApi.ha(current.id) : Promise.resolve<ClusterHa | null>(null)), [current]), [current?.id]);
-  return (
-    <ClusterFrame reload={ha.reload}>
-      {(c) => <LoadState value={ha} retry={ha.reload}>{(h) => h && <HaBody cluster={c} ha={h} reload={ha.reload} />}</LoadState>}
-    </ClusterFrame>
-  );
-}
-
-const HA_STATE: Record<string, [string, string]> = {
+export const HA_STATE: Record<string, [string, string]> = {
   started: ['켜 둠', 'Keep running'], stopped: ['꺼 둠', 'Keep stopped'], ignored: ['관여 안 함', 'Ignored'], disabled: ['사용 안 함', 'Disabled'],
 };
 
-function HaBody({ cluster, ha, reload }: { cluster: Cluster; ha: ClusterHa; reload: () => void }) {
-  const { L, lang } = useL();
-  const [adding, setAdding] = useState(false);
-  const [grouping, setGrouping] = useState(false);
-  const [notice, setNotice] = useState<Notice>(null);
-  const stateL = (s: string) => (HA_STATE[s] ? (lang === 'ko' ? HA_STATE[s][0] : HA_STATE[s][1]) : s);
-  async function remove(r: HaResource) {
-    if (!confirm(L(`${r.name || r.sid}을(를) HA에서 뺄까요? VM은 지금 자리에서 계속 돕니다.`, `Take ${r.name || r.sid} out of HA? It keeps running where it is.`))) return;
-    try { await opsApi.haRemove(cluster.id, r.vmid); setNotice({ kind: 'info', text: L(`${r.sid}를 HA에서 뺐습니다.`, `${r.sid} is out of HA.`) }); reload(); }
-    catch (e) { setNotice({ kind: 'error', text: errText(e) }); }
-  }
-  async function removeGroup(g: HaGroup) {
-    if (!confirm(L(`HA 그룹 '${g.group}'을(를) 지울까요?`, `Delete HA group '${g.group}'?`))) return;
-    try { await opsApi.haGroupRemove(cluster.id, g.group); reload(); } catch (e) { setNotice({ kind: 'error', text: errText(e) }); }
-  }
-  return (
-    <>
-      <p className="muted small page-intro">{L('노드가 멈추면 등록한 VM을 다른 노드에서 다시 켭니다.', 'When a node stops, the listed VMs start on another node.')}</p>
-      <HowTo><ul>
-        <li>{L('라이선스 서버 · 게이트웨이처럼 늘 살아 있어야 하는 VM을 올리세요.', 'Put on it the VMs that must always run, such as licence servers and gateways.')}</li>
-        <li>{L('데스크톱 풀의 VM은 보통 올리지 않습니다. 노드가 멈추면 사용자는 다른 데스크톱을 받습니다.', 'Pool desktops usually stay off it: when a node stops, users get another desktop.')}</li>
-      </ul></HowTo>
-      <SettingsStatus items={[
-        { label: L('HA 쿼럼', 'HA quorum'), value: ha.quorate === null ? '-' : ha.quorate ? L('정상', 'OK') : L('없음', 'None'), tone: ha.quorate === false ? 'warn' : ha.quorate ? 'ok' : undefined },
-        { label: L('관리 노드', 'Manager node'), value: ha.master || '-' },
-        { label: L('등록된 VM', 'VMs under HA'), value: String(ha.resources.length) },
-        { label: L('그룹', 'Groups'), value: String(ha.groups.length) },
-      ]} />
-      <div className="toolbar">
-        <button type="button" className="btn primary" onClick={() => setAdding(true)}><Icon name="plus" size={16} />{L('VM을 HA에 등록', 'Add a VM to HA')}</button>
-        <button type="button" className="btn" onClick={() => setGrouping(true)}>{L('HA 그룹 만들기', 'New HA group')}</button>
-      </div>
-      <NoticeBar notice={notice} />
-      {ha.resources.length === 0 ? <div className="empty"><p>{L('HA에 등록된 VM이 없습니다.', 'No VM is under HA.')}</p></div> : (
-        <div className="table-scroll"><table className="table compact-head">
-          <thead><tr><th>VM</th><th>{L('노드', 'Node')}</th><th>{L('요청', 'Requested')}</th><th>{L('현재', 'Now')}</th><th>{L('그룹', 'Group')}</th>
-            <th className="num">{L('재시작 · 이동', 'Restarts · moves')}</th><th className="actions" /></tr></thead>
-          <tbody>{ha.resources.map((r) => (
-            <tr key={r.sid}>
-              <td><span className="strong">{r.name || r.sid}</span> <span className="muted small">{r.vmid}</span>
-                {r.desktop && <span className="chip chip-free vmm-chip">{L('데스크톱', 'desktop')}</span>}
-                {r.comment && <div className="muted small">{r.comment}</div>}</td>
-              <td className="nowrap">{r.node || '-'}</td>
-              <td className="nowrap">{stateL(r.state)}</td>
-              <td className="nowrap"><span className={`status ${r.status === 'started' ? 'st-ready' : r.status === 'error' || r.status === 'fence' ? 'st-error' : 'st-in_use'}`}>
-                <span className="dot" />{r.status || '-'}</span></td>
-              <td className="small">{r.group || '-'}</td>
-              <td className="num">{r.max_restart} · {r.max_relocate}</td>
-              <td className="actions"><button type="button" className="btn-ghost small-btn danger" onClick={() => remove(r)}>{L('해제', 'Remove')}</button></td>
-            </tr>))}</tbody>
-        </table></div>
-      )}
-      <h2 className="section-title">{L('HA 그룹', 'HA groups')}</h2>
-      <p className="muted small">{L('VM이 돌 노드와 우선순위를 정합니다.', 'Which nodes the VMs prefer.')}</p>
-      <HowTo><ul>
-        <li>{L('PVE 9.1부터는 노드 선호 규칙(node-affinity rule)이며 대상 VM을 함께 지정합니다.', 'From PVE 9.1 groups are node-affinity rules, which name their VMs.')}</li>
-      </ul></HowTo>
-      {ha.groups.length === 0 ? <p className="muted small">{L('그룹이 없습니다.', 'No groups.')}</p> : (
-        <div className="table-scroll"><table className="table compact-head">
-          <thead><tr><th>{L('이름', 'Name')}</th><th>{L('노드 (우선순위)', 'Nodes (priority)')}</th><th>{L('대상', 'VMs')}</th><th>{L('설정', 'Options')}</th><th className="actions" /></tr></thead>
-          <tbody>{ha.groups.map((g) => (
-            <tr key={g.group}><td className="strong">{g.group}{g.comment && <div className="muted small">{g.comment}</div>}</td>
-              <td><code className="code">{g.nodes}</code></td><td className="small">{g.resources || '-'}</td>
-              <td className="small">{[g.restricted && L('이 노드만', 'restricted'), g.nofailback && L('돌아가지 않음', 'no failback'), g.rule && L('규칙', 'rule')].filter(Boolean).join(', ') || '-'}</td>
-              <td className="actions"><button type="button" className="btn-ghost small-btn danger" onClick={() => removeGroup(g)}>{L('삭제', 'Delete')}</button></td></tr>
-          ))}</tbody>
-        </table></div>
-      )}
-      {adding && <HaAddDialog cluster={cluster} ha={ha} onClose={() => setAdding(false)}
-        onDone={(text) => { setAdding(false); setNotice({ kind: 'info', text }); reload(); }} />}
-      {grouping && <HaGroupDialog cluster={cluster} ha={ha} onClose={() => setGrouping(false)} onDone={() => { setGrouping(false); reload(); }} />}
-    </>
-  );
-}
-
-function HaAddDialog({ cluster, ha, onClose, onDone }: { cluster: Cluster; ha: ClusterHa; onClose: () => void; onDone: (text: string) => void }) {
+export function HaAddDialog({ cluster, ha, onClose, onDone }: { cluster: Cluster; ha: ClusterHa; onClose: () => void; onDone: (text: string) => void }) {
   const { L, lang } = useL();
   const guests = useLoad(useCallback(() => adminApi.guests(cluster.id), [cluster.id]), [cluster.id]);
   const [vmid, setVmid] = useState('');
@@ -604,7 +539,7 @@ function HaAddDialog({ cluster, ha, onClose, onDone }: { cluster: Cluster; ha: C
   );
 }
 
-function HaGroupDialog({ cluster, ha, onClose, onDone }: { cluster: Cluster; ha: ClusterHa; onClose: () => void; onDone: () => void }) {
+export function HaGroupDialog({ cluster, ha, onClose, onDone }: { cluster: Cluster; ha: ClusterHa; onClose: () => void; onDone: () => void }) {
   const { L } = useL();
   const nodes = useLoad(useCallback(() => adminApi.nodes(cluster.id), [cluster.id]), [cluster.id]);
   const [name, setName] = useState('');
