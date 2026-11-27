@@ -11,6 +11,7 @@ const ConsoleWindow = lazy(() => import('../../portal/ConsoleWindow'));
 
 export type ManagedDesktop = { id: string; name: string };
 type Notice = { kind: 'info' | 'error'; text: string };
+export type VmManageTab = Tab;
 type Tab = 'settings' | 'snapshots' | 'move' | 'manage';
 
 const codeOf = (e: unknown) => ((e as ApiError).body as { code?: string } | undefined)?.code;
@@ -40,8 +41,8 @@ export function useAdminConsole(onError: (text: string) => void) {
 
 // 가상머신 > 데스크톱(VM) 관리 > (데스크톱): the VM's settings, snapshots, moving it, and
 // making it a template or deleting it. Changes say when they need a restart.
-export function VmManageDialog({ desk, onClose, onChanged, onGone, onConsole }: {
-  desk: ManagedDesktop; onClose: () => void; onChanged: () => void;
+export function VmManageDialog({ desk, onClose, onChanged, onGone, onConsole, tab: firstTab = 'settings' }: {
+  desk: ManagedDesktop; onClose: () => void; onChanged: () => void; tab?: Tab;
   onGone: (text: string) => void;   // deleted or made a template: no desktop any more
   onConsole: (d: ManagedDesktop) => void;
 }) {
@@ -49,7 +50,7 @@ export function VmManageDialog({ desk, onClose, onChanged, onGone, onConsole }: 
   const L = L2(pick);
   const ref = useRef<HTMLDialogElement>(null);
   const vm = useLoad(useCallback(() => vmApi.vm(desk.id), [desk.id]), [desk.id]);
-  const [tab, setTab] = useState<Tab>('settings');
+  const [tab, setTab] = useState<Tab>(firstTab);
   const [notice, setNotice] = useState<Notice | null>(null);
 
   useEffect(() => { const d = ref.current; if (d && !d.open) d.showModal(); }, []);
