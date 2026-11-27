@@ -299,3 +299,30 @@ input[type=checkbox], input[type=radio] { width: 16px; height: 16px; }
 /* charts: thin area fills */
 .cv-area { fill: color-mix(in srgb, var(--hue) 7%, transparent); }
 .rs-chip { background: transparent !important; border: 1px solid currentColor; font-weight: 600; }
+
+/* ---------- legibility pass: darker grays (styles.css tokens) and one step heavier type ----------
+   Pretendard at 13-14 px reads thin on Windows; body text 450, tables and menus 500, labels 600. */
+body { font-weight: 450; }
+.table td, .vt-table td { color: var(--text); font-weight: 500; }
+.table td.muted, .table td .muted, .vt-table td .muted { font-weight: 450; }
+.table th, .vt-table th { color: var(--text-2); font-weight: 650; }
+.nav-item { color: var(--text); font-weight: 600; }
+.sidebar-sub a { color: var(--text-2); font-weight: 550; }
+.sidebar-section, .hub-group-label { color: var(--muted); font-weight: 700; }
+.crumbs, .crumbs a { color: var(--muted); font-weight: 500; }
+.page-tabs a { color: var(--muted); font-weight: 650; }
+.page-tabs a.on { color: var(--accent); }
+.hub-nav a { color: var(--text); font-weight: 550; }
+.muted { color: var(--muted); }
+.small { font-weight: 450; }
+.kpi-label, .stat-label, .sstatus-l, .vd-strip dt, .vd-kv dt, .hw-facts dt, .review-list dt { color: var(--muted); font-weight: 600; }
+.kpi-sub, .stat-sub { color: var(--muted); }
+.field-label, .form label, .settings label { color: var(--text); font-weight: 600; }
+.howto > summary { color: var(--muted); font-weight: 500; }
+.howto-body { color: var(--text-2); }
+.sset-head p, .page-intro { color: var(--muted); }
+.btn { color: var(--text); font-weight: 600; }
+.vt-link { font-weight: 650; }
+input::placeholder, textarea::placeholder { color: var(--subtle); opacity: 1; }
+.colchart-axis, .colchart-x, .cv-axis, .ts-axis { color: var(--muted); fill: var(--muted); }
+.empty { color: var(--muted); }
