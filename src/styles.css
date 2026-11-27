@@ -504,7 +504,7 @@ fieldset.choices legend { font-size: .85rem; font-weight: 550; margin-bottom: .3
 .dialog-head { display: flex; align-items: center; gap: .8rem; }
 .dialog-title { font-size: 1.1rem; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: .5rem; margin-top: .5rem; padding-top: .9rem; border-top: 1px solid var(--border); }
-.about-list { display: grid; grid-template-columns: auto 1fr; gap: .4rem 1rem; margin: 1.25rem 0; font-size: .88rem; }
+.about-list { display: grid; grid-template-columns: auto 1fr; gap: .35rem 1rem; margin: 1rem 0; font-size: .78rem; line-height: 1.55; }
 .about-list dt { color: var(--muted); }
 .about-list dd { margin: 0; overflow-wrap: anywhere; }
 .brand-name { font-weight: 700; letter-spacing: -.01em; }
