@@ -29,7 +29,7 @@ import { ReportPage } from './pages/ReportPage';
 import { UsagePage } from './pages/UsagePage';
 import { RolesPage } from './pages/RolesPage';
 import { AdDirectoryPage } from './pages/AdDirectoryPage';
-import { UsersPage } from './pages/UsersPage';
+import { UsersTablePage as UsersPage } from './pages/UsersTable';
 import { AccelChecksPage } from './pages/AccelChecksPage';
 import { EnvCatalogPage } from './pages/EnvCatalogPage';
 import { DesktopTemplatesPage } from './pages/DesktopTemplatesPage';

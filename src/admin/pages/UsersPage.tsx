@@ -1,16 +1,9 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { nextApi, type Department } from '../../api/next';
-import { externalSource, usersApi, type Account, type LockedAccount, type Role } from '../../api/users';
-import { useAuth } from '../../auth/AuthContext';
+import { useState } from 'react';
+import type { Department } from '../../api/next';
+import { externalSource, usersApi, type Account, type Role } from '../../api/users';
 import { Dialog } from '../../components/Dialog';
-import { Icon } from '../../components/Icon';
-import { LoadState } from '../../components/LoadState';
-import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
-import { relativeTime } from '../../portal/DesktopCard';
-import { ImportDialog } from './UserImport';
 
 export function roleLabel(t: (k: MessageKey) => string, role: string, roles?: Role[]) {
   if (['admin', 'user', 'viewer'].includes(role)) return t(`role.${role}` as MessageKey);
@@ -22,7 +15,7 @@ function useL() {
   return (ko: string, en: string) => pick({ ko, en });
 }
 const errText = (e: unknown) => (e as Error).message;
-const SOURCES: Record<string, string> = { local: 'Local', ldap: 'AD/LDAP', oidc: 'OIDC', entra: 'Entra ID' };
+export const SOURCES: Record<string, string> = { local: 'Local', ldap: 'AD/LDAP', oidc: 'OIDC', entra: 'Entra ID' };
 
 // a password the default policy accepts: upper, lower, digit, symbol, 14 long
 export function makePassword() {
@@ -42,51 +35,11 @@ export function PasswordInput({ id, value, onChange, generate, autoComplete = 'n
     <div className="pw-input">
       <input id={id} type={show ? 'text' : 'password'} autoComplete={autoComplete} value={value} onChange={(e) => onChange(e.target.value)} />
       <button type="button" className="btn-ghost small-btn" onClick={() => setShow((s) => !s)}>{show ? L('숨기기', 'Hide') : L('보기', 'Show')}</button>
-      {generate && <button type="button" className="btn small-btn" onClick={() => { onChange(makePassword()); setShow(true); }}>{L('자동 생성', 'Generate')}</button>}
+      {generate && <button type="button" className="btn small-btn" onClick={() => onChange(makePassword())}>{L('자동 생성', 'Generate')}</button>}
     </div>
   );
 }
 
-// ⋯ menu of a table row; fixed position so the table's scroll box does not clip it
-function RowMenu({ label, children }: { label: string; children: (close: () => void) => React.ReactNode }) {
-  const [at, setAt] = useState<{ top: number; right: number } | null>(null);
-  const btn = useRef<HTMLButtonElement>(null);
-  const box = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!at) return;
-    const close = (e: Event) => { if (!box.current?.contains(e.target as Node) && !btn.current?.contains(e.target as Node)) setAt(null); };
-    const gone = () => setAt(null);
-    document.addEventListener('mousedown', close);
-    window.addEventListener('scroll', gone, true);
-    window.addEventListener('resize', gone);
-    return () => { document.removeEventListener('mousedown', close); window.removeEventListener('scroll', gone, true); window.removeEventListener('resize', gone); };
-  }, [at]);
-  // below the button, or above it when it would run off the bottom
-  useLayoutEffect(() => {
-    if (!at || !box.current || !btn.current) return;
-    const r = btn.current.getBoundingClientRect();
-    const h = box.current.offsetHeight;
-    const top = r.bottom + 4 + h > window.innerHeight ? Math.max(8, r.top - 4 - h) : r.bottom + 4;
-    if (top !== at.top) setAt({ ...at, top });
-  }, [at]);
-  function toggle() {
-    if (at) { setAt(null); return; }
-    const r = btn.current!.getBoundingClientRect();
-    setAt({ top: r.bottom + 4, right: window.innerWidth - r.right });
-  }
-  return (
-    <>
-      <button ref={btn} type="button" className="btn-ghost small-btn" aria-label={label} title={label} aria-haspopup="menu" aria-expanded={!!at} onClick={toggle}>
-        <Icon name="more" size={16} />
-      </button>
-      {at && <div ref={box} className="menu row-menu" role="menu" style={{ position: 'fixed', top: at.top, right: at.right }}>{children(() => setAt(null))}</div>}
-    </>
-  );
-}
-
-type Notice = { kind: 'info' | 'error'; text: string } | null;
-
-// days until the last day of use (0 = today is the last), null without one
 export function daysLeft(day?: string | null) {
   if (!day) return null;
   const end = new Date(`${day}T00:00:00`).getTime();
@@ -94,7 +47,7 @@ export function daysLeft(day?: string | null) {
   return Math.round((end - today) / 864e5);
 }
 
-function ExpiryCell({ account }: { account: Account }) {
+export function ExpiryCell({ account }: { account: Account }) {
   const L = useL();
   if (!account.expires_at) return <span className="muted">-</span>;
   const left = daysLeft(account.expires_at)!;
@@ -108,163 +61,7 @@ function ExpiryCell({ account }: { account: Account }) {
   );
 }
 
-// 사용자 > 사용자 목록: accounts of the caller's tenant - make, change, delete, reset a password
-// or two-step sign-in, unlock; with their desktops and last connect.
-export function UsersPage() {
-  const { t, lang } = useI18n();
-  const L = useL();
-  const { user: me } = useAuth();
-  const users = useLoad(usersApi.list);
-  const roles = useLoad(() => usersApi.roles().catch(() => [] as Role[]));
-  const deps = useLoad(() => nextApi.departments().catch(() => [] as Department[]));
-  const locked = useLoad(() => usersApi.locked().catch(() => [] as LockedAccount[]));
-  const [q, setQ] = useState('');
-  const [role, setRole] = useState('');
-  const [source, setSource] = useState('');
-  const [showDisabled, setShowDisabled] = useState(false);
-  const [expiry, setExpiry] = useState<'' | 'set' | 'soon' | 'expired'>('');
-  const [importing, setImporting] = useState(false);
-  const [editing, setEditing] = useState<Account | 'new' | null>(null);
-  const [pwFor, setPwFor] = useState<Account | null>(null);
-  const [notice, setNotice] = useState<Notice>(null);
-
-  const roleList = roles.state === 'ok' ? roles.data : [];
-  const depList = deps.state === 'ok' ? deps.data : [];
-  const lockedList = locked.state === 'ok' ? locked.data : [];
-  const lockedSet = new Set(lockedList.map((x) => x.username));
-  const all = users.state === 'ok' ? users.data : [];
-  const sources = useMemo(() => [...new Set(all.map((u) => u.auth_source || 'local'))].sort(), [all]);
-  const usedRoles = useMemo(() => [...new Set([...roleList.map((r) => r.id), ...all.map((u) => u.role)])], [roleList, all]);
-
-  const rows = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    const soon = (u: Account) => { const d = daysLeft(u.expires_at); return !u.expired && d !== null && d <= 30; };
-    return all.filter((u) => (showDisabled || u.enabled !== false || (expiry === 'expired' && u.expired)) &&
-      (!role || u.role === role) && (!source || (u.auth_source || 'local') === source) &&
-      (!expiry || (expiry === 'set' && !!u.expires_at) || (expiry === 'expired' && !!u.expired) || (expiry === 'soon' && soon(u))) &&
-      (!needle || [u.username, u.display_name, u.email ?? ''].some((s) => s.toLowerCase().includes(needle))));
-  }, [all, q, role, source, showDisabled, expiry]);
-
-  function reload() { users.reload(); locked.reload(); }
-  async function act(fn: () => Promise<void>, done: string) {
-    setNotice(null);
-    try { await fn(); setNotice({ kind: 'info', text: done }); reload(); } catch (e) { setNotice({ kind: 'error', text: errText(e) }); }
-  }
-  const depName = (id?: string | null) => (id ? depList.find((d) => d.id === id)?.name ?? '' : '');
-
-  return (
-    <>
-      <div className="toolbar">
-        <button type="button" className="btn primary" onClick={() => setEditing('new')}><Icon name="plus" size={16} />{L('사용자 만들기', 'Add user')}</button>
-        <button type="button" className="btn" onClick={() => setImporting(true)}><Icon name="list" size={16} />{L('일괄 등록', 'Import')}</button>
-        <input type="search" placeholder={t('common.search')} aria-label={t('common.search')} value={q} onChange={(e) => setQ(e.target.value)} />
-        <select aria-label={t('users.role')} value={role} onChange={(e) => setRole(e.target.value)}>
-          <option value="">{L('모든 역할', 'All roles')}</option>
-          {usedRoles.map((r) => <option key={r} value={r}>{roleLabel(t, r, roleList)}</option>)}
-        </select>
-        <select aria-label={t('users.source')} value={source} onChange={(e) => setSource(e.target.value)}>
-          <option value="">{L('모든 출처', 'All sources')}</option>
-          {sources.map((s) => <option key={s} value={s}>{SOURCES[s] ?? s.toUpperCase()}</option>)}
-        </select>
-        <select aria-label={L('사용 기한', 'Last day of use')} value={expiry} onChange={(e) => setExpiry(e.target.value as typeof expiry)}>
-          <option value="">{L('사용 기한: 전체', 'Last day: all')}</option>
-          <option value="set">{L('기한 있음', 'Has a last day')}</option>
-          <option value="soon">{L('30일 안에 만료', 'Ends within 30 days')}</option>
-          <option value="expired">{L('만료됨', 'Expired')}</option>
-        </select>
-        <label className="check-inline">
-          <input type="checkbox" checked={showDisabled} onChange={(e) => setShowDisabled(e.target.checked)} />
-          <span>{t('users.showDisabled')}</span>
-        </label>
-        <button type="button" className="btn" onClick={reload}><Icon name="refresh" size={16} />{t('common.refresh')}</button>
-      </div>
-      <p className="muted small">{t('users.note')}</p>
-      {lockedList.length > 0 && (
-        <div className="alert locked-bar" role="status">
-          <Icon name="shield" size={16} />
-          <span>{L(`로그인 실패로 잠긴 계정 ${lockedList.length}개`, `${lockedList.length} account(s) locked after failed sign-ins`)}:</span>
-          {lockedList.map((x) => (
-            <span key={x.username} className="locked-item">
-              <span className="strong">{x.username}</span>
-              <span className="muted small">{L(`${Math.ceil(x.remaining_seconds / 60)}분 남음`, `${Math.ceil(x.remaining_seconds / 60)} min left`)}</span>
-              <button type="button" className="btn small-btn" onClick={() => act(() => usersApi.unlock(x.username), L(`${x.username} 잠금을 풀었습니다.`, `${x.username} unlocked.`))}>{L('잠금 해제', 'Unlock')}</button>
-            </span>
-          ))}
-        </div>
-      )}
-      {notice && <div className={`alert small ${notice.kind === 'error' ? 'error' : 'info'}`} role={notice.kind === 'error' ? 'alert' : 'status'}>{notice.text}</div>}
-      <LoadState value={users} retry={users.reload}>
-        {() => rows.length === 0 ? <div className="empty"><p>{t('users.empty')}</p></div> : (
-          <div className="table-scroll">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t('users.username')}</th><th>{t('users.name')}</th><th>{t('users.role')}</th><th>{L('부서', 'Department')}</th><th>{L('사용 기한', 'Last day')}</th>
-                  <th>{t('users.source')}</th><th className="num">{t('users.desktops')}</th><th>{t('portal.lastConnected')}</th><th />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((u) => {
-                  const ext = externalSource(u.auth_source);
-                  const self = u.username === me?.username;
-                  return (
-                    <tr key={u.username} className={u.enabled === false ? 'row-off' : ''}>
-                      <td className="strong">
-                        {u.username}
-                        {u.enabled === false && <span className="chip chip-off">{t('users.disabled')}</span>}
-                        {lockedSet.has(u.username) && <span className="chip chip-warn chip-gap">{L('잠김', 'Locked')}</span>}
-                        {u.totp_enabled && <span className="chip chip-on chip-gap" title={L('2단계 인증 사용 중', 'Two-step sign-in on')}>2FA</span>}
-                        {u.must_change_password && <span className="chip chip-free chip-gap" title={L('다음 로그인 때 비밀번호를 바꿔야 합니다', 'Must change the password at next sign-in')}>{L('비밀번호 변경 대기', 'New password due')}</span>}
-                      </td>
-                      <td>{u.display_name}{u.email && <div className="muted small">{u.email}</div>}</td>
-                      <td>{roleLabel(t, u.role, roleList)}</td>
-                      <td>{depName(u.department_id) || <span className="muted">-</span>}</td>
-                      <td className="nowrap"><ExpiryCell account={u} /></td>
-                      <td><span className="chip">{SOURCES[u.auth_source] ?? u.auth_source.toUpperCase()}</span></td>
-                      <td className="num">{u.desktops ?? 0}</td>
-                      <td>{relativeTime(u.last_connected, lang) ?? <span className="muted">{t('portal.never')}</span>}</td>
-                      <td className="actions">
-                        <button type="button" className="btn-ghost small-btn" onClick={() => setEditing(u)}>{t('common.edit')}</button>
-                        <RowMenu label={L('더 보기', 'More')}>
-                          {(close) => <>
-                            <Link role="menuitem" to={`/admin/users/access/${encodeURIComponent(u.username)}`} onClick={close}><Icon name="search" size={16} />{t('users.access')}</Link>
-                            {!ext && <button type="button" role="menuitem" onClick={() => { close(); setPwFor(u); }}><Icon name="shield" size={16} />{L('비밀번호 초기화', 'Reset password')}</button>}
-                            <button type="button" role="menuitem" disabled={!u.totp_enabled} onClick={() => {
-                              close();
-                              if (confirm(L(`${u.username}의 2단계 인증을 초기화할까요? 다음 로그인은 비밀번호만으로 하고, 인증 앱을 다시 등록해야 합니다.`,
-                                `Reset two-step sign-in for ${u.username}? They sign in with the password only and enrol their app again.`)))
-                                act(() => usersApi.reset2fa(u.username), L('2단계 인증을 초기화했습니다.', 'Two-step sign-in reset.'));
-                            }}><Icon name="clock" size={16} />{L('2단계 인증 초기화', 'Reset two-step sign-in')}</button>
-                            {lockedSet.has(u.username) && <button type="button" role="menuitem" onClick={() => { close(); act(() => usersApi.unlock(u.username), L(`${u.username} 잠금을 풀었습니다.`, `${u.username} unlocked.`)); }}><Icon name="shield" size={16} />{L('잠금 해제', 'Unlock')}</button>}
-                            <button type="button" role="menuitem" onClick={() => { close(); act(() => usersApi.update(u.username, { enabled: u.enabled === false }), u.enabled === false ? L('사용하도록 바꿨습니다.', 'Enabled.') : L('사용 중지했습니다. 열린 세션도 끝났습니다.', 'Disabled; open sessions ended.')); }} disabled={self}>
-                              <Icon name="users" size={16} />{u.enabled === false ? L('사용하기', 'Enable') : L('사용 중지', 'Disable')}
-                            </button>
-                            <button type="button" role="menuitem" className="danger" disabled={self} onClick={() => {
-                              close();
-                              if (confirm(L(`${u.username} 계정을 지울까요? 열린 세션과 API 토큰도 끝납니다. 되돌릴 수 없습니다.${u.desktops ? `\n할당된 데스크톱이 ${u.desktops}대 있습니다.` : ''}`,
-                                `Delete ${u.username}? Their sessions and API tokens end. This cannot be undone.${u.desktops ? `\nThey have ${u.desktops} assigned desktop(s).` : ''}`)))
-                                act(() => usersApi.remove(u.username), L(`${u.username} 계정을 지웠습니다.`, `${u.username} deleted.`));
-                            }}><Icon name="logout" size={16} />{t('common.delete')}</button>
-                          </>}
-                        </RowMenu>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </LoadState>
-      {editing && <AccountDialog account={editing === 'new' ? null : editing} roles={roleList} deps={depList} self={editing !== 'new' && editing.username === me?.username}
-        onClose={() => setEditing(null)} onDone={(text) => { setEditing(null); setNotice({ kind: 'info', text }); reload(); }} />}
-      {importing && <ImportDialog onClose={() => setImporting(false)} onDone={(text) => { setImporting(false); setNotice({ kind: 'info', text }); reload(); }} />}
-      {pwFor && <PasswordDialog account={pwFor} onClose={() => setPwFor(null)} onDone={(text) => { setPwFor(null); setNotice({ kind: 'info', text }); reload(); }} />}
-    </>
-  );
-}
-
-function AccountDialog({ account, roles, deps, self, onClose, onDone }: {
+export function AccountDialog({ account, roles, deps, self, onClose, onDone }: {
   account: Account | null; roles: Role[]; deps: Department[]; self: boolean; onClose: () => void; onDone: (text: string) => void;
 }) {
   const { t } = useI18n();
@@ -353,7 +150,7 @@ function AccountDialog({ account, roles, deps, self, onClose, onDone }: {
   );
 }
 
-function PasswordDialog({ account, onClose, onDone }: { account: Account; onClose: () => void; onDone: (text: string) => void }) {
+export function PasswordDialog({ account, onClose, onDone }: { account: Account; onClose: () => void; onDone: (text: string) => void }) {
   const L = useL();
   const [password, setPassword] = useState('');
   const [mustChange, setMustChange] = useState(true);
