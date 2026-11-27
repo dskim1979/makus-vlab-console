@@ -19,6 +19,10 @@ const guests: Omit<Guest, 'desktop_id' | 'pool_id'>[] = [
   { vmid: 400, name: 'vivado-build-01', node: 'pve3', type: 'qemu', status: 'running' },
   { vmid: 401, name: 'vivado-build-02', node: 'pve3', type: 'qemu', status: 'running' },
   { vmid: 410, name: 'board-lab-zcu102', node: 'pve2', type: 'qemu', status: 'stopped' },
+  { vmid: 310, name: 'res-win11-kim', node: 'pve1', type: 'qemu', status: 'running' },
+  { vmid: 311, name: 'res-win11-park', node: 'pve1', type: 'qemu', status: 'running' },
+  { vmid: 240, name: 'dc01', node: 'pve1', type: 'qemu', status: 'running' },
+  { vmid: 241, name: 'dc02', node: 'pve2', type: 'qemu', status: 'running' },
 ];
 
 const templates = [
@@ -81,6 +85,8 @@ function addDesk(pool: Pool, vmid: number, user: string | null = null) {
 {
   const c = addPool('교육장 A 수업용', 'classroom');
   addDesk(c, 303); addDesk(c, 304); addDesk(c, 305);
+  const r = addPool('연구원 전용', 'dedicated');
+  addDesk(r, 310, 'alice'); addDesk(r, 311, 'bob');
 }
 
 // LABs: two rooms, their PCs, and a week of sessions (local time, 0 = Monday)
@@ -165,7 +171,7 @@ const mockBackups: VmBackup[] = [0, 1, 2].flatMap((k) => [300, 301, 400].map((v)
 
 const POLICY_DEFAULTS: PoolPolicy = {
   protocols: ['vnc', 'spice', 'rdp'], spice_fullscreen: false, clipboard: 'both', usb_redirect: true, usb_autoshare: false, usb_mode: 'deny', usb_classes: [], usb_devices: [],
-  client_drives: false, client_printers: true, rdp_route: 'record', rdp_tune: true, auto_domain_join: null, start_on_connect: true, idle_shutdown_min: 0, reset_on_logout: false, allow_power: true, screen_thumbnail: true, max_session_hours: 0,
+  client_drives: false, client_printers: true, rdp_route: 'record', rdp_tune: true, auto_domain_join: null, start_on_connect: true, idle_shutdown_min: 0, reset_on_logout: false, allow_power: true, screen_thumbnail: true, ha_enabled: true, max_session_hours: 0,
   defer_when_busy: true, busy_gpu_pct: 10, busy_cpu_pct: 50, defer_max_hours: 12, web_ide: [], web_ide_idle_min: 240,
   desktop_files: 'off', desktop_files_max_mb: 500, desktop_files_day_mb: 0,
 };
@@ -653,7 +659,7 @@ export const mockAdminApi: AdminApi = {
   poolPolicy: (poolId) => {
     const p = pools.find((x) => x.id === poolId);
     if (!p) return fail(404, 'Pool not found');
-    const defaults = { ...POLICY_DEFAULTS, screen_thumbnail: !SHARED_SCREEN_TYPES.includes(p.type) };
+    const defaults = { ...POLICY_DEFAULTS, screen_thumbnail: !SHARED_SCREEN_TYPES.includes(p.type), ha_enabled: p.type === 'dedicated' };
     return delay({ policy: { ...defaults, ...(p.settings?.policy ?? {}) }, defaults,
       reset_allowed: p.type === 'reset' || p.type === 'classroom' });
   },
@@ -1027,4 +1033,4 @@ const auditLog = [
 }));
 
 // 가상머신 > 데스크톱(VM) 관리 in mock mode (api/vmManage.ts) works on these same desktops and guests
-export const mockVmStore = { desks, guests, templates, withBase };
+export const mockVmStore = { desks, guests, templates, withBase, pools };

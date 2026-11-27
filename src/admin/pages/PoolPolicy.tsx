@@ -73,6 +73,7 @@ function Summary({ p, storage }: { p: PoolPolicy; storage: PoolStorage | null })
   if (p.reset_on_logout) chips.push(t('pol.resetOnLogout'));
   if (!p.allow_power) chips.push(`${t('pol.s.power')}: ${t('pol.offShort')}`);
   if (p.screen_thumbnail === false) chips.push(`${L('화면 미리보기', 'Screen preview')}: ${t('pol.offShort')}`);
+  if (p.ha_enabled) chips.push(L('HA 사용', 'HA'));
   if (p.max_session_hours) chips.push(`${t('pol.maxSession')} ${p.max_session_hours}${t('pol.hours')}`);
   if (p.defer_when_busy) chips.push(L(`작업 중이면 미루기 (최대 ${p.defer_max_hours}시간)`, `Wait while working (up to ${p.defer_max_hours} h)`));
   if (p.web_ide?.length) chips.push(`${L('웹 IDE', 'Web IDE')}: ${p.web_ide.map((k) => (k === 'jupyter' ? 'JupyterLab' : 'VS Code')).join(' · ')}`);
@@ -410,6 +411,11 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
           <small className="muted hint-indent">{SHARED_SCREEN_TYPES.includes(pool.type)
             ? L('공유 풀은 기본으로 꺼짐 — 켜도 지금 쓰는 사용자만 봅니다.', 'Off by default in shared pools - when on, only the user on it sees it.')
             : L('VM 콘솔 화면입니다 — RDP로 쓰는 Windows는 잠금 화면이 보입니다.', "The VM's console - a Windows desktop used over RDP shows its lock screen.")}</small>
+          <label className="check"><input type="checkbox" checked={p.ha_enabled ?? pool.type === 'dedicated'} onChange={(e) => set('ha_enabled', e.target.checked)} />
+            <span>{L('HA 사용 (새 데스크톱을 고가용성에 등록)', 'Use HA (new desktops go under high availability)')}</span></label>
+          <small className="muted hint-indent">{pool.type === 'dedicated'
+            ? L('전용 데스크톱은 노드가 멈추면 다른 노드에서 다시 켜집니다.', 'A dedicated desktop restarts on another node when its node stops.')
+            : L('공유 · 초기화 풀은 기본으로 꺼짐 — 사용자는 다른 데스크톱을 받습니다.', 'Off by default in shared and reset pools - users simply get another desktop.')}</small>
           <label>
             <span>{t('pol.maxSession')}</span>
             <span className="with-unit">
@@ -443,7 +449,8 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
               : L('끔 — 정해진 때 바로 끄거나 초기화', 'Off - shut down or reset on time')}</dd>
             <dt>{t('pol.s.account')}</dt><dd>{p.allow_power ? t('pol.allowPower') : `${t('pol.s.power')}: ${t('pol.offShort')}`}
               {p.max_session_hours ? ` · ${t('pol.maxSession')} ${p.max_session_hours}${t('pol.hours')}` : ''}
-              {` · ${L('화면 미리보기', 'Screen preview')} ${p.screen_thumbnail !== false ? t('pol.on') : t('pol.offShort')}`}</dd>
+              {` · ${L('화면 미리보기', 'Screen preview')} ${p.screen_thumbnail !== false ? t('pol.on') : t('pol.offShort')}`}
+              {` · HA ${(p.ha_enabled ?? pool.type === 'dedicated') ? t('pol.on') : t('pol.offShort')}`}</dd>
             <dt>{L('공유 저장소', 'Shared storage')}</dt><dd>{storageSummary({ ...st, has_password: storage.has_password }, L)}
               {st.enabled ? ` · ${st.kind === 'smb' || st.create_by === 'user' ? L('폴더는 사용자 본인이 만듦', 'folders made by the user') : L('폴더는 엔진이 만듦', 'folders made by the engine')}` : ''}</dd>
           </dl>

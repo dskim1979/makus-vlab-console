@@ -269,3 +269,6 @@
 .cv-tip span { color: var(--subtle); }
 .vt-table tbody tr.cv-offline td { background: var(--surface-2); }
 .cv-cards .vd-card > header > h3 { margin-left: 0 !important; }
+
+/* 클러스터 > 고가용성 · 부하 분산 (HaDrsPages.tsx): sections under a table */
+.section-title.hd-sec { margin-top: 1.5rem; }

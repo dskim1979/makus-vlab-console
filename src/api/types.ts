@@ -173,6 +173,8 @@ export type PoolPolicy = {
   browser_ssh?: boolean; researcher_ssh?: boolean; ssh_files?: 'off' | 'down' | 'up' | 'both';
   // the portal card's screen picture (absent from engines before it: counts as on)
   screen_thumbnail?: boolean;
+  // 'HA 사용': new and cloned desktops go under Proxmox HA (default on in dedicated pools only)
+  ha_enabled?: boolean;
   // new, cloned and reset desktops join the bundled directory by themselves; null = on while it is in use
   auto_domain_join?: boolean | null;
   // 포털 '파일': 내 데스크톱 MOAVI 폴더로 올리기·받기 (게스트 에이전트)

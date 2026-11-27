@@ -20,7 +20,8 @@ import { DesktopStatusPage } from './pages/DesktopStatusPage';
 import { TemplateHubPage } from './pages/TemplateHub';
 import { VmDesktopsPage } from './pages/VmPages';
 import { IsoLibraryPage, VmCreatePage } from './pages/BuildPages';
-import { ClusterHaPage, TasksPage } from './pages/OpsPages';
+import { TasksPage } from './pages/OpsPages';
+import { ClusterBalancePage, ClusterHaPage } from './pages/HaDrsPages';
 import { PoolDetailPage } from './pages/PoolView';
 import { PoolTablePage } from './pages/PoolTable';
 import { SessionsPage } from './pages/SessionsPage';
@@ -48,6 +49,7 @@ function pageBody(key: string, subId?: string) {
   if (key === 'ops/audit') return <AuditPage />;
   if (key === 'ops/tasks') return <TasksPage />;
   if (key === 'cluster/ha') return <ClusterHaPage />;
+  if (key === 'cluster/balance') return <ClusterBalancePage />;
   if (key === 'ops/alerts') return <AlertsPage />;
   if (key === 'ops/backup') return <BackupPage />;
   if (key === 'ops/reports') return <UsagePage />;
