@@ -18,7 +18,7 @@ export type ReclaimItem = {
 export type ReclaimReport = {
   days: number; generated_at: string;
   spec: { vcpu: number; ram_gb: number; disk_gb: number; from_desktops: number };
-  totals: Free & { more_desktops: number; snapshots: number; items: number };
+  totals: Free & { more_desktops: number; snapshots: number; items: number; review?: number };
   counts: Record<ReclaimKind, number>; exempt_count: number; items: ReclaimItem[]; notes: string[];
   pools: { id: string; name: string }[];
   exemptions: { key: string; kind: string; target: string; note: string; by_user: string; at: string }[];
@@ -88,7 +88,9 @@ function mockReport(days: number, withExempt: boolean): ReclaimReport {
   const items = MOCK.map((i) => ({ ...i, exempt: mockExempt.has(i.key) }));
   const live = items.filter((i) => !i.exempt);
   const perVm = new Map<string, Free>(); const other: Free[] = [];
+  const review = live.filter((i) => i.action.id === 'review').length;
   for (const i of live) {
+    if (i.action.id === 'review') continue;
     if (i.kind === 'snapshot' || i.kind === 'loan') { other.push(i.free); continue; }
     const k = `${i.cluster_id}:${i.vmid}`; const c = perVm.get(k) ?? F();
     perVm.set(k, { vcpu: Math.max(c.vcpu, i.free.vcpu), ram_gb: Math.max(c.ram_gb, i.free.ram_gb), disk_gb: Math.max(c.disk_gb, i.free.disk_gb),
@@ -99,7 +101,7 @@ function mockReport(days: number, withExempt: boolean): ReclaimReport {
   const counts = Object.fromEntries(RECLAIM_KINDS.map((k) => [k, live.filter((i) => i.kind === k).length])) as Record<ReclaimKind, number>;
   return {
     days, generated_at: new Date().toISOString(), spec: { vcpu: 4, ram_gb: 8, disk_gb: 80, from_desktops: 46 },
-    totals: { ...t, more_desktops: Math.floor(Math.min(t.vcpu / 4, t.ram_gb / 8)), snapshots: counts.snapshot, items: live.length },
+    totals: { ...t, more_desktops: Math.floor(Math.min(t.vcpu / 4, t.ram_gb / 8)), snapshots: counts.snapshot, items: live.length, review },
     counts, exempt_count: items.length - live.length, items: withExempt ? items : live, notes: [],
     pools: [{ id: 'p-cad', name: 'CAD 실습' }, { id: 'p-dl', name: '딥러닝' }, { id: 'p-sim', name: '시뮬레이션' }],
     exemptions: [...mockExempt.values()],
