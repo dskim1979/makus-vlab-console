@@ -690,12 +690,13 @@ export const mockAdminApi: AdminApi = {
       const ns = mockNodeState(node);   // 유지보수, a restart (api/ops.ts)
       if (!ns.online) return { node, status: 'offline', online: false, cpu_percent: 0, cpus, cpu_model: model, mem_used: 0, mem_total: mem * GB,
         mem_percent: 0, disk_used: 0, disk_total: 96 * GB, uptime: 0, loadavg: [], version: 'pve-manager/8.2.4', maintenance: ns.maintenance,
-        guests: mine.length, running: 0, desktops: desks.filter((d) => d.node === node).length };
+        guests: mine.length, running: 0, desktops: desks.filter((d) => d.node === node).length, ip: `10.20.0.${11 + i}`, vcpus_given: mine.length * 8, mem_given: mine.length * 16 * GB };
       return { node, status: 'online', online: true, cpu_percent: cpu, cpus, cpu_model: model,
         mem_used: used, mem_total: mem * GB, mem_percent: Math.round(used / (mem * GB) * 1000) / 10,
         disk_used: 18 * GB, disk_total: 96 * GB, uptime: 86400 * (12 + i * 5), loadavg: [(cpu / 10).toFixed(2), '2.10', '1.95'],
         version: 'pve-manager/8.2.4', maintenance: ns.maintenance, guests: mine.length,
-        running: mine.filter((g) => g.status === 'running').length, desktops: desks.filter((d) => d.node === node).length };
+        running: mine.filter((g) => g.status === 'running').length, desktops: desks.filter((d) => d.node === node).length,
+        ip: `10.20.0.${11 + i}`, vcpus_given: cpus + mine.length * 8, mem_given: Math.round(mem * 0.7) * GB + mine.length * 8 * GB };
     }));
   },
   storage: (clusterId) => {
@@ -710,6 +711,16 @@ export const mockAdminApi: AdminApi = {
       s('local', 'dir', false, ['iso', 'vztmpl'], 0.03, 0.09, ['pve2']),
       s('local-lvm', 'lvmthin', false, ['images'], 1.1, 1.8, ['pve3']),
     ]);
+  },
+  clusterRrd: (cid, tf) => {
+    if (cid !== CLUSTER.id) return fail(404, 'Cluster not found');
+    const step = ({ hour: 60, day: 1800, week: 10800, month: 43200, year: 604800 } as Record<string, number>)[tf] ?? 60;
+    const now = Math.floor(Date.now() / 1000 / step) * step;
+    const points = Array.from({ length: 70 }, (_, i) => {
+      const t = now - (69 - i) * step; const w = Math.sin(i / 7) + Math.sin(i / 2.3) * 0.35;
+      return { t, cpu: Math.round((46 + w * 14 + (i % 9 === 0 ? 12 : 0)) * 10) / 10, mem: Math.round((58 + Math.sin(i / 15) * 6 + i * 0.05) * 10) / 10 };
+    });
+    return delay({ timeframe: tf, points, nodes_missing: [] });
   },
   guests: (cid) => cid !== CLUSTER.id ? fail(404, 'Cluster not found') : delay(guests.map((g) => {
     const d = desks.find((x) => x.vmid === g.vmid);

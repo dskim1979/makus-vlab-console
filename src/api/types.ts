@@ -351,7 +351,9 @@ export type ClusterNode = {
   mem_used: number; mem_total: number; mem_percent: number; disk_used: number; disk_total: number;
   uptime: number; loadavg: string[]; version: string; maintenance: boolean;
   guests: number; running: number; desktops: number;
+  ip?: string; vcpus_given?: number; mem_given?: number;   // engine claude/vm-table
 };
+export type ClusterRrd = { timeframe: string; points: { t: number; cpu: number; mem: number }[]; nodes_missing: string[] };
 export type ClusterStorage = {
   storage: string; type: string; shared: boolean; content: string[]; status: string;
   used: number; total: number; nodes: string[];

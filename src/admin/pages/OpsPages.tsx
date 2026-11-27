@@ -236,7 +236,7 @@ export function NodeRowActions({ cluster, node, onChanged }: { cluster: Cluster;
   );
 }
 
-function MaintenanceDialog({ cluster, node, onClose, onDone }: { cluster: Cluster; node: string; onClose: () => void; onDone: () => void }) {
+export function MaintenanceDialog({ cluster, node, onClose, onDone }: { cluster: Cluster; node: string; onClose: () => void; onDone: () => void }) {
   const { L } = useL();
   const pv = useLoad(useCallback(() => opsApi.maintenancePreview(cluster.id, node), [cluster.id, node]), [node]);
   const [skip, setSkip] = useState(false);
@@ -244,7 +244,9 @@ function MaintenanceDialog({ cluster, node, onClose, onDone }: { cluster: Cluste
   const [relax, setRelax] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [typed, setTyped] = useState('');
   async function submit() {
+    if (typed !== node) { setError(L('노드 이름을 그대로 입력하세요.', "Type the node's name exactly.")); return; }
     setBusy(true); setError(null);
     try {
       await opsApi.setMaintenance(cluster.id, node, true, skip ? { skip_evacuation: true }
@@ -253,11 +255,13 @@ function MaintenanceDialog({ cluster, node, onClose, onDone }: { cluster: Cluste
     } catch (e) { setError(errText(e)); } finally { setBusy(false); }
   }
   return (
-    <Dialog open wide title={L(`${node} 유지보수 시작`, `Start maintenance on ${node}`)} onClose={onClose} onSubmit={submit} busy={busy || pv.state !== 'ok'} error={error}
+    <Dialog open wide title={L(`${node} 유지보수 시작`, `Start maintenance on ${node}`)} onClose={onClose} onSubmit={submit} busy={busy || pv.state !== 'ok' || typed !== node} error={error}
       submitLabel={L('유지보수 시작', 'Start maintenance')}>
       <p className="muted small">{L('새 VM을 받지 않고, 켜진 VM은 다른 노드로 라이브 마이그레이션합니다.', 'The node takes no new VMs; its running VMs live-migrate to the other nodes.')}</p>
       <LoadState value={pv} retry={pv.reload}>{(p) => <PreviewBody p={p} skip={skip} templates={templates} relax={relax}
         setSkip={setSkip} setTemplates={setTemplates} setRelax={setRelax} />}</LoadState>
+      <label><span>{L(`확인을 위해 노드 이름 '${node}'을(를) 입력하세요`, `Type the node name '${node}' to confirm`)}</span>
+        <input autoComplete="off" value={typed} onChange={(e) => setTyped(e.target.value)} /></label>
     </Dialog>
   );
 }
@@ -311,7 +315,7 @@ function PreviewBody({ p, skip, templates, relax, setSkip, setTemplates, setRela
   );
 }
 
-function PowerDialog({ cluster, node, action, onClose, onDone }: {
+export function PowerDialog({ cluster, node, action, onClose, onDone }: {
   cluster: Cluster; node: string; action: 'reboot' | 'shutdown'; onClose: () => void; onDone: (text: string) => void;
 }) {
   const { L } = useL();
