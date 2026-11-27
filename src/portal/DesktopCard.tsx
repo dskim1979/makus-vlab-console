@@ -86,22 +86,32 @@ function useScreenshot(id: string, on: boolean): string | 'off' | null {
 // The "screen" of a tile: the desktop's own screen when the engine gives one, else a small
 // drawing of it (our own artwork, no vendor imagery).
 function Screen({ d, family }: { d: Desktop; family: OsFamily }) {
-  const { t, pick } = useI18n();
+  const { t, pick, lang } = useI18n();
   const on = d.state === 'ready' || d.state === 'in_use';
   const shot = useScreenshot(d.id, on && d.policy?.screen_thumbnail !== false);
   const [broken, setBroken] = useState<string | null>(null);
   const off = shot === 'off';
   const real = shot && !off && broken !== shot ? shot : null;
+  const who = (d.signed_in ?? [])[0];
+  const since = who?.login_time ? relativeTime(new Date(who.login_time * 1000).toISOString(), lang) : null;
   return (
     <div className={`td-screen os-${family}${on ? ' on' : ''}`} aria-hidden={real ? undefined : true}>
       {on ? (
         <>
-          {real ? (
+          {who ? (
+            <span className="scr-session">
+              <span className="scr-session-icon"><Icon name="users" size={22} /></span>
+              <span className="scr-session-text">
+                <strong>{pick({ ko: '로그인됨', en: 'Signed in' })}</strong>
+                <span>{who.user}{(d.signed_in ?? []).length > 1 ? ` +${(d.signed_in ?? []).length - 1}` : ''}{since ? ` · ${since}` : ''}</span>
+              </span>
+            </span>
+          ) : real ? (
             <img className="scr-shot" src={real} alt={pick({ ko: `${d.name} 화면`, en: `${d.name} screen` })}
               title={pick({ ko: '20초마다 갱신 · RDP로 쓰는 중이면 잠금 화면이 보입니다', en: 'Updated every 20 s · shows the lock screen while in use over RDP' })}
               onError={() => setBroken(real)} />
           ) : off ? (
-            <span className="scr-off scr-dark">{pick({ ko: '화면 꺼짐', en: 'Display off' })}</span>
+            <span className="scr-off scr-dark">{pick({ ko: '대기 중 · 로그인 전', en: 'Idle · nobody signed in' })}</span>
           ) : (
             <>
               <span className="scr-wall" />

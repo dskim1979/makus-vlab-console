@@ -133,7 +133,10 @@ export const mockApi: Api = {
     await delay(undefined);
   },
   async logout() { current = null; save(null); },
-  async myDesktops() { return delay(desktops.map((d) => ({ ...d, work: mockDeskWork(d.id, d.name) }))); },
+  async myDesktops() {
+    return delay(desktops.map((d) => ({ ...d, work: mockDeskWork(d.id, d.name),
+      signed_in: d.state === 'in_use' ? [{ user: 'alice', domain: 'MOAVI', login_time: Math.floor(Date.now() / 1000) - 1260 }] : [] })));
+  },
   async clientConfig() {
     return delay({ latest_version: '0.9.0', min_version: '', download_url: '', protocol: 'auto', support_url: 'https://support.makussystems.co.kr/' });
   },

@@ -47,6 +47,8 @@ export type Desktop = {
   storage?: StoragePaths & { ok: boolean | null; code: string; warnings: string[] };
   // 작업 중 표시, 미뤄진 정리, 카드 사용률 (pegaprox/api/vlab_work.py)
   work?: DesktopWork;
+  // 로그인됨: who is signed in right now (guest agent); null/absent when it cannot be told
+  signed_in?: { user: string; domain?: string | null; login_time?: number | null }[] | null;
 };
 
 // --- shared storage (공유 저장소, makus-vlab pegaprox/vlab/nas.py) ----------------------
