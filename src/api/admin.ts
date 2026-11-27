@@ -1,7 +1,7 @@
 // Admin console calls: /api/vlab/admin/* only (makus-vlab pegaprox/api/vlab.py).
 import { ApiError, isMock, request } from './client';
 import { mockAdminApi } from './mockAdmin';
-import type { Lab, LabInput, LabRun, LabSchedule, LabScheduleInput, Terminal, RightSizing, AlertChannel, AlertChannelInput, AlertRule, AlertRuleInput, AlertMute, ClusterAlerts, MuteInput, Infra, InfraRange, AdminDesktop, AssignableUser, AccelInventory, AdminLease, AuditPage, BackupJob, BackupStorage, Branding, BrandingSlot, PbsServer, VmBackup, PoolPolicy, PoolPolicyAnswer, AuditQuery, GpuApplyResult, GpuPolicy, VgpuProfile, PowerAction, ClusterNode, ClusterStorage, PlatformSettings, UsageReport, Directory, DirectoryTest, CloneResult, Cluster, Guest, NewCluster, Pool, PoolResetResult, PoolType, PoolUpdate, EndedSession, Notice, NoticeInput, SessionRow, Summary, Template, UserAccess } from './types';
+import type { Lab, LabInput, LabRun, LabSchedule, LabScheduleInput, Terminal, RightSizing, AlertChannel, AlertChannelInput, AlertRule, AlertRuleInput, AlertMute, ClusterAlerts, MuteInput, Infra, InfraRange, AdminDesktop, AssignableUser, AccelInventory, AdminLease, AuditPage, BackupJob, BackupStorage, Branding, BrandingSlot, PbsServer, VmBackup, PoolPolicy, PoolPolicyAnswer, AuditQuery, GpuApplyResult, GpuPolicy, VgpuProfile, PowerAction, ClusterNode, ClusterRrd, ClusterStorage, PlatformSettings, UsageReport, Directory, DirectoryTest, CloneResult, Cluster, Guest, NewCluster, Pool, PoolResetResult, PoolType, PoolUpdate, EndedSession, Notice, NoticeInput, SessionRow, Summary, Template, UserAccess } from './types';
 
 // Calls that must succeed: a non-2xx answer throws with the engine's own message.
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -126,6 +126,8 @@ const realAdminApi = {
   },
   nodes: async (clusterId: string) =>
     (await call<{ nodes: ClusterNode[] }>('GET', `/api/vlab/admin/clusters/${enc(clusterId)}/nodes`)).nodes,
+  clusterRrd: async (clusterId: string, timeframe: string) =>
+    call<ClusterRrd>('GET', `/api/vlab/admin/clusters/${enc(clusterId)}/rrd?timeframe=${enc(timeframe)}`),
   storage: async (clusterId: string) =>
     (await call<{ storage: ClusterStorage[] }>('GET', `/api/vlab/admin/clusters/${enc(clusterId)}/storage`)).storage,
   guests: async (clusterId: string) =>
@@ -164,6 +166,8 @@ const realAdminApi = {
   },
   clone: async (poolId: string, c: { template_vmid: number; count: number; name_prefix: string; full: boolean; start_vmid?: number }) =>
     call<CloneResult>('POST', `/api/vlab/admin/pools/${enc(poolId)}/clone`, c),
+  pruneDesktops: async (poolId: string) =>
+    (await call<{ removed: number[] }>('POST', `/api/vlab/admin/pools/${enc(poolId)}/desktops/prune`)).removed,
   removeDesktop: async (desktopId: string) => { await call('DELETE', `/api/vlab/admin/desktops/${enc(desktopId)}`); },
   assign: async (desktopId: string, username: string | null) => {
     await call('PUT', `/api/vlab/admin/desktops/${enc(desktopId)}/assign`, { username });

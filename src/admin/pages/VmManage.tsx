@@ -10,7 +10,8 @@ import { bytes } from './ClusterPages';
 const ConsoleWindow = lazy(() => import('../../portal/ConsoleWindow'));
 
 export type ManagedDesktop = { id: string; name: string };
-type Notice = { kind: 'info' | 'error'; text: string };
+export type Notice = { kind: 'info' | 'error'; text: string };
+export type VmManageTab = Tab;
 type Tab = 'settings' | 'snapshots' | 'move' | 'manage';
 
 const codeOf = (e: unknown) => ((e as ApiError).body as { code?: string } | undefined)?.code;
@@ -40,8 +41,8 @@ export function useAdminConsole(onError: (text: string) => void) {
 
 // 가상머신 > 데스크톱(VM) 관리 > (데스크톱): the VM's settings, snapshots, moving it, and
 // making it a template or deleting it. Changes say when they need a restart.
-export function VmManageDialog({ desk, onClose, onChanged, onGone, onConsole }: {
-  desk: ManagedDesktop; onClose: () => void; onChanged: () => void;
+export function VmManageDialog({ desk, onClose, onChanged, onGone, onConsole, tab: firstTab = 'settings' }: {
+  desk: ManagedDesktop; onClose: () => void; onChanged: () => void; tab?: Tab;
   onGone: (text: string) => void;   // deleted or made a template: no desktop any more
   onConsole: (d: ManagedDesktop) => void;
 }) {
@@ -49,7 +50,7 @@ export function VmManageDialog({ desk, onClose, onChanged, onGone, onConsole }: 
   const L = L2(pick);
   const ref = useRef<HTMLDialogElement>(null);
   const vm = useLoad(useCallback(() => vmApi.vm(desk.id), [desk.id]), [desk.id]);
-  const [tab, setTab] = useState<Tab>('settings');
+  const [tab, setTab] = useState<Tab>(firstTab);
   const [notice, setNotice] = useState<Notice | null>(null);
 
   useEffect(() => { const d = ref.current; if (d && !d.open) d.showModal(); }, []);
@@ -95,7 +96,7 @@ export function VmManageDialog({ desk, onClose, onChanged, onGone, onConsole }: 
   );
 }
 
-type TabProps = { v: VmInfo; onNotice: (n: Notice | null) => void; onChanged: (n: Notice) => void };
+export type TabProps = { v: VmInfo; onNotice: (n: Notice | null) => void; onChanged: (n: Notice) => void };
 
 function useRun(onNotice: (n: Notice | null) => void) {
   const [busy, setBusy] = useState(false);
@@ -106,7 +107,7 @@ function useRun(onNotice: (n: Notice | null) => void) {
   return { busy, run };
 }
 
-function SettingsTab({ v, onNotice, onChanged }: TabProps) {
+export function SettingsTab({ v, onNotice, onChanged, part }: TabProps & { part?: 'compute' | 'storage' | 'network' }) {
   const { pick } = useI18n();
   const L = L2(pick);
   const { busy, run } = useRun(onNotice);
@@ -125,82 +126,88 @@ function SettingsTab({ v, onNotice, onChanged }: TabProps) {
 
   return (
     <>
+      {(!part || part === 'compute') && (
       <section className="vmm-sec">
-        <h3>{L('CPU · 메모리', 'CPU · memory')}</h3>
-        <div className="vmm-row">
-          <label>{L('코어', 'Cores')}<input type="number" min={1} max={256} value={cores} onChange={(e) => setCores(Number(e.target.value))} /></label>
-          {v.type === 'qemu' && <label>{L('소켓', 'Sockets')}<input type="number" min={1} max={8} value={sockets} onChange={(e) => setSockets(Number(e.target.value))} /></label>}
-          <label>{L('메모리 (GB)', 'Memory (GB)')}<input type="number" min={0.25} step={0.25} value={memGb} onChange={(e) => setMemGb(Number(e.target.value))} /></label>
-          <button type="button" className="btn primary small-btn" disabled={busy || !hwDirty}
-            onClick={() => run(async () => {
-              const r = await vmApi.setHardware(v.desktop_id, { cores, ...(v.type === 'qemu' ? { sockets } : {}), memory_mb: Math.round(memGb * 1024) });
-              onChanged(restart(r, L('CPU · 메모리를', 'CPU and memory')));
-              return null;
-            })}>{L('저장', 'Save')}</button>
-        </div>
-        <p className="muted small">{L(`지금 ${v.cores * v.sockets} vCPU · ${v.memory_mb / 1024} GB. CPU 종류 ${v.cpu || '-'}, OS ${v.ostype || '-'}.`,
-          `Now ${v.cores * v.sockets} vCPU · ${v.memory_mb / 1024} GB. CPU type ${v.cpu || '-'}, OS ${v.ostype || '-'}.`)}</p>
-      </section>
-
-      <section className="vmm-sec">
-        <h3>{L('디스크', 'Disks')}</h3>
-        <table className="table compact-head">
-          <thead><tr><th>{L('장치', 'Device')}</th><th>{L('스토리지', 'Storage')}</th><th className="num">{L('크기', 'Size')}</th><th>{L('늘리기', 'Grow')}</th></tr></thead>
-          <tbody>
-            {v.disks.map((d) => (
-              <tr key={d.key}>
-                <td><code className="code">{d.key}</code></td>
-                <td className="small">{d.storage}</td>
-                <td className="num nowrap">{d.size_gb} GB</td>
-                <td className="nowrap">
-                  <span className="with-unit">
-                    <input type="number" min={1} aria-label={`${d.key} +GB`} placeholder="+GB" value={grow[d.key] ?? ''}
-                      onChange={(e) => setGrow((g) => ({ ...g, [d.key]: Number(e.target.value) }))} />
-                    <button type="button" className="btn small-btn" disabled={busy || !(grow[d.key] > 0)}
-                      onClick={() => run(async () => {
-                        if (!window.confirm(L(`${d.key}을(를) ${grow[d.key]} GB 늘립니다. 디스크는 줄일 수 없습니다. 계속할까요?`,
-                          `Grow ${d.key} by ${grow[d.key]} GB? A disk cannot be shrunk.`))) return null;
-                        await vmApi.growDisk(v.desktop_id, d.key, grow[d.key]);
-                        setGrow((g) => ({ ...g, [d.key]: 0 }));
-                        onChanged({ kind: 'info', text: L(`${d.key}을(를) 늘렸습니다. 게스트 OS 안에서 파티션도 늘려 주세요.`, `${d.key} grown. Extend the partition inside the guest too.`) });
-                        return null;
-                      })}>{L('늘리기', 'Grow')}</button>
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {v.type === 'qemu' && (
+          <h3>{L('CPU · 메모리', 'CPU · memory')}</h3>
           <div className="vmm-row">
-            <label>{L('새 디스크 스토리지', 'New disk on')}
-              <select value={newStorage} onChange={(e) => setNewStorage(e.target.value)}>
-                {v.storages.map((s) => <option key={s.storage} value={s.storage}>{s.storage} ({s.type}{s.avail ? `, ${bytes(s.avail)} ${L('남음', 'free')}` : ''})</option>)}
-              </select>
-            </label>
-            <label>{L('크기 (GB)', 'Size (GB)')}<input type="number" min={1} value={newSize} onChange={(e) => setNewSize(Number(e.target.value))} /></label>
-            <button type="button" className="btn small-btn" disabled={busy || !newStorage || !(newSize > 0)}
+            <label>{L('코어', 'Cores')}<input type="number" min={1} max={256} value={cores} onChange={(e) => setCores(Number(e.target.value))} /></label>
+            {v.type === 'qemu' && <label>{L('소켓', 'Sockets')}<input type="number" min={1} max={8} value={sockets} onChange={(e) => setSockets(Number(e.target.value))} /></label>}
+            <label>{L('메모리 (GB)', 'Memory (GB)')}<input type="number" min={0.25} step={0.25} value={memGb} onChange={(e) => setMemGb(Number(e.target.value))} /></label>
+            <button type="button" className="btn primary small-btn" disabled={busy || !hwDirty}
               onClick={() => run(async () => {
-                const r = await vmApi.addDisk(v.desktop_id, newStorage, newSize);
-                onChanged({ kind: 'info', text: L(`${r.disk} (${newSize} GB)를 추가했습니다.`, `${r.disk} (${newSize} GB) added.`) });
+                const r = await vmApi.setHardware(v.desktop_id, { cores, ...(v.type === 'qemu' ? { sockets } : {}), memory_mb: Math.round(memGb * 1024) });
+                onChanged(restart(r, L('CPU · 메모리를', 'CPU and memory')));
                 return null;
-              })}>{L('디스크 추가', 'Add disk')}</button>
+              })}>{L('저장', 'Save')}</button>
           </div>
-        )}
-      </section>
+          <p className="muted small">{L(`지금 ${v.cores * v.sockets} vCPU · ${v.memory_mb / 1024} GB. CPU 종류 ${v.cpu || '-'}, OS ${v.ostype || '-'}.`,
+            `Now ${v.cores * v.sockets} vCPU · ${v.memory_mb / 1024} GB. CPU type ${v.cpu || '-'}, OS ${v.ostype || '-'}.`)}</p>
+        </section>
+      )}
 
+      {(!part || part === 'storage') && (
       <section className="vmm-sec">
-        <h3>{L('네트워크', 'Network')}</h3>
-        {v.networks.length === 0 ? <p className="muted small">{L('네트워크 장치가 없습니다.', 'No network devices.')}</p>
-          : v.networks.map((n) => <NicRow key={n.key} v={v} n={n} busy={busy}
-            save={(bridge, tag) => run(async () => {
-              const r = await vmApi.setNetwork(v.desktop_id, n.key, bridge, tag);
-              onChanged(restart(r, L(`${n.key} 네트워크를`, `${n.key} network`)));
-              return null;
-            })} />)}
-        {v.status === 'running' && <p className="muted small">{L('켜져 있는 VM은 CPU · 메모리 · 네트워크 변경이 다음 시작부터 적용될 수 있습니다.',
-          'On a running VM, CPU, memory and network changes may only apply from the next start.')}</p>}
-      </section>
+          <h3>{L('디스크', 'Disks')}</h3>
+          <table className="table compact-head">
+            <thead><tr><th>{L('장치', 'Device')}</th><th>{L('스토리지', 'Storage')}</th><th className="num">{L('크기', 'Size')}</th><th>{L('늘리기', 'Grow')}</th></tr></thead>
+            <tbody>
+              {v.disks.map((d) => (
+                <tr key={d.key}>
+                  <td><code className="code">{d.key}</code></td>
+                  <td className="small">{d.storage}</td>
+                  <td className="num nowrap">{d.size_gb} GB</td>
+                  <td className="nowrap">
+                    <span className="with-unit">
+                      <input type="number" min={1} aria-label={`${d.key} +GB`} placeholder="+GB" value={grow[d.key] ?? ''}
+                        onChange={(e) => setGrow((g) => ({ ...g, [d.key]: Number(e.target.value) }))} />
+                      <button type="button" className="btn small-btn" disabled={busy || !(grow[d.key] > 0)}
+                        onClick={() => run(async () => {
+                          if (!window.confirm(L(`${d.key}을(를) ${grow[d.key]} GB 늘립니다. 디스크는 줄일 수 없습니다. 계속할까요?`,
+                            `Grow ${d.key} by ${grow[d.key]} GB? A disk cannot be shrunk.`))) return null;
+                          await vmApi.growDisk(v.desktop_id, d.key, grow[d.key]);
+                          setGrow((g) => ({ ...g, [d.key]: 0 }));
+                          onChanged({ kind: 'info', text: L(`${d.key}을(를) 늘렸습니다. 게스트 OS 안에서 파티션도 늘려 주세요.`, `${d.key} grown. Extend the partition inside the guest too.`) });
+                          return null;
+                        })}>{L('늘리기', 'Grow')}</button>
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {v.type === 'qemu' && (
+            <div className="vmm-row">
+              <label>{L('새 디스크 스토리지', 'New disk on')}
+                <select value={newStorage} onChange={(e) => setNewStorage(e.target.value)}>
+                  {v.storages.map((s) => <option key={s.storage} value={s.storage}>{s.storage} ({s.type}{s.avail ? `, ${bytes(s.avail)} ${L('남음', 'free')}` : ''})</option>)}
+                </select>
+              </label>
+              <label>{L('크기 (GB)', 'Size (GB)')}<input type="number" min={1} value={newSize} onChange={(e) => setNewSize(Number(e.target.value))} /></label>
+              <button type="button" className="btn small-btn" disabled={busy || !newStorage || !(newSize > 0)}
+                onClick={() => run(async () => {
+                  const r = await vmApi.addDisk(v.desktop_id, newStorage, newSize);
+                  onChanged({ kind: 'info', text: L(`${r.disk} (${newSize} GB)를 추가했습니다.`, `${r.disk} (${newSize} GB) added.`) });
+                  return null;
+                })}>{L('디스크 추가', 'Add disk')}</button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {(!part || part === 'network') && (
+      <section className="vmm-sec">
+          <h3>{L('네트워크', 'Network')}</h3>
+          {v.networks.length === 0 ? <p className="muted small">{L('네트워크 장치가 없습니다.', 'No network devices.')}</p>
+            : v.networks.map((n) => <NicRow key={n.key} v={v} n={n} busy={busy}
+              save={(bridge, tag) => run(async () => {
+                const r = await vmApi.setNetwork(v.desktop_id, n.key, bridge, tag);
+                onChanged(restart(r, L(`${n.key} 네트워크를`, `${n.key} network`)));
+                return null;
+              })} />)}
+          {v.status === 'running' && <p className="muted small">{L('켜져 있는 VM은 CPU · 메모리 · 네트워크 변경이 다음 시작부터 적용될 수 있습니다.',
+            'On a running VM, CPU, memory and network changes may only apply from the next start.')}</p>}
+        </section>
+      )}
     </>
   );
 }
@@ -270,9 +277,9 @@ function SnapshotsTab({ v, onNotice, onChanged }: TabProps) {
               return done(L(`스냅샷 '${name}'을(를) 만들었습니다.`, `Snapshot '${name}' taken.`));
             })}>{L('만들기', 'Take')}</button>
         </div>
-        <p className="muted small">{L('이름은 영문자로 시작하고 영문자 · 숫자 · - _ . 만 씁니다. GPU 패스스루 VM은 메모리 포함 스냅샷이 안 될 수 있습니다.',
-          'A name starts with a letter and uses letters, digits, - _ . only. VMs with a passed-through GPU may refuse a snapshot with memory.')}
-          {v.passthrough.length > 0 && L(' 이 VM은 패스스루 장치가 있어 메모리 포함 스냅샷을 만들 수 없습니다(되돌리면 카드 상태가 맞지 않음).', ' This VM has a passthrough device, so a snapshot with memory is not possible (a rollback would not match the card).')}</p>
+        <p className="muted small">{L('이름은 영문자로 시작하고 영문자 · 숫자 · - _ . 만 씁니다.',
+          'A name starts with a letter and uses letters, digits, - _ . only.')}
+          {v.passthrough.length > 0 && L(' 패스스루 장치가 있어 메모리 포함 스냅샷은 안 됩니다.', ' With a passthrough device a snapshot with memory is not possible.')}</p>
       </section>
       <LoadState value={snaps} retry={snaps.reload}>
         {({ snapshots }) => snapshots.length === 0 ? <div className="empty"><p>{L('스냅샷이 없습니다.', 'No snapshots.')}</p></div> : (
@@ -306,7 +313,7 @@ function SnapshotsTab({ v, onNotice, onChanged }: TabProps) {
   );
 }
 
-function MoveTab({ v, onNotice, onChanged }: TabProps) {
+export function MoveTab({ v, onNotice, onChanged }: TabProps) {
   const { pick } = useI18n();
   const L = L2(pick);
   const online = v.targets.filter((x) => x.online && !x.maintenance);
@@ -340,8 +347,8 @@ function MoveTab({ v, onNotice, onChanged }: TabProps) {
     return (
       <div className="alert">
         <p className="strong">{L('이 VM은 노드를 옮길 수 없습니다.', 'This VM cannot move to another node.')}</p>
-        <p>{L(`이 노드의 장치를 직접 쓰고 있습니다 (GPU · PCI · USB 패스스루). 장치를 빼거나 대상 노드에 같은 장치가 있게 한 뒤에 옮기세요.`,
-          'It uses devices of this node directly (GPU, PCI or USB passthrough). Take them off, or have the same device on the target, first.')}</p>
+        <p>{L(`패스스루 장치를 쓰는 VM입니다. 장치를 빼거나 대상 노드에 같은 장치를 두세요.`,
+          'It uses passthrough devices. Take them off, or have the same device on the target.')}</p>
         <ul className="vmm-list">{v.passthrough.map((p) => <li key={p.key}><code className="code">{p.key}</code> <span className="small">{p.value}</span></li>)}</ul>
       </div>
     );
@@ -377,13 +384,13 @@ function MoveTab({ v, onNotice, onChanged }: TabProps) {
             : job.exit === 'OK' ? L(`이동 완료 (${elapsed}초)`, `Moved (${elapsed}s)`) : L(`이동 실패: ${job.exit}`, `Failed: ${job.exit}`)}
         </div>
       )}
-      <p className="muted small">{L('공유 스토리지(Ceph 등)에 있는 디스크는 그대로 두고 메모리만 옮깁니다. 로컬 디스크 VM은 Proxmox가 거절할 수 있습니다.',
-        'Disks on shared storage (Ceph and the like) stay where they are; only memory moves. Proxmox may refuse a VM on local disks.')}</p>
+      <p className="muted small">{L('메모리만 옮기므로 디스크는 공유 스토리지(Ceph 등)에 있어야 합니다.',
+        'Only memory moves: disks have to be on shared storage (Ceph and the like).')}</p>
     </section>
   );
 }
 
-function ManageTab({ v, name, onNotice, onGone }: { v: VmInfo; name: string; onNotice: (n: Notice | null) => void; onGone: (text: string) => void }) {
+export function ManageTab({ v, name, onNotice, onGone }: { v: VmInfo; name: string; onNotice: (n: Notice | null) => void; onGone: (text: string) => void }) {
   const { pick } = useI18n();
   const L = L2(pick);
   const { busy, run } = useRun(onNotice);
@@ -396,8 +403,8 @@ function ManageTab({ v, name, onNotice, onGone }: { v: VmInfo; name: string; onN
     <>
       <section className="vmm-sec">
         <h3>{L('템플릿으로 변환', 'Make it a template')}</h3>
-        <p className="small">{L('이 VM을 템플릿으로 바꿉니다. 템플릿 관리에서 이것으로 새 데스크톱을 복제할 수 있습니다. 템플릿은 데스크톱이 아니므로 풀에서 빠지고, 배정된 사용자는 더 쓸 수 없습니다. 되돌릴 수 없습니다.',
-          'Turns the VM into a template that 템플릿 관리 clones new desktops from. A template is no desktop: it leaves the pool and its user loses it. This cannot be undone.')}</p>
+        <p className="small">{L('풀에서 빠지고 배정된 사용자는 더 쓸 수 없습니다. 되돌릴 수 없습니다.',
+          'It leaves the pool and its user loses it. This cannot be undone.')}</p>
         {!stopped && <p className="muted small">{L('먼저 VM을 종료하세요.', 'Shut the VM down first.')}</p>}
         <button type="button" className="btn small-btn" disabled={busy || !stopped || v.type !== 'qemu'}
           onClick={() => {
@@ -407,8 +414,8 @@ function ManageTab({ v, name, onNotice, onGone }: { v: VmInfo; name: string; onN
       </section>
       <section className="vmm-sec vmm-danger">
         <h3>{L('VM 삭제', 'Delete the VM')}</h3>
-        <p className="small">{L('Proxmox에서 VM과 디스크를 지우고 풀에서도 뺍니다. 되돌릴 수 없습니다. 확인을 위해 데스크톱 이름을 그대로 입력하세요.',
-          'Deletes the VM and its disks on Proxmox and takes it out of its pool. This cannot be undone. Type the desktop name to confirm.')}</p>
+        <p className="small">{L('VM과 디스크를 지웁니다. 되돌릴 수 없으니 데스크톱 이름을 입력해 확인하세요.',
+          'Deletes the VM and its disks; this cannot be undone. Type the desktop name to confirm.')}</p>
         <div className="vmm-row">
           <label className="vmm-grow">{L(`'${name}' 입력`, `Type '${name}'`)}
             <input value={typed} autoComplete="off" spellCheck={false} onChange={(e) => setTyped(e.target.value)} /></label>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { accountsApi, downloadText, EXAMPLE_CSV, type ImportResult, type ImportRow } from '../../api/accounts';
 import { Dialog } from '../../components/Dialog';
+import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { useI18n } from '../../i18n';
 
@@ -67,8 +68,8 @@ export function ImportDialog({ onClose, onDone }: { onClose: () => void; onDone:
         </div>
         {withPw > 0 && (
           <div className={`alert small ${saved ? 'info' : 'error'}`}>
-            {L(`결과 CSV에 초기 비밀번호 ${withPw}개가 들어 있습니다. 이 창을 닫으면 다시 받을 수 없습니다. 안전한 곳에 저장하고 사용자에게 따로 전하세요.`,
-              `The result CSV holds ${withPw} initial password(s). It cannot be downloaded again once this closes. Keep it safe and hand the passwords over separately.`)}
+            {L(`결과 CSV에 초기 비밀번호 ${withPw}개가 있습니다. 창을 닫으면 다시 받을 수 없으니 안전하게 보관하세요.`,
+              `The result CSV holds ${withPw} initial password(s) and cannot be downloaded again once this closes. Keep it safe.`)}
           </div>)}
         <div className="toolbar">
           <button type="button" className="btn primary" onClick={() => { downloadText(`accounts-${stamp}.csv`, result.csv); setSaved(true); }}>
@@ -89,8 +90,13 @@ export function ImportDialog({ onClose, onDone }: { onClose: () => void; onDone:
       extra={rows ? <button type="button" className="btn" onClick={() => setRows(null)}>{L('다시 고르기', 'Back')}</button> : undefined}>
       {!rows ? (
         <>
-          <p className="muted small">{L('CSV 첫 줄은 열 이름입니다: 아이디, 이름, 메일, 부서, 역할, 사용 기한(YYYY-MM-DD). 아이디만 꼭 있어야 하고, 역할을 비우면 사용자, 부서는 이름이나 ID로 씁니다. 한 번에 1000명까지.',
-            'The first row names the columns: username, name, mail, department, role, last day (YYYY-MM-DD). Only username is needed; an empty role is user; a department by name or id. Up to 1000 at once.')}</p>
+          <p className="muted small">{L('CSV로 계정을 한 번에 1000명까지 만듭니다.',
+            'Make up to 1000 accounts at once from a CSV.')}</p>
+          <HowTo label={L('CSV 형식', 'CSV format')}><ul>
+            <li>{L('첫 줄 열 이름: 아이디, 이름, 메일, 부서, 역할, 사용 기한(YYYY-MM-DD)', 'First row: username, name, mail, department, role, last day (YYYY-MM-DD)')}</li>
+            <li>{L('아이디만 필수이고, 역할을 비우면 사용자입니다.', 'Only username is needed; an empty role is user.')}</li>
+            <li>{L('부서는 이름이나 ID로 씁니다.', 'A department by name or id.')}</li>
+          </ul></HowTo>
           <div className="toolbar">
             <label className="btn"><Icon name="plus" size={16} />{L('CSV 파일 고르기', 'Choose a CSV file')}
               <input id="imp-file" type="file" accept=".csv,text/csv,.txt" hidden onChange={(e) => void pick(e.target.files?.[0])} /></label>

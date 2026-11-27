@@ -48,7 +48,7 @@ function CountBars({ rows }: { rows: { key: string; label: React.ReactNode; n: n
   );
 }
 
-const STATES: DesktopState[] = ['ready', 'in_use', 'stopped', 'provisioning', 'error'];
+const STATES: DesktopState[] = ['ready', 'in_use', 'stopped', 'provisioning', 'error', 'missing'];
 const TYPES: PoolType[] = ['dedicated', 'reset', 'shared', 'classroom', 'buildfarm'];
 
 export function Breakdown({ s }: { s: Summary }) {

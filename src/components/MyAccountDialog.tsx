@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { PasswordInput, roleLabel } from '../admin/pages/UsersPage';
 import { useI18n } from '../i18n';
 import { useLoad } from './useLoad';
+import { accountErrorText, PasswordRules, policyProblems, usePasswordPolicy } from './PasswordRules';
 
 // 내 계정 (the user menu, portal and admin console alike): who I am, a new password, and
 // two-step sign-in (TOTP) - enrol with a QR code, replace the device, or turn it off - and the
@@ -14,6 +15,7 @@ export function MyAccountDialog({ open, onClose }: { open: boolean; onClose: () 
   const { t, pick } = useI18n();
   const L = (ko: string, en: string) => pick({ ko, en });
   const { user, logout } = useAuth();
+  const policy = usePasswordPolicy();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;
@@ -24,6 +26,8 @@ export function MyAccountDialog({ open, onClose }: { open: boolean; onClose: () 
   if (!user) return null;
   const source = user.auth_source || 'local';
   const idp = source === 'oidc' || source === 'entra';
+  // an account of the bundled directory changes its password here: the engine writes it to the DC
+  const ownPassword = source === 'local' || (source === 'ldap' && !!policy?.unified);
 
   return (
     <dialog ref={ref} className="dialog dialog-wide" onClose={onClose}>
@@ -37,7 +41,7 @@ export function MyAccountDialog({ open, onClose }: { open: boolean; onClose: () 
             <dt>{t('users.role')}</dt><dd>{roleLabel(t, user.role)}</dd>
             <dt>{t('users.source')}</dt><dd>{source === 'local' ? L('로컬', 'Local') : source.toUpperCase()}</dd>
           </dl>
-          {source === 'local'
+          {ownPassword
             ? <ChangePassword onChanged={() => { alert(L('비밀번호를 바꿨습니다. 모든 세션이 끝났으니 새 비밀번호로 다시 로그인하세요.', 'Password changed. Every session ended - sign in again with the new password.')); onClose(); logout(); }} />
             : <section className="acct-section"><h3>{L('비밀번호', 'Password')}</h3>
                 <p className="muted small">{idp ? L('비밀번호는 조직의 로그인 서비스(SSO)에서 바꿉니다.', 'Change your password at your organisation’s sign-in service (SSO).')
@@ -64,11 +68,16 @@ export function ChangePassword({ onChanged, current: given }: { onChanged: (next
   const [again, setAgain] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const policy = usePasswordPolicy();
+  const { user } = useAuth();
+  const names = [user?.username ?? '', user?.display_name ?? ''];
   async function submit(e: FormEvent) {
     e.preventDefault();
     if (next !== again) { setError(L('두 비밀번호가 다릅니다.', 'The passwords do not match.')); return; }
+    const missing = policy ? policyProblems(next, policy, L, names) : [];
+    if (missing.length) { setError(L(`비밀번호 규칙: ${missing.join(', ')}`, `Password rule: ${missing.join(', ')}`)); return; }
     setBusy(true); setError(null);
-    try { await usersApi.changeMyPassword(given ?? current, next); onChanged(next); } catch (err) { setError((err as Error).message); } finally { setBusy(false); }
+    try { await usersApi.changeMyPassword(given ?? current, next); onChanged(next); } catch (err) { setError(accountErrorText(err, L)); } finally { setBusy(false); }
   }
   return (
     <form className="form acct-section" onSubmit={submit}>
@@ -79,6 +88,7 @@ export function ChangePassword({ onChanged, current: given }: { onChanged: (next
         <label><span>{L('새 비밀번호', 'New password')}</span><PasswordInput id="my-pw-new" value={next} onChange={setNext} /></label>
         <label><span>{L('새 비밀번호 확인', 'Repeat new password')}</span><input id="my-pw-again" type="password" autoComplete="new-password" value={again} onChange={(e) => setAgain(e.target.value)} required /></label>
       </div>
+      <PasswordRules policy={policy} pw={next} names={names} />
       <small className="muted">{L('바꾸면 이 기기를 포함한 모든 세션과 API 토큰이 끝납니다.', 'Changing it ends every session and API token, this one too.')}</small>
       {error && <div className="alert error small" role="alert">{error}</div>}
       <div><button type="submit" className="btn primary" disabled={busy || !next || (given === undefined && !current)}>{L('비밀번호 바꾸기', 'Change password')}</button></div>

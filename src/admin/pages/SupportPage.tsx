@@ -70,8 +70,8 @@ export function SupportPage() {
 
   return (
     <>
-      <p className="muted small page-intro">{L('문제가 생긴 기간을 골라 원인 파악에 필요한 자료를 ZIP 하나로 받습니다. (주)매커스시스템즈 지원팀에 보낼 때 씁니다. 비밀번호 · 토큰 · 키는 들어가지 않습니다.',
-        'Pick the period a problem happened in and save what is needed to find its cause as one ZIP, for MAKUS Systems support. Passwords, tokens and keys are never included.')}</p>
+      <p className="muted small page-intro">{L('지원팀에 보낼 진단 자료를 ZIP 하나로 받습니다. 비밀번호 · 토큰 · 키는 빠집니다.',
+        'Save diagnostics as one ZIP for support. Passwords, tokens and keys are left out.')}</p>
 
       <section className="panel">
         <h2 className="section-title">{L('기간', 'Period')}</h2>
@@ -124,8 +124,8 @@ export function SupportPage() {
 
       <section className="panel">
         <h2 className="section-title">{L('함께 보내면 좋은 것', 'Also worth sending')}</h2>
-        <p className="muted small">{L('컨테이너 로그(nginx · Guacamole 포함)는 서버에서 아래 명령으로 같은 기간만큼 받습니다 (설치 폴더 deploy/ 에서).',
-          'Container logs (nginx and Guacamole too) come from the server with this command, for the same period (in the deploy/ folder).')}</p>
+        <p className="muted small">{L('컨테이너 로그는 서버의 deploy/ 폴더에서 아래 명령으로 받습니다.',
+          'Get the container logs with this command in the deploy/ folder on the server.')}</p>
         <div className="input-with-btn">
           <code className="code support-cmd">{docker}</code>
           <button type="button" className="btn small-btn" onClick={() => { navigator.clipboard?.writeText(docker).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }).catch(() => {}); }}>

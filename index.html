@@ -9,8 +9,11 @@
       // the light or dark theme before the first paint (src/theme.ts keeps it afterwards)
       try {
         var p = localStorage.getItem("moavi-theme");
-        if (p !== "light" && p !== "dark") p = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        if (p === "system") p = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        else if (p !== "light" && p !== "dark") p = "light";   // light by default: the bright MOAVI Desk look
         document.documentElement.dataset.theme = p;
+        var b = localStorage.getItem("moavi-backdrop");
+        if (b && /^(?:[1-6]|moavi)$/.test(b)) document.documentElement.style.setProperty("--backdrop", 'url("/backgrounds/' + b + '.jpg")');
       } catch (e) {}
     </script>
   </head>

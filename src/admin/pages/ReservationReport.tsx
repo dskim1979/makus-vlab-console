@@ -28,8 +28,8 @@ export function ReservationReport({ days }: { days: number }) {
     <section className="panel rsv-report">
       <div className="panel-head">
         <div><h2 className="section-title">{L('LAB 예약 · 실제 사용', 'LAB bookings vs use')}</h2>
-          <p className="muted small" style={{ margin: 0 }}>{L('확정된 예약 시간과 그 시간에 예약 데스크톱 · 참가자의 접속 기록을 대조합니다. 노쇼 = 예약했지만 아무도 접속하지 않음.',
-            'Approved booking hours beside the sessions on its desktops or of its participants. No-show = booked, nobody connected.')}</p></div>
+          <p className="muted small" style={{ margin: 0 }}>{L('확정된 예약과 실제 접속을 대조합니다(노쇼 = 아무도 접속 안 함).',
+            'Approved bookings beside actual sessions (no-show = nobody connected).')}</p></div>
         <span className="spacer" />
         {report.state === 'ok' && <button type="button" className="btn" disabled={!report.data.reservations.length} onClick={() => csv(report.data)}><Icon name="download" size={16} />CSV</button>}
       </div>

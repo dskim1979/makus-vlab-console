@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { PortalInstallButtons } from '../admin/pages/TerminalEnroll';
 import { api } from '../api/client';
 import { storageCodeText } from '../api/storage';
+import { warpgateApi } from '../api/warpgate';
 import type { ClientConfig, Clipboard, Desktop, PowerAction } from '../api/types';
 import { BRAND } from '../brand';
 import { Icon } from '../components/Icon';
@@ -13,6 +14,7 @@ import { useI18n } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
 import { DesktopCard, relativeTime } from './DesktopCard';
 import { ExternalDesktops } from './ExternalDesktops';
+import { certDone, GatewayCertDialog, loadGatewayCert, type GatewayCert } from './GatewayCert';
 import { MyPools } from './MyPools';
 import { WebIdePanel } from './WebIde';
 import { useFeatures } from '../features';
@@ -31,22 +33,56 @@ export function PortalHome() {
   const { t, lang, pick } = useI18n();
   const { user } = useAuth();
   const desktops = useLoad(api.myDesktops);
+  // keep the cards live, like a VDI client: every 10 s while the tab is visible, and at once on return
+  useEffect(() => {
+    let timer: number | undefined;
+    const start = () => {
+      window.clearInterval(timer);
+      timer = undefined;
+      if (document.visibilityState !== 'visible') return;
+      timer = window.setInterval(() => desktops.reload(), 10_000);
+    };
+    const back = () => { if (document.visibilityState === 'visible') desktops.reload(); start(); };
+    start();
+    document.addEventListener('visibilitychange', back);
+    window.addEventListener('focus', back);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', back);
+      window.removeEventListener('focus', back);
+    };
+  }, [desktops.reload]); // eslint-disable-line react-hooks/exhaustive-deps
   const [view, setView] = useState<'grid' | 'list'>(savedView);
   const [help, setHelp] = useState(false);
   const [client, setClient] = useState<ClientConfig | null>(null);
   useEffect(() => { let live = true; api.clientConfig().then((c) => { if (live) setClient(c); }); return () => { live = false; }; }, []);
+  const [wgOn, setWgOn] = useState(false);
+  useEffect(() => { let live = true; warpgateApi.myStatus().then((s) => { if (live) setWgOn(s.enabled); }).catch(() => {}); return () => { live = false; }; }, []);
   const [open, setOpen] = useState<{ title: string; wsPath: string; password: string; sessionId: string; clipboard: Clipboard } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<{ id: string; text: string } | null>(null);
-  const [hint, setHint] = useState<{ id: string; text: string } | null>(null);
+  const [hint, setHint] = useState<{ id: string; text: string; link?: { href: string; label: string } } | null>(null);
+  // the devices route on a PC that has not trusted the gateway yet: ask first, then get the .rdp
+  const [certAsk, setCertAsk] = useState<{ d: Desktop; cert: GatewayCert | null } | null>(null);
 
   function pickView(v: 'grid' | 'list') {
     setView(v);
     try { localStorage.setItem(VIEW_KEY, v); } catch { /* per-browser convenience only */ }
   }
 
-  async function connect(d: Desktop, protocol: 'vnc' | 'spice' | 'rdp' | 'guac') {
+  async function connect(d: Desktop, protocol: 'vnc' | 'spice' | 'rdp' | 'wg-rdp' | 'wg-ssh') {
     setBusy(d.id); setError(null); setHint(null);
+    if (protocol === 'wg-rdp' || protocol === 'wg-ssh') {
+      try {
+        const conn = await warpgateApi.connect(d.id, protocol === 'wg-ssh' ? 'ssh' : 'rdp');
+        window.open(conn.browser_url, '_blank', 'noopener');
+        setHint({ id: d.id, text: t('portal.warpgateHint') });
+      } catch (e) {
+        const code = (e as { code?: string }).code;
+        setError({ id: d.id, text: code && (code.startsWith('NO_') || code === 'WG_DOWN') ? t(`portal.err.${code}` as MessageKey) : (e as Error).message });
+      } finally { setBusy(null); }
+      return;
+    }
     try {
       const c = await api.connect(d.id, protocol);
       // 공유 저장소: the build folder could not be prepared - say so, the session still opens
@@ -55,15 +91,17 @@ export function PortalHome() {
       }
       if (c.type === 'vnc') {
         setOpen({ title: d.name, wsPath: c.ws_path, password: c.password, sessionId: c.session_id, clipboard: c.clipboard ?? 'both' });
-      } else if (c.type === 'guac') {
-        window.open(c.url, '_blank', 'noopener');
-        setHint({ id: d.id, text: t('portal.guacHint') });
       } else if (c.type === 'rdp') {
+        if (c.via === 'rdpgw') {
+          const cert = await loadGatewayCert(c.cert_url);
+          if (!certDone(cert)) { setCertAsk({ d, cert }); return; }
+        }
         const url = URL.createObjectURL(new Blob([c.rdp], { type: 'application/x-rdp' }));
         const a = document.createElement('a');
         a.href = url; a.download = c.filename; a.click();
         setTimeout(() => URL.revokeObjectURL(url), 10000);
-        setHint({ id: d.id, text: t('portal.rdpHint') });
+        if (c.via === 'rdpgw') setHint({ id: d.id, text: t('portal.rdpHintDevices'), link: c.cert_url ? { href: c.cert_url, label: t('portal.certLink') } : undefined });
+        else setHint({ id: d.id, text: t(c.via === 'warpgate' ? 'portal.rdpHintWarpgate' : 'portal.rdpHint') });
       } else {
         // the .vv carries a one-time ticket: hand it straight to the browser as a download
         const url = URL.createObjectURL(new Blob([c.vv], { type: 'application/x-virt-viewer' }));
@@ -80,7 +118,7 @@ export function PortalHome() {
         [4000, 10000, 20000].forEach((ms) => setTimeout(() => desktops.reload(), ms));
         return;
       }
-      if (code === 'NO_IP' || code === 'NO_GATEWAY') { setError({ id: d.id, text: t(`portal.err.${code}` as MessageKey) }); return; }
+      if (code === 'NO_IP' || code === 'NO_GATEWAY' || code === 'WG_DOWN' || code === 'RDPGW_OFF') { setError({ id: d.id, text: t(`portal.err.${code}` as MessageKey) }); return; }
       const known = code === 'VM_STOPPED' || code === 'NO_SPICE';
       setError({ id: d.id, text: known ? t(`portal.err.${code}` as MessageKey) : `${t('portal.err.generic')}: ${code}` });
     } finally {
@@ -196,8 +234,9 @@ export function PortalHome() {
               <div className="dtiles">
                 {list.map((d) => (
                   <DesktopCard key={d.id} d={d} busy={busy === d.id} fav={favs.includes(d.id)} onFav={() => toggleFav(d.id)}
-                    onConnect={(p) => connect(d, p)} onPower={(a) => power(d, a)} onChanged={desktops.reload}
-                    error={error?.id === d.id ? error.text : undefined} hint={hint?.id === d.id ? hint.text : undefined} />
+                    onConnect={(p) => connect(d, p)} onPower={(a) => power(d, a)} onChanged={desktops.reload} warpgate={wgOn}
+                    error={error?.id === d.id ? error.text : undefined} hint={hint?.id === d.id ? hint.text : undefined}
+                    hintLink={hint?.id === d.id ? hint.link : undefined} />
                 ))}
               </div>
             ) : (
@@ -231,7 +270,7 @@ export function PortalHome() {
                               onClick={() => connect(d, 'vnc')}><Icon name="vm" size={16} />{t('portal.connect')}</button>
                           )}
                           {error?.id === d.id && <div className="alert error small">{error.text}</div>}
-                          {hint?.id === d.id && <div className="alert info small">{hint.text}</div>}
+                          {hint?.id === d.id && <div className="alert info small">{hint.text}{hint.link && <> <a href={hint.link.href} download>{hint.link.label}</a></>}</div>}
                         </td>
                       </tr>
                     );
@@ -252,6 +291,8 @@ export function PortalHome() {
           <ConsoleWindow title={open.title} wsPath={open.wsPath} password={open.password} clipboard={open.clipboard} onClose={close} />
         </Suspense>
       )}
+      {certAsk && <GatewayCertDialog cert={certAsk.cert} onClose={() => setCertAsk(null)}
+        onRdp={() => { const d = certAsk.d; setCertAsk(null); void connect(d, 'rdp'); }} />}
     </main>
   );
 }

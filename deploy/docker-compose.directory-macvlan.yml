@@ -1,0 +1,30 @@
+# Optional: give the bundled directory its own address on the desktop network (macvlan) instead
+# of ports published on the host. Recommended for a second DC (HA): DC-to-DC replication uses RPC
+# (135 + 49152-49200) and both DCs then see each other's real address, no NAT in between.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.directory-macvlan.yml up -d
+#
+# .env: VLAB_DIRECTORY_IP is then the DC's own address (free on that network, outside the DHCP
+# range), VLAB_DIRECTORY_PARENT the host's interface on the desktop network, VLAB_DIRECTORY_SUBNET
+# and VLAB_DIRECTORY_GATEWAY that network's. The host itself cannot reach a macvlan address (a
+# kernel rule); the engine still reaches the DC over the internal vlab network.
+
+services:
+  vlab-directory:
+    ports: !reset []
+    networks:
+      vlab:
+        aliases:
+          - ${VLAB_DIRECTORY_HOSTNAME:-dc1}.${VLAB_DIRECTORY_REALM:-moavi.lan}
+      vlab-desktops:
+        ipv4_address: ${VLAB_DIRECTORY_IP:?VLAB_DIRECTORY_IP is the DC's own address on the desktop network}
+
+networks:
+  vlab-desktops:
+    driver: macvlan
+    driver_opts:
+      parent: ${VLAB_DIRECTORY_PARENT:?VLAB_DIRECTORY_PARENT is the host interface on the desktop network, e.g. eth1}
+    ipam:
+      config:
+        - subnet: ${VLAB_DIRECTORY_SUBNET:?VLAB_DIRECTORY_SUBNET e.g. 10.20.0.0/24}
+          gateway: ${VLAB_DIRECTORY_GATEWAY:?VLAB_DIRECTORY_GATEWAY e.g. 10.20.0.1}

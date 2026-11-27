@@ -6,6 +6,7 @@ import {
 import { folderName } from '../../api/storage';
 import { nextApi } from '../../api/next';
 import { Dialog } from '../../components/Dialog';
+import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { SettingsStatus } from '../../components/SettingsShell';
@@ -53,8 +54,8 @@ export function DatasetsPage() {
             { label: L('반출 승인 대기', 'Export requests waiting'), value: String(d.pending), tone: d.pending ? 'warn' : undefined },
           ]} />
           <div className="toolbar">
-            <p className="muted small" style={{ margin: 0 }}>{L(`NAS의 폴더를 데이터셋으로 등록하면 그 풀의 데스크톱에 읽기 전용으로 붙습니다: Linux /nas/datasets/<이름>, Windows ${d.windows_root}\\<이름> (SMB 데이터셋).`,
-              `A NAS folder registered as a dataset is mounted read-only on its pools' desktops: Linux /nas/datasets/<name>, Windows ${d.windows_root}\\<name> (SMB datasets).`)}</p>
+            <p className="muted small" style={{ margin: 0 }}>{L(`NAS 폴더를 풀의 데스크톱에 읽기 전용으로 붙입니다: Linux /nas/datasets/<이름>, Windows ${d.windows_root}\\<이름>`,
+              `NAS folders mounted read-only on pool desktops: Linux /nas/datasets/<name>, Windows ${d.windows_root}\\<name>`)}</p>
             <span className="spacer" />
             <button type="button" className="btn primary" onClick={() => setEdit('new')}><Icon name="plus" size={16} />{L('데이터셋 등록', 'Register a dataset')}</button>
           </div>
@@ -142,8 +143,8 @@ function DatasetDialog({ ds, pools, onClose, onDone }: { ds: AdminDataset | null
         <input required value={v.share} placeholder={v.kind === 'nfs' ? '/export/datasets/imagenet' : 'datasets/imagenet'} onChange={(e) => set('share', e.target.value)} /></label>
       <label><span>{L('엔진 호스트 마운트 경로 (선택)', 'Mount on the engine host (optional)')}</span>
         <input value={v.admin_path} placeholder="/srv/moavi-data/imagenet" onChange={(e) => set('admin_path', e.target.value)} />
-        <span className="muted small">{L('있으면 엔진이 크기를 재고, 포털에서 파일 보기 · 다운로드(반출 규칙에 따라)를 합니다. 읽기 전용으로 마운트하세요.',
-          'With it the engine measures the size and the portal can browse and download (by the export rule). Mount it read-only.')}</span></label>
+        <span className="muted small">{L('있으면 크기 측정과 포털 파일 보기가 됩니다. 읽기 전용으로 마운트하세요.',
+          'Lets the engine measure it and the portal browse it. Mount it read-only.')}</span></label>
       <h3 className="dialog-sub">{L('어디에 · 누구에게', 'Where and for whom')}</h3>
       <div className="check-row">
         {withStorage.length === 0 && <span className="muted small">{L('공유 저장소를 켠 풀이 없습니다. 데스크톱 풀 > 정책 > 공유 저장소에서 먼저 켜세요.', 'No pool has shared storage yet - turn it on under the pool\'s policy first.')}</span>}
@@ -302,8 +303,12 @@ export function DataPoliciesPage() {
     <LoadState value={list} retry={list.reload}>
       {(d) => (
         <>
-          <p className="muted small">{L(`풀마다 내 폴더(홈 · 프로젝트 · 스크래치)의 업로드와 반출(브라우저 다운로드)을 정합니다. 엔진 호스트에 공유 저장소 관리용 마운트가 있으면 엔진이 직접 전송하고(수십 GB, 이어받기), 없으면 사용자의 실행 중인 Linux 데스크톱을 거쳐 ${bytesText(d.agent_max)}까지만 옮깁니다.`,
-            `Per pool: uploads and exports (browser downloads) of the users' folders. With the shared storage admin mount on the engine host the engine moves files itself (tens of GB, resumable); without, files up to ${bytesText(d.agent_max)} go through the user's running Linux desktop.`)}</p>
+          <p className="muted small">{L('풀마다 내 폴더의 업로드와 반출(다운로드)을 정합니다.',
+            'Per pool: uploads and exports (downloads) of user folders.')}</p>
+          <HowTo><ul>
+            <li>{L('엔진 호스트에 관리용 마운트가 있으면 엔진이 직접 옮깁니다(수십 GB, 이어받기).', 'With the admin mount on the engine host the engine moves files itself (tens of GB, resumable).')}</li>
+            <li>{L(`없으면 사용자의 켜진 Linux 데스크톱을 거쳐 ${bytesText(d.agent_max)}까지만 옮깁니다.`, `Without it, files up to ${bytesText(d.agent_max)} go through the user's running Linux desktop.`)}</li>
+          </ul></HowTo>
           {note && <div className="alert small info" role="status">{note}</div>}
           <div className="table-scroll">
             <table className="table compact-head">
@@ -345,7 +350,7 @@ function PolicyDialog({ p, onClose, onDone }: { p: PoolRef & { policy: DataPolic
         <select value={v.export} onChange={(e) => setV({ ...v, export: e.target.value as ExportRule })}>
           <option value="allow">{ruleText('allow', L)}</option><option value="approval">{ruleText('approval', L)}</option><option value="deny">{ruleText('deny', L)}</option>
         </select>
-        <span className="muted small">{L('국책 · 반도체 과제처럼 반출을 통제하면 "승인 필요"나 "반출 금지". 데이터셋은 데이터셋마다 따로 정합니다.', 'For controlled projects: approval or no export. Datasets have their own rule.')}</span></label>
+        <span className="muted small">{L('반출을 통제하는 과제는 "승인 필요"나 "반출 금지"를 고르세요.', 'For controlled projects: approval or no export. Datasets have their own rule.')}</span></label>
       <label className="check"><input type="checkbox" checked={v.upload} onChange={(e) => setV({ ...v, upload: e.target.checked })} />{L('업로드 허용', 'Allow uploads')}</label>
       <div className="form-row form-row-even">
         <label><span>{L('파일당 최대 (GB, 0은 제한 없음)', 'Largest file (GB, 0 = no limit)')}</span><input type="number" min={0} value={v.max_file_gb} onChange={(e) => setV({ ...v, max_file_gb: Number(e.target.value) || 0 })} /></label>
@@ -396,8 +401,8 @@ export function DataUsagePage() {
             <span className="spacer" />
             <label className="check-inline"><input type="checkbox" checked={only} onChange={(e) => setOnly(e.target.checked)} />{L('경고만', 'Warnings only')}</label>
           </div>
-          <p className="muted small">{L('사용량은 사용자가 접속할 때(6시간마다) 또는 풀의 공유 저장소 "지금 확인"에서 잽니다. 할당량은 공유 저장소 설정의 폴더별 값이며, 실제 제한은 NAS quota로 겁니다.',
-            'Measured at a connect (every 6 hours) or by the pool\'s Check now. Quotas come from the shared storage setting; the NAS quota is the real limit.')}</p>
+          <p className="muted small">{L('사용량은 접속 때(6시간마다)나 "지금 확인"에서 잽니다. 실제 제한은 NAS quota입니다.',
+            'Measured at a connect (every 6 hours) or by Check now. The NAS quota is the real limit.')}</p>
           <div className="table-scroll">
             <table className="table compact-head">
               <thead><tr><th>{L('풀', 'Pool')}</th><th>{L('사용자', 'User')}</th><th>{L('폴더', 'Folder')}</th><th className="num">{L('사용량', 'Used')}</th><th className="num">{L('할당량', 'Quota')}</th><th>{L('측정', 'Measured')}</th></tr></thead>

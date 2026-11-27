@@ -27,7 +27,7 @@ export type LoginResult =
   | { kind: 'second_factor'; methods: string[] }
   | { kind: 'error'; reason: 'invalid' | 'locked' | 'network' | 'other'; message?: string };
 
-export type DesktopState = 'ready' | 'in_use' | 'stopped' | 'provisioning' | 'error';
+export type DesktopState = 'ready' | 'in_use' | 'stopped' | 'provisioning' | 'error' | 'missing';
 
 export type Desktop = {
   id: string;
@@ -41,11 +41,14 @@ export type Desktop = {
   pool_type?: string;
   last_connected?: string | null;
   gpu?: { mode: 'passthrough' | 'vgpu'; label: string };
-  policy?: { clipboard: Clipboard; allow_power: boolean; start_on_connect: boolean; web_ide?: ('jupyter' | 'vscode')[] };
+  policy?: { clipboard: Clipboard; allow_power: boolean; start_on_connect: boolean; web_ide?: ('jupyter' | 'vscode')[]; screen_thumbnail?: boolean;
+    desktop_files?: 'off' | 'up' | 'down' | 'both' };
   // 공유 저장소: the user's folders on the pool's NAS, and how the last check went
   storage?: StoragePaths & { ok: boolean | null; code: string; warnings: string[] };
   // 작업 중 표시, 미뤄진 정리, 카드 사용률 (pegaprox/api/vlab_work.py)
   work?: DesktopWork;
+  // 로그인됨: who is signed in right now (guest agent); null/absent when it cannot be told
+  signed_in?: { user: string; domain?: string | null; login_time?: number | null }[] | null;
 };
 
 // --- shared storage (공유 저장소, makus-vlab pegaprox/vlab/nas.py) ----------------------
@@ -85,6 +88,8 @@ export type Lease = {
 // --- admin (/api/vlab/admin/*) ---------------------------------------------------
 
 export type PoolType = 'dedicated' | 'reset' | 'shared' | 'classroom' | 'buildfarm';
+// pools whose desktops pass from user to user: the card's screen picture is off unless the pool turns it on
+export const SHARED_SCREEN_TYPES: PoolType[] = ['reset', 'shared', 'classroom', 'buildfarm'];
 
 // LABs: rooms of terminals and the weekly schedules of their pools (/api/vlab/admin/labs ...)
 export type LabSlot = { schedule_id: string; pool_id: string; title: string; start: string; end: string; preparing?: boolean };
@@ -130,22 +135,33 @@ export type Pool = {
   desktops: number;
   assigned: number;
   settings?: { gpu?: GpuPolicy; protocols?: string[]; templates?: number[]; policy?: PoolPolicy;
-    shared?: { max_sessions?: number }; rdp_gateway_id?: string; guac_gateway_id?: string };
+    shared?: { max_sessions?: number } };
 };
 
 // PUT /api/vlab/admin/pools/<id>: what the pool form changes (the cluster and the type stay)
 export type PoolUpdate = {
   name?: string; description?: string; enabled?: boolean;
-  settings?: { max_sessions?: number; rdp_gateway_id?: string | null; guac_gateway_id?: string | null };
+  settings?: { max_sessions?: number };
 };
 
 // --- pool policy (데스크톱 풀 > 풀 > 정책) ------------------------------------------
+export type UsbMode = 'deny' | 'allow';
+export const USB_CLASSES = ['storage', 'printer', 'smartcard', 'camera', 'audio', 'imaging', 'serial', 'wireless'] as const;
+export type UsbClass = typeof USB_CLASSES[number];
+export type UsbDevice = { name: string; vid: string; pid: string };
 export type PoolPolicy = {
-  protocols: ('vnc' | 'spice' | 'rdp' | 'guac')[]; spice_fullscreen: boolean;
+  protocols: ('vnc' | 'spice' | 'rdp')[]; spice_fullscreen: boolean;
   clipboard: Clipboard;
   usb_redirect: boolean; usb_autoshare: boolean;
+  // USB 정책: deny = all but the checked kinds and devices, allow = only those (pegaprox/vlab/policy.py)
+  usb_mode?: UsbMode; usb_classes?: UsbClass[]; usb_devices?: UsbDevice[];
   // RDP / browser RDP: the user's own PC drives and printers in the desktop
   client_drives: boolean; client_printers: boolean;
+  // the .rdp's way: 'record' = 보안 게이트웨이 (recorded, no devices), 'devices' = its device route (rdpgw)
+  rdp_route?: 'record' | 'devices';
+  // 장치 연결 허용 대상: these users / departments / groups connect over the devices route anyway; nothing
+  // on the user's side says so (pegaprox/vlab/policy.py)
+  device_route_for?: { subject_type: 'user' | 'department' | 'group'; subject_id: string; include_children: boolean }[];
   // Windows desktops: RDP on, H.264/AVC 444 and UDP set up at the first RDP connect
   rdp_tune: boolean;
   start_on_connect: boolean; idle_shutdown_min: number; reset_on_logout: boolean;
@@ -153,6 +169,14 @@ export type PoolPolicy = {
   // a working desktop (busy GPU / CPU, a build job, the user's "작업 중") is not shut down or reset; the step waits
   defer_when_busy: boolean; busy_gpu_pct: number; busy_cpu_pct: number; defer_max_hours: number;
   web_ide: ('jupyter' | 'vscode')[]; web_ide_idle_min: number;   // 웹 IDE (research.ts)
+  // SSH: 포털 브라우저 터미널(Guacamole), 연구자 자기 도구(Warpgate), 둘의 파일 전송(SFTP) 정책
+  browser_ssh?: boolean; researcher_ssh?: boolean; ssh_files?: 'off' | 'down' | 'up' | 'both';
+  // the portal card's screen picture (absent from engines before it: counts as on)
+  screen_thumbnail?: boolean;
+  // new, cloned and reset desktops join the bundled directory by themselves; null = on while it is in use
+  auto_domain_join?: boolean | null;
+  // 포털 '파일': 내 데스크톱 MOAVI 폴더로 올리기·받기 (게스트 에이전트)
+  desktop_files?: 'off' | 'up' | 'down' | 'both'; desktop_files_max_mb?: number; desktop_files_day_mb?: number;
 };
 export type PoolPolicyAnswer = { policy: PoolPolicy; defaults: PoolPolicy; reset_allowed: boolean };
 
@@ -219,10 +243,9 @@ export type UserAccess = {
 export type ConnectInfo = (
   | { type: 'vnc'; ws_path: string; password: string; session_id: string; clipboard?: Clipboard }
   | { type: 'spice'; vv: string; filename: string; session_id: string }
-  | { type: 'rdp'; rdp: string; filename: string; session_id: string }
-  | { type: 'guac'; url: string; session_id: string }
+  | { type: 'rdp'; rdp: string; filename: string; session_id: string; via?: 'warpgate' | 'rdpgw'; cert_url?: string }
 ) & { storage?: StorageResult };
-export type ConnectProtocol = 'vnc' | 'spice' | 'rdp' | 'guac';
+export type ConnectProtocol = 'vnc' | 'spice' | 'rdp';
 
 export type PowerAction = 'start' | 'shutdown' | 'reboot' | 'stop';
 
@@ -265,6 +288,7 @@ export type Template = {
   disks?: { key: string; storage: string; volume: string; plugin: string }[] | null;
   linked_clone?: boolean | null;
   pools?: number;
+  ostype?: string;   // with ?details=1 (engine claude/vm-table)
 };
 
 export type CloneResult = {
@@ -338,7 +362,9 @@ export type ClusterNode = {
   mem_used: number; mem_total: number; mem_percent: number; disk_used: number; disk_total: number;
   uptime: number; loadavg: string[]; version: string; maintenance: boolean;
   guests: number; running: number; desktops: number;
+  ip?: string; vcpus_given?: number; mem_given?: number;   // engine claude/vm-table
 };
+export type ClusterRrd = { timeframe: string; points: { t: number; cpu: number; mem: number }[]; nodes_missing: string[] };
 export type ClusterStorage = {
   storage: string; type: string; shared: boolean; content: string[]; status: string;
   used: number; total: number; nodes: string[];

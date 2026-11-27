@@ -6,6 +6,7 @@ import { mockBranding, mockNotices, noticeState } from './mock';
 import { mockNodeState } from './ops';
 import { mockDeskWork, mockLeaseExtras } from './mockWork';
 import type { Lab, LabAfter, LabSchedule, Terminal, TerminalEnrollment, ActiveAlert, AlertChannel, AlertMute, AlertRule, AccelDevice, BackupJob, VmBackup, AccelUser, AdminDesktop, AdminLease, PoolPolicy, ClusterNode, ClusterStorage, Guest, PciMapping, Pool, SessionRow, VgpuProfile } from './types';
+import { SHARED_SCREEN_TYPES } from './types';
 
 const CLUSTER = { id: 'lab-cluster', name: 'LAB-PVE', connected: true, host: '10.20.0.11', connection_error: null as string | null, pools: 0 };
 const clusters = [CLUSTER];
@@ -163,9 +164,10 @@ const mockBackups: VmBackup[] = [0, 1, 2].flatMap((k) => [300, 301, 400].map((v)
   ctime: Date.now() / 1000 - (k + 1) * 86400, size: (v >= 400 ? 92 : 21) * 1024 ** 3, notes: 'vlab-pool nightly', storage: 'pbs-lab' })));
 
 const POLICY_DEFAULTS: PoolPolicy = {
-  protocols: ['vnc', 'spice', 'rdp'], spice_fullscreen: false, clipboard: 'both', usb_redirect: true, usb_autoshare: false,
-  client_drives: false, client_printers: true, rdp_tune: true, start_on_connect: true, idle_shutdown_min: 0, reset_on_logout: false, allow_power: true, max_session_hours: 0,
+  protocols: ['vnc', 'spice', 'rdp'], spice_fullscreen: false, clipboard: 'both', usb_redirect: true, usb_autoshare: false, usb_mode: 'deny', usb_classes: [], usb_devices: [],
+  client_drives: false, client_printers: true, rdp_route: 'record', rdp_tune: true, auto_domain_join: null, start_on_connect: true, idle_shutdown_min: 0, reset_on_logout: false, allow_power: true, screen_thumbnail: true, max_session_hours: 0,
   defer_when_busy: true, busy_gpu_pct: 10, busy_cpu_pct: 50, defer_max_hours: 12, web_ide: [], web_ide_idle_min: 240,
+  desktop_files: 'off', desktop_files_max_mb: 500, desktop_files_day_mb: 0,
 };
 const cloneSources = new Map<number, Set<string>>();   // template -> pools cloned from it
 
@@ -651,7 +653,8 @@ export const mockAdminApi: AdminApi = {
   poolPolicy: (poolId) => {
     const p = pools.find((x) => x.id === poolId);
     if (!p) return fail(404, 'Pool not found');
-    return delay({ policy: { ...POLICY_DEFAULTS, ...(p.settings?.policy ?? {}) }, defaults: POLICY_DEFAULTS,
+    const defaults = { ...POLICY_DEFAULTS, screen_thumbnail: !SHARED_SCREEN_TYPES.includes(p.type) };
+    return delay({ policy: { ...defaults, ...(p.settings?.policy ?? {}) }, defaults,
       reset_allowed: p.type === 'reset' || p.type === 'classroom' });
   },
   savePoolPolicy: (poolId, pol) => {
@@ -687,12 +690,13 @@ export const mockAdminApi: AdminApi = {
       const ns = mockNodeState(node);   // 유지보수, a restart (api/ops.ts)
       if (!ns.online) return { node, status: 'offline', online: false, cpu_percent: 0, cpus, cpu_model: model, mem_used: 0, mem_total: mem * GB,
         mem_percent: 0, disk_used: 0, disk_total: 96 * GB, uptime: 0, loadavg: [], version: 'pve-manager/8.2.4', maintenance: ns.maintenance,
-        guests: mine.length, running: 0, desktops: desks.filter((d) => d.node === node).length };
+        guests: mine.length, running: 0, desktops: desks.filter((d) => d.node === node).length, ip: `10.20.0.${11 + i}`, vcpus_given: mine.length * 8, mem_given: mine.length * 16 * GB };
       return { node, status: 'online', online: true, cpu_percent: cpu, cpus, cpu_model: model,
         mem_used: used, mem_total: mem * GB, mem_percent: Math.round(used / (mem * GB) * 1000) / 10,
         disk_used: 18 * GB, disk_total: 96 * GB, uptime: 86400 * (12 + i * 5), loadavg: [(cpu / 10).toFixed(2), '2.10', '1.95'],
         version: 'pve-manager/8.2.4', maintenance: ns.maintenance, guests: mine.length,
-        running: mine.filter((g) => g.status === 'running').length, desktops: desks.filter((d) => d.node === node).length };
+        running: mine.filter((g) => g.status === 'running').length, desktops: desks.filter((d) => d.node === node).length,
+        ip: `10.20.0.${11 + i}`, vcpus_given: cpus + mine.length * 8, mem_given: Math.round(mem * 0.7) * GB + mine.length * 8 * GB };
     }));
   },
   storage: (clusterId) => {
@@ -708,6 +712,16 @@ export const mockAdminApi: AdminApi = {
       s('local-lvm', 'lvmthin', false, ['images'], 1.1, 1.8, ['pve3']),
     ]);
   },
+  clusterRrd: (cid, tf) => {
+    if (cid !== CLUSTER.id) return fail(404, 'Cluster not found');
+    const step = ({ hour: 60, day: 1800, week: 10800, month: 43200, year: 604800 } as Record<string, number>)[tf] ?? 60;
+    const now = Math.floor(Date.now() / 1000 / step) * step;
+    const points = Array.from({ length: 70 }, (_, i) => {
+      const t = now - (69 - i) * step; const w = Math.sin(i / 7) + Math.sin(i / 2.3) * 0.35;
+      return { t, cpu: Math.round((46 + w * 14 + (i % 9 === 0 ? 12 : 0)) * 10) / 10, mem: Math.round((58 + Math.sin(i / 15) * 6 + i * 0.05) * 10) / 10 };
+    });
+    return delay({ timeframe: tf, points, nodes_missing: [] });
+  },
   guests: (cid) => cid !== CLUSTER.id ? fail(404, 'Cluster not found') : delay(guests.map((g) => {
     const d = desks.find((x) => x.vmid === g.vmid);
     return { ...g, desktop_id: d?.id ?? null, pool_id: d?.pool_id ?? null };
@@ -720,7 +734,7 @@ export const mockAdminApi: AdminApi = {
       const disk = ceph ? { storage: 'ceph-vm', volume: `base-${x.vmid}-disk-0`, plugin: 'rbd' }
         : { storage: 'san-lvm', volume: `vm-${x.vmid}-disk-0`, plugin: 'lvm' };
       return { ...x, spec: { ...x.spec, disk_gb: ceph ? 200 : 64 }, disks: [{ key: 'scsi0', ...disk }],
-        linked_clone: ceph, pools: cloneSources.get(x.vmid)?.size ?? 0 };
+        linked_clone: ceph, pools: cloneSources.get(x.vmid)?.size ?? 0, ostype: /win/i.test(x.name) ? 'win11' : 'l26' };
     }));
   },
   powerDesktop: (id, action) => {
@@ -813,11 +827,6 @@ export const mockAdminApi: AdminApi = {
         if (!(u.settings.max_sessions >= 1 && u.settings.max_sessions <= 500)) return fail(400, 'max_sessions must be 1 to 500');
         if (s.shared?.max_sessions !== u.settings.max_sessions) { s.shared = { ...s.shared, max_sessions: u.settings.max_sessions }; changed.push('max_sessions'); }
       }
-      for (const k of ['rdp_gateway_id', 'guac_gateway_id'] as const) {
-        if (u.settings[k] === undefined || (s[k] ?? '') === (u.settings[k] ?? '')) continue;
-        if (u.settings[k]) s[k] = u.settings[k]!; else delete s[k];
-        changed.push(k);
-      }
       p.settings = s;
     }
     desks.forEach((d) => { if (d.pool_id === p.id) d.pool = p.name; });
@@ -861,6 +870,7 @@ export const mockAdminApi: AdminApi = {
     cloneSources.get(tpl.vmid)!.add(id);
     return delay({ created, failed: null });
   },
+  pruneDesktops: () => delay([]),
   removeDesktop: (id) => { desks.splice(desks.findIndex((d) => d.id === id), 1); return delay(undefined); },
   assign: (id, username) => {
     const d = desks.find((x) => x.id === id);

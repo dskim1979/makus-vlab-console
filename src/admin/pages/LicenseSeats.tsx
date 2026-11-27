@@ -5,6 +5,7 @@ import type { LicenseMode, SeatFeature, SeatReport, SeatSettings, SeatUsage } fr
 import type { LicenseServer } from '../../api/next';
 import { SERIES, Legend, TimeSeries } from '../../components/Charts';
 import { Dialog } from '../../components/Dialog';
+import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
@@ -68,8 +69,8 @@ export function LicenseSeatsPanel({ server, onChanged, onClose }: { server: Lice
       <div className="panel-head">
         <div>
           <h2 className="section-title">{L(`라이선스 사용량 · ${server.name}`, `Seat use · ${server.name}`)}</h2>
-          <p className="muted small" style={{ margin: 0 }}>{L('lmstat 으로 기능(feature)마다 전체 라이선스 · 사용 중 · 누가 쥐고 있는지를 5분마다 읽어 90일 보관합니다.',
-            'lmstat is read every 5 minutes: seats, in use and who holds them per feature, kept 90 days.')}</p>
+          <p className="muted small" style={{ margin: 0 }}>{L('기능별 사용 현황을 5분마다 읽어 90일 보관합니다.',
+            'Seat use per feature, read every 5 minutes, kept 90 days.')}</p>
         </div>
         <div className="panel-actions">
           <button type="button" className="btn" onClick={() => setEditing(true)}><Icon name="gear" size={16} />{L('수집 설정', 'Collection')}</button>
@@ -142,8 +143,8 @@ export function LicenseSeatsPanel({ server, onChanged, onClose }: { server: Lice
                 </table></div>
                 <SeatChart u={u} feature={chartOf && u.series[chartOf] ? chartOf : u.features[0]?.feature ?? ''} onPick={setChartOf} />
                 {u.settings.debug_log || u.denied_total ? <Denials u={u} /> : (
-                  <p className="muted small">{L('거부 기록: 게스트 에이전트 방식에서 lmgrd 디버그 로그 경로를 넣으면 DENIED 줄을 모아 보여 줍니다.',
-                    'Refusals: in guest agent mode, name the lmgrd debug log and its DENIED lines are counted here.')}</p>
+                  <p className="muted small">{L('거부 기록은 lmgrd 디버그 로그 경로를 넣으면 보입니다.',
+                    'Name the lmgrd debug log to see refusals.')}</p>
                 )}
               </>
             )}
@@ -281,10 +282,10 @@ function SeatSettingsDialog({ server, current, features, onClose, onDone }: {
             placeholder={mode === 'engine' ? '/opt/moavi/lmutil/lmutil' : '/opt/Xilinx/Vivado/2024.1/bin/unwrapped/lnx64.o/lmutil'} onChange={(e) => setPath(e.target.value)} /></label>
         </div>
         <p className="muted small" style={{ margin: 0 }}>{mode === 'engine'
-          ? L('lmutil 은 Flexera 프로그램이라 엔진 이미지에 넣지 않습니다. 설계 툴(Vivado bin/unwrapped/lnx64.o/lmutil, Quartus linux64/lmutil 등)에 들어 있는 lmutil 을 엔진의 /opt/moavi/lmutil/lmutil 로 복사하거나 마운트하세요.',
-            'lmutil is Flexera\'s and is not in the engine image. Copy or mount the one from your tools (Vivado bin/unwrapped/lnx64.o/lmutil, Quartus linux64/lmutil, ...) to /opt/moavi/lmutil/lmutil on the engine.')
-          : L('라이선스 서버 VM 에 QEMU 게스트 에이전트가 켜져 있어야 합니다. lmutil 이 PATH 에 없으면 전체 경로를 넣으세요 (lmutil · lmstat 만 실행).',
-            'The licence server VM needs the QEMU guest agent. Give the full path when lmutil is not on PATH (only lmutil or lmstat runs).')}</p>
+          ? L('설계 툴의 lmutil을 엔진의 /opt/moavi/lmutil/lmutil 로 복사하거나 마운트하세요.',
+            'Copy or mount lmutil from your tools to /opt/moavi/lmutil/lmutil on the engine.')
+          : L('라이선스 서버 VM에 QEMU 게스트 에이전트가 켜져 있어야 합니다.',
+            'The licence server VM needs the QEMU guest agent.')}</p>
         {mode === 'agent' && <label><span>{L('lmgrd 디버그 로그 (거부 기록, 선택)', 'lmgrd debug log (refusals, optional)')}</span>
           <input id="seat-log" value={log} placeholder="/var/log/flexlm/lmgrd.log" onChange={(e) => setLog(e.target.value)} /></label>}
         <div className="form-row form-row-even">
@@ -329,8 +330,8 @@ export function LicenseSeatReport({ days }: { days: number }) {
     <section className="panel rsv-report">
       <div className="panel-head">
         <div><h2 className="section-title">{L('라이선스 사용 현황', 'Licence seats')}</h2>
-          <p className="muted small" style={{ margin: 0 }}>{L('기능별 최대 동시 사용 · 평균 · 라이선스가 모두 쓰인 시간 · 거부 건수와 사용자별 사용 시간. 라이선스 추가 · 감축 판단 근거입니다.',
-            'Per feature: peak, average, time with every seat taken and refusals; hours per user - the case for more or fewer seats.')}</p></div>
+          <p className="muted small" style={{ margin: 0 }}>{L('라이선스 증설 · 감축을 판단하는 사용 현황입니다.',
+            'Seat use, for adding or dropping seats.')}</p></div>
         <span className="spacer" />
         {report.state === 'ok' && <>
           <select aria-label={L('라이선스 서버', 'Licence server')} value={serverId} onChange={(e) => setServerId(e.target.value)}>
@@ -392,8 +393,11 @@ function SeatReportTable({ r }: { r: SeatReport }) {
               : <span className="muted small">{L('유지', 'keep')}</span>}</td>
           </tr>))}</tbody>
       </table></div>
-      <p className="muted small">{L('판단 기준: 라이선스가 모두 쓰인 적이 있거나 거부가 있으면 증설(전체의 10%, 최소 1). 7일 이상 기록에서 최대 동시 사용이 전체의 2/3 이하이면 감축(최대 + 1 만 남김). 학기 · 마감 주기를 생각해 90일 기간으로도 확인하세요.',
-        'Rule: any time at full or any refusal suggests adding (10 %, at least 1). Over a week or more with the peak at or under 2/3 of the seats suggests dropping to peak + 1. Check the 90-day view too, for term and tape-out peaks.')}</p>
+      <HowTo label={L('판단 기준', 'How advice is made')}><ul>
+        <li>{L('모두 쓰인 적이 있거나 거부가 있으면 증설(전체의 10%, 최소 1)', 'Full at any time or any refusal: add (10 %, at least 1)')}</li>
+        <li>{L('7일 이상 최대 동시 사용이 2/3 이하이면 감축(최대 + 1만 남김)', 'Peak at or under 2/3 over a week or more: drop to peak + 1')}</li>
+        <li>{L('학기 · 마감 주기를 생각해 90일 기간으로도 확인하세요.', 'Check the 90-day view too, for term and tape-out peaks.')}</li>
+      </ul></HowTo>
     </>
   );
 }

@@ -3,6 +3,7 @@
 // and the Windows client settings (pegaprox/api/vlab.py /api/vlab/admin/client).
 import { forProfile } from './mockProfile';
 import { ApiError, isMock, request } from './client';
+import { mockGateways, mockLinkBoards } from './jtag';
 import { mockHaVmids } from './ops';
 import type { GpuEnv, GpuJobFields, Notify, Runtime, WaitReason } from './research';
 
@@ -22,35 +23,50 @@ export type SignupSettings = {
 export type SignupConfig = {
   enabled: boolean; departments: { id: string; name: string; parent_id: string | null }[];
   verify_email?: VerifyMode; auto_domains?: string[]; terms?: { enabled: boolean; version: string };
+  password_policy?: import('./accounts').PasswordPolicy;
 };
 export type SignupInput = { username: string; password: string; display_name: string; email: string; department_id: string | null; note: string; terms_version?: string };
 export type SignupAnswer = { request: { id: string; status: string; verify?: 'sent' | 'failed' | 'none'; auto?: boolean } };
 export type UsbCategory = 'jtag' | 'security-key' | 'storage' | 'serial' | 'camera' | 'other';
 export type UsbDevice = { id: string; name: string; vid: string; pid: string; category: UsbCategory; notes: string; builtin: number; pools: number };
 export type UsbInput = { name: string; vid: string; pid: string; category: UsbCategory; notes: string };
-export type GatewayKind = 'guacamole' | 'rdpgw' | 'msrdgw';
-export type Gateway = {
-  id: string; name: string; kind: GatewayKind; address: string; port: number; notes: string; enabled: number;
-  last_check: string | null; last_ok: number | null; last_detail: string; external: number; has_key?: boolean;
-};
-export type GatewayInput = { name: string; kind: GatewayKind; address: string; port: number; notes: string; enabled: boolean; secret_key?: string };
-export type ExternalDesktop = { id: string; name: string; address: string; port: number; assigned_user: string | null; gateway_id: string | null; notes: string };
+export type ExternalDesktop = { id: string; name: string; address: string; port: number; assigned_user: string | null; notes: string };
 export type ExternalInput = Omit<ExternalDesktop, 'id'>;
 export type GoldenVersion = { name: string; description: string; time: number | null };
 export type GoldenImage = {
   id: string; cluster_id: string; node: string; vmid: number; name: string; current_version: string; notes: string;
   created_by: string; created_at: string; versions: GoldenVersion[] | null; status: string; pools: string[];
   rollout?: { pool_id: string; pool: string; total: number; outdated: number }[];
+  ostype?: string;   // engine claude/vm-table
 };
 export type RolloutResult = { replaced: { name: string; old_vmid: number; new_vmid: number; user: string | null; old_deleted: boolean }[];
   skipped: string[]; failed: { name: string; error: string } | null };
+// target 'usb': USB-JTAG passthrough to the desktop VM (slot usb4, the desktop runs on the board's node).
+// target 'network': the JTAG cable is shared over TCP (Xilinx hw_server / XVC, Intel Quartus jtagd); lending
+// records the grant and hands out host:port, the VM config is not touched, any display protocol works.
+export type BoardTarget = 'usb' | 'network';
+export type BoardProtocol = 'hw_server' | 'xvc' | 'quartus';
+export const BOARD_PORTS: Record<BoardProtocol, number> = { hw_server: 3121, xvc: 2542, quartus: 1309 };
+// A network board usually sits on a JTAG gateway VM (api/jtag.ts): the gateway's address, the cable's
+// serial number (the hw_server target), an optional UART (ser2net port on the gateway).
+export type BoardConn = { target: 'network'; protocol: BoardProtocol; host: string; port: number | null; endpoint: string; label: string; howto: string;
+  cable_serial?: string; gateway_id?: string; uart?: string; tcl?: string[] };
+export type BoardGateway = { id: string; name: string; state: 'up' | 'down' | 'unknown' };
 export type Board = {
   id: string; name: string; cluster_id: string; node: string; usb: string; kind: string; notes: string;
+  target?: BoardTarget; host?: string; port?: number | null; protocol?: BoardProtocol | ''; label?: string;
+  gateway_id?: string; cable_serial?: string; uart_port?: number | null; power?: string;
   attached_desktop: string | null; attached_vmid: number | null; attached_by: string; attached_at: string | null;
   lease_user?: string; lease_until?: string | null;
   desktop: { id: string; name: string; assigned_user: string | null } | null;
+  connection?: BoardConn | null; gateway?: BoardGateway | null; available?: boolean;
 };
-export type BoardInput = { name: string; cluster_id: string; node: string; usb: string; kind: string; notes: string };
+export type BoardInput = { name: string; cluster_id: string; node: string; usb: string; kind: string; notes: string;
+  target?: BoardTarget; host?: string; port?: number | null; protocol?: BoardProtocol; label?: string;
+  gateway_id?: string; cable_serial?: string; uart_port?: number | null };
+// 포털 › 내 자원: a board lent to me (GET /api/vlab/me/boards)
+export type MyBoard = { id: string; name: string; kind: string; target: BoardTarget; desktop: { id: string; name: string } | null;
+  lease_until: string | null; connection: BoardConn | null; available?: boolean; gateway?: { name: string; state: BoardGateway['state'] } | null };
 export type FarmDesktop = { id: string; name: string; status: string; assigned_user: string | null; in_session: boolean; cpu: number; maxcpu?: number; mem: number; maxmem?: number };
 export type FarmPool = { id: string; name: string; cluster_id: string; total: number; running: number; in_use: number; free: number; cpu_pct: number; mem_used: number; mem_total: number; desktops: FarmDesktop[];
   gpus_per_vm?: number; gpu_kind?: string; max_minutes?: number; runtime?: Runtime };
@@ -122,11 +138,6 @@ const realNextApi = {
     (await call<{ device: UsbDevice }>(id ? 'PUT' : 'POST', id ? `${A}/usb-devices/${enc(id)}` : `${A}/usb-devices`, b)).device,
   deleteUsbDevice: async (id: string) => { await call('DELETE', `${A}/usb-devices/${enc(id)}`); },
 
-  gateways: async () => (await call<{ gateways: Gateway[] }>('GET', `${A}/gateways`)).gateways,
-  saveGateway: async (id: string | null, b: GatewayInput) =>
-    (await call<{ gateway: Gateway }>(id ? 'PUT' : 'POST', id ? `${A}/gateways/${enc(id)}` : `${A}/gateways`, b)).gateway,
-  deleteGateway: async (id: string) => { await call('DELETE', `${A}/gateways/${enc(id)}`); },
-  checkGateway: async (id: string) => call<{ gateway: Gateway; ok: boolean; ms: number; error: string }>('POST', `${A}/gateways/${enc(id)}/check`),
 
   externalDesktops: async () => (await call<{ desktops: ExternalDesktop[] }>('GET', `${A}/external-desktops`)).desktops,
   saveExternal: async (id: string | null, b: ExternalInput) =>
@@ -175,9 +186,11 @@ const realNextApi = {
   },
   claim: async (poolId: string) => call<{ desktop: { id: string; name: string }; new: boolean }>('POST', `/api/vlab/me/pools/${enc(poolId)}/claim`),
   route: async (poolId: string) => call<{ desktop: { id: string; name: string }; sessions: number; limit: number }>('POST', `/api/vlab/me/pools/${enc(poolId)}/route`),
-  myExternalGuac: async (id: string) => call<{ url: string }>('GET', `/api/vlab/me/external/${enc(id)}/guac`),
+  // browser RDP through 보안 게이트웨이 (WG_OFF when it is off)
+  myExternalWeb: async (id: string) => call<{ url: string; via: 'warpgate' }>('GET', `/api/vlab/me/external/${enc(id)}/web`),
   // pools[].workdir: the user's scratch folder when build jobs start there (each job in <workdir>/<job id>), else ''
   myJobs: async () => call<{ jobs: BuildJob[]; pools: JobPool[] }>('GET', '/api/vlab/me/build-jobs'),
+  myBoards: async () => (await call<{ boards: MyBoard[] }>('GET', '/api/vlab/me/boards')).boards,
   mySubmitJob: async (b: JobInput) => (await call<{ job: BuildJob }>('POST', '/api/vlab/me/build-jobs', b)).job,
   myCancelJob: async (id: string) => { await call('POST', `/api/vlab/me/build-jobs/${enc(id)}/cancel`); },
 
@@ -189,7 +202,7 @@ const realNextApi = {
     const { status, data } = await request<{ desktops: MyExternal[] }>('GET', '/api/vlab/me/external');
     return status === 200 ? data.desktops ?? [] : [];
   },
-  myExternalRdp: async (id: string) => call<{ filename: string; rdp: string }>('GET', `/api/vlab/me/external/${enc(id)}/rdp`),
+  myExternalRdp: async (id: string) => call<{ filename: string; rdp: string; via?: 'warpgate' }>('GET', `/api/vlab/me/external/${enc(id)}/rdp`),
   signupConfig: async (): Promise<SignupConfig> => {
     try {
       const { status, data } = await request<SignupConfig>('GET', '/api/vlab/signup/config');
@@ -244,16 +257,10 @@ const usb: UsbDevice[] = [
   { id: 'usb_3', name: 'Digilent JTAG', vid: '1443', pid: '', category: 'jtag', notes: 'VID 1443 전체', builtin: 1, pools: 0 },
   { id: 'usb_4', name: 'YubiKey 5 NFC', vid: '1050', pid: '0407', category: 'security-key', notes: '연구 보안 구역 로그인용', builtin: 0, pools: 1 },
 ];
-const gateways: Gateway[] = [
-  { id: 'gw_1', name: '외부망 RDP 게이트웨이', kind: 'rdpgw', address: 'rdgw.univ.ac.kr', port: 443, notes: '재택 · 출장 접속', enabled: 1,
-    last_check: iso(12), last_ok: 1, last_detail: '18 ms', external: 2 },
-  { id: 'gw_2', name: '브라우저 RDP (Guacamole)', kind: 'guacamole', address: 'guac.univ.ac.kr', port: 8443, notes: '설치 없는 RDP', enabled: 1,
-    last_check: iso(60), last_ok: 1, last_detail: '9 ms', external: 0, has_key: true },
-];
 const external: ExternalDesktop[] = [
-  { id: 'ext_1', name: '측정실 PC (오실로스코프)', address: '10.30.5.21', port: 3389, assigned_user: 'alice', gateway_id: 'gw_1', notes: '계측 장비 연결 PC' },
-  { id: 'ext_2', name: '설계실 워크스테이션 3', address: '10.30.6.13', port: 3389, assigned_user: 'bob', gateway_id: 'gw_1', notes: '' },
-  { id: 'ext_3', name: '전산실 서버 콘솔', address: '10.30.1.5', port: 3389, assigned_user: null, gateway_id: null, notes: '배정 대기' },
+  { id: 'ext_1', name: '측정실 PC (오실로스코프)', address: '10.30.5.21', port: 3389, assigned_user: 'alice', notes: '계측 장비 연결 PC' },
+  { id: 'ext_2', name: '설계실 워크스테이션 3', address: '10.30.6.13', port: 3389, assigned_user: 'bob', notes: '' },
+  { id: 'ext_3', name: '전산실 서버 콘솔', address: '10.30.1.5', port: 3389, assigned_user: null, notes: '배정 대기' },
 ];
 const golden: GoldenImage[] = [
   { id: 'gold_1', cluster_id: 'c1', node: 'pve1', vmid: 9001, name: 'win11-실습-골든', current_version: 'gold-20261010-090000', notes: 'Windows 11 · Office · Python',
@@ -277,7 +284,47 @@ const boards: Board[] = [
     attached_vmid: null, attached_by: '', attached_at: null, desktop: null },
   { id: 'brd_3', name: 'Kria KV260 #2', cluster_id: 'c1', node: 'pve1', usb: '0403:6011', kind: 'KV260', notes: '', attached_desktop: null,
     attached_vmid: null, attached_by: '', attached_at: null, desktop: null },
+  { id: 'brd_4', name: 'VCU118 (hw_server)', cluster_id: 'c1', node: '', usb: '', kind: 'VCU118', notes: '', target: 'network',
+    host: '', port: null, protocol: 'hw_server', label: '랙 B-2 · 케이블 1', gateway_id: 'jgw_1', cable_serial: '210251A08870', uart_port: 7001,
+    attached_desktop: 'd2', attached_vmid: 302, attached_by: 'admin', attached_at: iso(120),
+    desktop: { id: 'd2', name: 'board-lab-zcu102', assigned_user: 'alice' } },
+  { id: 'brd_5', name: 'Agilex 7 (jtagd)', cluster_id: 'c1', node: '', usb: '', kind: 'Agilex 7', notes: '', target: 'network',
+    host: '', port: null, protocol: 'quartus', label: '', gateway_id: 'jgw_1', cable_serial: 'USB-BlasterII-1', attached_desktop: null,
+    attached_vmid: null, attached_by: '', attached_at: null, desktop: null },
+  { id: 'brd_6', name: 'ZCU104 #2', cluster_id: 'c1', node: '', usb: '', kind: 'ZCU104', notes: '', target: 'network',
+    host: '', port: null, protocol: 'hw_server', label: '랙 C-1', gateway_id: 'jgw_2', cable_serial: '210308FF0001', attached_desktop: null,
+    attached_vmid: null, attached_by: '', attached_at: null, desktop: null },
 ];
+mockLinkBoards((gid) => boards.filter((b) => b.gateway_id === gid).map((b) => ({ id: b.id, name: b.name, cable_serial: b.cable_serial ?? '',
+  protocol: b.protocol || 'hw_server', lent: !!b.attached_desktop })));
+// what the engine's _board_conn answers (pegaprox/api/vlab_next.py)
+const gwOf = (b: Board) => (b.gateway_id ? mockGateways.find((g) => g.id === b.gateway_id) : undefined);
+function mockView(b: Board): Board {
+  const g = gwOf(b);
+  return { ...b, connection: mockConn(b), gateway: g ? { id: g.id, name: g.name, state: g.state } : null, available: g?.state !== 'down' };
+}
+function mockConn(b: Board): BoardConn | null {
+  if (b.target !== 'network') return null;
+  const protocol = (b.protocol || 'hw_server') as BoardProtocol;
+  const g = gwOf(b);
+  const host = g ? g.host : b.host ?? '';
+  const port = g ? (protocol === 'xvc' ? b.port ?? null : protocol === 'quartus' ? g.jtagd_port : g.hw_port) : b.port ?? null;
+  if (!host) return null;
+  const endpoint = port ? `${host}:${port}` : host;
+  const serial = b.cable_serial ?? '';
+  const tcl = protocol === 'hw_server' ? [`connect_hw_server -url ${endpoint}`, serial ? `open_hw_target [lindex [get_hw_targets */${serial}] 0]` : 'open_hw_target']
+    : protocol === 'xvc' ? ['connect_hw_server', `open_hw_target -xvc_url ${endpoint}`] : [`jtagconfig --addserver ${host} <password>`, 'jtagconfig'];
+  const extra = { cable_serial: serial, gateway_id: b.gateway_id ?? '', uart: b.uart_port && host ? `${host}:${b.uart_port}` : '', tcl };
+  return { ...mockConnBase({ ...b, host, port }, protocol, endpoint), ...extra };
+}
+function mockConnBase(b: Board, protocol: BoardProtocol, endpoint: string): BoardConn {
+  const howto = {
+    hw_server: `Vivado Hardware Manager > Open Target > Open New Target > Remote server: ${endpoint} (hw_server). Or: connect_hw_server -url ${endpoint}`,
+    xvc: `Vivado Hardware Manager > Open New Target > Add Xilinx Virtual Cable (XVC): ${endpoint}. Or: open_hw_target -xvc_url ${endpoint}`,
+    quartus: `Quartus Programmer > Hardware Setup > JTAG Settings > Add Server: ${b.host} (jtagd ${endpoint}). Or: jtagconfig --addserver ${b.host} <password>  (the cable host ran jtagconfig --enableremote).`,
+  }[protocol];
+  return { target: 'network', protocol, host: b.host ?? '', port: b.port ?? null, endpoint, label: b.label ?? '', howto };
+}
 const GB = 1024 ** 3;
 const farm: FarmPool[] = [
   { id: 'p_farm', name: 'FPGA 빌드 팜', cluster_id: 'c1', total: 6, running: 5, in_use: 4, free: 2, cpu_pct: 63.5, mem_used: 312 * GB, mem_total: 384 * GB,
@@ -425,20 +472,6 @@ const mockNextApi: NextApi = {
     usb.splice(usb.findIndex((x) => x.id === id), 1); return delay(undefined);
   },
 
-  gateways: () => delay(gateways.map((g) => ({ ...g, external: external.filter((e) => e.gateway_id === g.id).length }))),
-  saveGateway: (id, b) => {
-    const { secret_key, ...rest } = b;
-    if (secret_key && (b.kind !== 'guacamole' || !/^[0-9a-f]{32}$/.test(secret_key))) return fail(400, 'secret_key: 32 hex digits, Guacamole only');
-    if (id) { const g = gateways.find((x) => x.id === id)!; Object.assign(g, { ...rest, enabled: b.enabled ? 1 : 0 }, secret_key ? { has_key: true } : {}); return delay({ ...g }); }
-    const g: Gateway = { id: nid('gw'), ...rest, enabled: b.enabled ? 1 : 0, last_check: null, last_ok: null, last_detail: '', external: 0, has_key: !!secret_key };
-    gateways.push(g); return delay({ ...g });
-  },
-  deleteGateway: (id) => { gateways.splice(gateways.findIndex((x) => x.id === id), 1); external.forEach((e) => { if (e.gateway_id === id) e.gateway_id = null; }); return delay(undefined); },
-  checkGateway: (id) => {
-    const g = gateways.find((x) => x.id === id)!; const ok = g.kind !== 'guacamole';
-    Object.assign(g, { last_check: iso(0), last_ok: ok ? 1 : 0, last_detail: ok ? '16 ms' : 'Connection refused' });
-    return delay({ gateway: { ...g }, ok, ms: ok ? 16 : 2001, error: ok ? '' : 'Connection refused' });
-  },
 
   externalDesktops: () => delay(external.map((e) => ({ ...e }))),
   saveExternal: (id, b) => {
@@ -447,7 +480,7 @@ const mockNextApi: NextApi = {
   },
   deleteExternal: (id) => { external.splice(external.findIndex((x) => x.id === id), 1); return delay(undefined); },
 
-  goldenImages: () => delay(golden.map((g) => ({ ...g, versions: g.versions ? [...g.versions] : null }))),
+  goldenImages: () => delay(golden.map((g) => ({ ...g, ostype: /win/i.test(g.name) ? 'win11' : 'l26', versions: g.versions ? [...g.versions] : null }))),
   addGolden: (b) => {
     if (golden.some((g) => g.vmid === b.vmid)) return fail(409, 'This VM is already a golden image');
     const g: GoldenImage = { id: nid('gold'), cluster_id: b.cluster_id, node: 'pve1', vmid: b.vmid, name: b.name || `vm-${b.vmid}`, current_version: '',
@@ -469,12 +502,32 @@ const mockNextApi: NextApi = {
     return delay({ created, failed: null });
   },
 
-  boards: () => delay(boards.map((b) => ({ ...b }))),
-  saveBoard: (id, b) => {
-    if (!/^([0-9a-f]{4}:[0-9a-f]{4}|\d+-\d+(\.\d+)*)$/.test(b.usb)) return fail(400, 'usb: vendor:product (03fd:0008) or a port path (1-2.3)');
-    if (id) { const x = boards.find((y) => y.id === id)!; Object.assign(x, b); return delay({ ...x }); }
-    const x: Board = { id: nid('brd'), ...b, attached_desktop: null, attached_vmid: null, attached_by: '', attached_at: null, desktop: null };
-    boards.push(x); return delay({ ...x });
+  boards: () => delay(boards.map(mockView)),
+  saveBoard: (id, input) => {
+    let b: BoardInput = { ...input, target: input.target ?? 'usb' };
+    if (b.target === 'network' && b.gateway_id) {
+      const protocol = b.protocol ?? 'hw_server';
+      const serial = (b.cable_serial ?? '').trim();
+      if (protocol === 'hw_server' && !serial) return fail(400, 'cable_serial: hw_server serves every cable of the gateway - say which one is this board');
+      const port = protocol === 'xvc' ? b.port || BOARD_PORTS.xvc : null;
+      const twin = boards.find((o) => o.id !== id && o.gateway_id === b.gateway_id && ((serial && o.cable_serial === serial) || (port && o.protocol === 'xvc' && o.port === port)
+        || (b.uart_port && o.uart_port === b.uart_port)));
+      if (twin) return fail(400, `cable_serial: that cable or port is board '${twin.name}' already - one cable, one board`);
+      b = { ...b, protocol, port, host: '', cable_serial: serial, usb: '', node: '' };
+    } else if (b.target === 'network') {
+      if (!b.host || !/^[A-Za-z0-9._-]+$/.test(b.host)) return fail(400, 'host: the cable host MOAVI Desk VMs reach over the network (or pick a JTAG gateway)');
+      const protocol = b.protocol ?? 'hw_server';
+      const port = b.port || BOARD_PORTS[protocol];
+      if (!(port >= 1 && port <= 65535)) return fail(400, 'port: 1-65535');
+      b = { ...b, protocol, port, gateway_id: '', usb: '', node: '' };
+    } else {
+      if (!/^([0-9a-f]{4}:[0-9a-f]{4}|\d+-\d+(\.\d+)*)$/.test(b.usb)) return fail(400, 'usb: vendor:product (03fd:0008) or a port path (1-2.3)');
+      b = { ...b, host: '', port: null, protocol: undefined, label: '', gateway_id: '', cable_serial: '', uart_port: null };
+    }
+    const withConn = mockView;
+    if (id) { const x = boards.find((y) => y.id === id)!; Object.assign(x, b, { protocol: b.protocol ?? '' }); return delay(withConn(x)); }
+    const x: Board = { id: nid('brd'), ...b, protocol: b.protocol ?? '', attached_desktop: null, attached_vmid: null, attached_by: '', attached_at: null, desktop: null };
+    boards.push(x); return delay(withConn(x));
   },
   deleteBoard: (id) => {
     const x = boards.find((y) => y.id === id); if (x?.attached_desktop) return fail(409, 'Detach the board first');
@@ -518,6 +571,8 @@ const mockNextApi: NextApi = {
   },
   attachBoardFor: (id, b) => {
     const x = boards.find((y) => y.id === id)!;
+    const g = gwOf(x);
+    if (g?.state === 'down') return fail(409, `The JTAG gateway ${g.name} is down (VM stopped or hw_server not answering) - the board cannot be lent now`);
     Object.assign(x, { attached_desktop: b.desktop_id, attached_vmid: 300, attached_by: 'admin', attached_at: iso(0), lease_user: b.lease_user ?? '', lease_until: b.lease_until ?? null,
       desktop: { id: b.desktop_id, name: 'lab-win11-01', assigned_user: b.lease_user || 'bob' } });
     return delay(undefined);
@@ -549,7 +604,11 @@ const mockNextApi: NextApi = {
     p.free -= 1; p.mine = ['d_claimed']; return delay({ desktop: { id: 'd_claimed', name: 'research-win11-05' }, new: true });
   },
   route: () => delay({ desktop: { id: 'd1', name: 'eda-server-02' }, sessions: 3, limit: 10 }),
-  myExternalGuac: () => delay({ url: 'https://guac.univ.ac.kr:8443/guacamole/?data=mock' }),
+  myExternalWeb: () => delay({ url: 'https://wg.univ.ac.kr:8888/@warpgate#/web-desktop/start/mock', via: 'warpgate' as const }),
+  myBoards: () => delay(boards.filter((b) => b.attached_desktop && (b.lease_user || b.desktop?.assigned_user) === 'alice').map((b) => ({
+    id: b.id, name: b.name, kind: b.kind, target: b.target ?? 'usb', desktop: b.desktop ? { id: b.desktop.id, name: b.desktop.name } : null,
+    lease_until: b.lease_until ?? null, connection: mockConn(b), available: mockView(b).available,
+    gateway: gwOf(b) ? { name: gwOf(b)!.name, state: gwOf(b)!.state } : null }))),
   myJobs: () => delay({ jobs: jobs.filter((j) => j.username === 'alice').map((j) => ({ ...j })), pools: [{ id: 'p_farm', name: 'FPGA 빌드 팜', workdir: '/nas/scratch/alice', gpus_per_vm: 0 },
     { id: 'p_gpu', name: 'A100 학습 팜', workdir: '/nas/scratch/alice', gpus_per_vm: 4, gpu_kind: 'A100', max_minutes: 2880, runtime: 'docker' }] }),
   mySubmitJob: (b) => {

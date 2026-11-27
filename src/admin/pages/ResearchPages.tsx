@@ -4,6 +4,7 @@ import type { FarmPool } from '../../api/next';
 import { hoursText, researchApi, waitText } from '../../api/research';
 import type { GpuPoolConf, GpuSettings, IdeSession, Quota, QuotaInput, Runtime, UsageDeptRow, UsageReport, UsageUserRow, UsageWindow } from '../../api/research';
 import { Dialog } from '../../components/Dialog';
+import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { SettingsStatus } from '../../components/SettingsShell';
@@ -41,8 +42,13 @@ export function GpuQueuePage() {
   }
   return (
     <>
-      <Intro>{L('GPU를 요구하는 작업이 기다리는 순서와 이유, 실행 중인 작업, 풀마다 GPU가 얼마나 쓰이는지 봅니다. 순서는 할당량을 넘긴 사람 뒤로 → 사람마다 첫 작업 먼저(공정 분배) → 오래 기다린 순입니다. 오래 기다린 큰 작업은 자기 GPU가 빌 때까지 뒤 작업을 막아 둡니다.',
-        'Where each GPU job waits and why, what runs, and how much of each pool is in use. Order: over-quota users last, each user\'s first job before anyone\'s second (fair share), then the longest wait. A big job that waited long keeps later ones off the GPUs it needs.')}</Intro>
+      <Intro>{L('GPU 작업의 대기 순서, 실행 중인 작업, 풀 사용량을 봅니다.', 'GPU jobs waiting and running, and how busy each pool is.')}</Intro>
+      <HowTo><ul>
+        <li>{L('할당량을 넘긴 사람의 작업은 뒤로 갑니다.', 'Over-quota users go last.')}</li>
+        <li>{L('사람마다 첫 작업을 먼저 돌립니다(공정 분배).', 'Each user\'s first job runs before anyone\'s second (fair share).')}</li>
+        <li>{L('그다음은 오래 기다린 순입니다.', 'Then the longest wait goes first.')}</li>
+        <li>{L('오래 기다린 큰 작업은 필요한 GPU가 빌 때까지 뒤 작업을 막습니다.', 'A big job that waited long keeps later jobs off the GPUs it needs.')}</li>
+      </ul></HowTo>
       <div className="toolbar">
         <button type="button" className="btn" onClick={() => { q.reload(); farm.reload(); }}><Icon name="refresh" size={16} />{L('새로 고침', 'Refresh')}</button>
         <button type="button" className="btn" onClick={() => setSettings(true)}><Icon name="gear" size={16} />{L('큐 설정 · 알림', 'Queue settings and notices')}</button>
@@ -116,8 +122,11 @@ export function GpuQueuePage() {
       </LoadState>
       <section className="panel">
         <h3 className="panel-title">{L('풀별 GPU 작업 설정', 'GPU jobs per pool')}</h3>
-        <p className="muted small">{L('빌드 팜 풀의 VM 하나에 GPU가 몇 장 붙어 있는지, 종류 이름(작업이 고를 때 쓰는 이름), 최대 실행 시간, 컨테이너 런타임을 정합니다. GPU는 풀의 GPU 정책(PCI 매핑)이나 VM 하드웨어로 붙입니다.',
-          'How many GPUs each VM of a build farm pool has, the kind name jobs ask for, the time limit and the container runtime. The GPUs come from the pool\'s GPU policy (PCI mapping) or the VM hardware.')}</p>
+        <p className="muted small">{L('빌드 팜 풀마다 GPU 작업을 받는 방식을 정합니다.', 'How each build farm pool takes GPU jobs.')}</p>
+        <HowTo><ul>
+          <li>{L('종류 이름은 작업이 GPU를 고를 때 씁니다.', 'Jobs ask for a GPU by its kind name.')}</li>
+          <li>{L('GPU는 풀의 GPU 정책(PCI 매핑)이나 VM 하드웨어로 붙입니다.', 'The GPUs come from the pool\'s GPU policy (PCI mapping) or the VM hardware.')}</li>
+        </ul></HowTo>
         <LoadState value={farm} retry={farm.reload}>
           {(pools) => pools.length === 0 ? <div className="empty"><p>{L('빌드 팜 풀이 없습니다.', 'No build farm pools.')}</p></div> : (
             <div className="table-scroll"><table className="table compact-head">
@@ -186,7 +195,7 @@ function QueueSettingsDialog({ initial, onClose, onSaved }: { initial: GpuSettin
     <Dialog open title={L('GPU 큐 설정 · 알림', 'GPU queue settings and notices')} onClose={onClose} onSubmit={save} submitLabel={L('저장', 'Save')} busy={busy} error={error}>
       <div className="form-row">
         <label><span>{L('양보 대기 기준 (분)', 'Hold GPUs after (min)')}</span><input id="qs-starve" type="number" min={0} max={10080} value={s.starve_minutes} onChange={(e) => num('starve_minutes', e.target.value)} />
-          <small className="muted">{L('이만큼 기다린 작업은 필요한 GPU가 빌 때까지 뒤 작업이 그 풀에서 시작하지 못하게 합니다. 0 = 끔', 'A job that waited this long keeps later jobs off its pools until its GPUs are free. 0 = off')}</small></label>
+          <small className="muted">{L('이만큼 기다린 작업에 GPU를 먼저 비워 줍니다. 0 = 끔', 'A job that waited this long gets its GPUs first. 0 = off')}</small></label>
         <label><span>{L('기본 최대 실행 시간 (분)', 'Default time limit (min)')}</span><input id="qs-max" type="number" min={0} max={43200} value={s.default_max_minutes} onChange={(e) => num('default_max_minutes', e.target.value)} /></label>
         <label><span>{L('사용자당 대기 작업 수', 'Waiting jobs per user')}</span><input id="qs-q" type="number" min={1} max={500} value={s.max_queued_per_user} onChange={(e) => num('max_queued_per_user', e.target.value)} /></label>
       </div>
@@ -194,11 +203,11 @@ function QueueSettingsDialog({ initial, onClose, onSaved }: { initial: GpuSettin
       <label><span>{L('웹훅 채널 ID (쉼표로)', 'Webhook channel ids (comma separated)')}</span><input id="qs-ch" value={channels} placeholder="ch_slack, ch_teams" onChange={(e) => setChannels(e.target.value)} />
         <small className="muted">{L('운영 > 경보 > 알림 채널의 ID. 사용자가 "웹훅 알림"을 고른 작업만 보냅니다.', 'Ids from 운영 > 경보 > channels. Only jobs whose owner asked for it.')}</small></label>
       <h3>{L('사용자 개인 알림 (메일)', 'Notices to each user (mail)')}</h3>
-      <p className="muted small">{L('계정의 메일 주소로 보냅니다. 사용자는 내 계정 > 알림에서 종류별로 끌 수 있습니다.', "Sent to the account's address. Each user can turn kinds off in 내 계정 > 알림.")}</p>
+      <p className="muted small">{L('사용자는 내 계정 > 알림에서 끌 수 있습니다.', 'Users can turn these off in 내 계정 > 알림.')}</p>
       <div className="form-row">
         <label className="check"><input id="qs-quota" type="checkbox" {...flag('quota_notice')} /><span>{L('GPU 할당량 경고 (월 GPU-시간, 달마다 한 번씩)', 'GPU quota warnings (monthly GPU-hours, once a month each)')}</span></label>
         <label><span>{L('미리 알릴 사용률 (%)', 'Early warning at (%)')}</span><input id="qs-quota-pct" type="number" min={0} max={99} value={s.quota_warn_pct} disabled={!s.quota_notice} onChange={(e) => num('quota_warn_pct', e.target.value)} />
-          <small className="muted">{L('이 비율과 100%에서 알립니다. 0 = 100%에서만. 부서 할당량은 부서 책임자와 이번 달 쓴 사람에게 갑니다.', "At this share and at 100%. 0 = at 100% only. A department's goes to its manager and to those who used it this month.")}</small></label>
+          <small className="muted">{L('이 비율과 100%에서 알립니다(0 = 100%만). 부서 할당량은 책임자와 이번 달 사용자에게 갑니다.', "At this share and at 100% (0 = 100% only). A department's goes to its manager and this month's users.")}</small></label>
       </div>
       <div className="form-row">
         <label><span>{L('대여 종료 전 알림 (시간)', 'Loan reminder before the end (h)')}</span><input id="qs-loan-h" type="number" min={0} max={168} value={s.loan_remind_hours} onChange={(e) => num('loan_remind_hours', e.target.value)} />
@@ -230,8 +239,13 @@ export function GpuQuotasPage() {
     : q.subject_type === 'department' ? `${L('부서', 'Department')} · ${q.name || q.subject_id}` : `${L('사용자', 'User')} · ${q.subject_id}`;
   return (
     <>
-      <Intro>{L('사용자 · 부서(연구실)마다 동시에 쓸 수 있는 GPU 장 수와 한 달 GPU-시간을 정합니다. 동시 GPU를 다 쓰면 새 작업은 기다리고, 월 GPU-시간을 넘기면 작업이 큐 뒤로 갑니다("엄격"이면 다음 달까지 시작하지 않음). 부서 할당량은 그 부서와 하위 부서 전체에 걸립니다. GPU-시간은 GPU 작업과 카드 대여를 합한 값입니다.',
-        'GPUs at once and GPU-hours a month per user and per department (lab). At the GPUs-at-once limit new jobs wait; past the month\'s hours jobs go to the back (with "hard", none starts until next month). A department\'s quota covers it and every department below. GPU-hours are GPU jobs plus card loans.')}</Intro>
+      <Intro>{L('사용자 · 부서마다 동시 GPU 수와 월 GPU-시간을 정합니다.', 'GPUs at once and GPU-hours a month, per user and department.')}</Intro>
+      <HowTo><ul>
+        <li>{L('동시 GPU를 다 쓰면 새 작업은 기다립니다.', 'At the GPUs-at-once limit new jobs wait.')}</li>
+        <li>{L('월 GPU-시간을 넘기면 큐 뒤로 갑니다. "엄격"이면 다음 달까지 시작하지 않습니다.', 'Past the month\'s hours jobs go to the back; with "hard" none starts until next month.')}</li>
+        <li>{L('부서 할당량은 하위 부서까지 걸립니다.', 'A department\'s quota covers the departments below it.')}</li>
+        <li>{L('GPU-시간은 GPU 작업과 카드 대여를 합한 값입니다.', 'GPU-hours are GPU jobs plus card loans.')}</li>
+      </ul></HowTo>
       <div className="toolbar">
         <button type="button" className="btn" onClick={list.reload}><Icon name="refresh" size={16} />{L('새로 고침', 'Refresh')}</button>
         <button type="button" className="btn primary" onClick={() => setEditing('new')}><Icon name="plus" size={16} />{L('할당량 추가', 'Add a quota')}</button>
@@ -351,8 +365,12 @@ export function GpuUsagePage() {
   }
   return (
     <>
-      <Intro>{L('사용자 · 부서별 GPU-시간입니다. GPU 작업은 받은 GPU 장 수 × 실행 시간, 카드 대여(GPU · NPU)는 대여 시간입니다. 연구실별 비용 배분의 근거로 CSV를 내려받으세요. 작업은 보낼 때의 부서로, 대여는 지금 부서로 셉니다.',
-        'GPU-hours per user and department: GPU jobs as GPUs × run time, card loans (GPU, NPU) as loan time. Download the CSV as the basis of a cost split. A job counts to the department it was sent from, a loan to the user\'s department now.')}</Intro>
+      <Intro>{L('사용자 · 부서별 GPU-시간입니다. 비용 배분용 CSV를 받을 수 있습니다.', 'GPU-hours per user and department, with a CSV for cost splits.')}</Intro>
+      <HowTo><ul>
+        <li>{L('GPU 작업은 GPU 장 수 × 실행 시간으로 셉니다.', 'GPU jobs count as GPUs × run time.')}</li>
+        <li>{L('카드 대여(GPU · NPU)는 대여 시간으로 셉니다.', 'Card loans (GPU, NPU) count as loan time.')}</li>
+        <li>{L('작업은 보낼 때의 부서로, 대여는 지금 부서로 셉니다.', 'A job counts to the department it was sent from, a loan to the user\'s department now.')}</li>
+      </ul></HowTo>
       <div className="toolbar">
         <div className="seg" role="group" aria-label={L('묶음', 'Group by')}>
           <button type="button" className={group === 'user' ? 'on' : ''} aria-pressed={group === 'user'} onClick={() => setGroup('user')}>{L('사용자별', 'By user')}</button>
@@ -411,8 +429,13 @@ export function IdeSessionsPage() {
   const S = { starting: L('시작 중', 'starting'), running: L('실행 중', 'running'), stopped: L('꺼짐', 'stopped'), failed: L('실패', 'failed') };
   return (
     <>
-      <Intro>{L('사용자가 포털에서 연 JupyterLab · VS Code입니다. 풀 정책 > 접속에서 "웹 IDE"를 켠 풀의 Linux 데스크톱 · 빌드 VM에서 사용자 계정으로 돌고, vlab-proxy의 /ide/ 경로로만 들어갑니다(엔진이 1분짜리 일회용 링크 → 그 경로 전용 쿠키). 쓰지 않으면 풀 정책의 유휴 시간 뒤 스스로 꺼집니다.',
-        'JupyterLab and VS Code opened from the portal. They run as the user on Linux desktops and build VMs of pools whose policy turns on the web IDE, reached only through vlab-proxy /ide/ (a one-minute one-time link from the engine, then a cookie for that path). Unused, they end after the pool\'s idle time.')}</Intro>
+      <Intro>{L('사용자가 포털에서 연 JupyterLab · VS Code 세션입니다.', 'JupyterLab and VS Code sessions opened from the portal.')}</Intro>
+      <HowTo><ul>
+        <li>{L('풀 정책 > 접속에서 "웹 IDE"를 켠 풀의 Linux 데스크톱 · 빌드 VM에서 돕니다.', 'They run on Linux desktops and build VMs of pools with the web IDE on (풀 정책 > 접속).')}</li>
+        <li>{L('사용자 계정으로 돌고, vlab-proxy의 /ide/ 경로로만 들어갑니다.', 'They run as the user, reached only through vlab-proxy /ide/.')}</li>
+        <li>{L('접속은 1분짜리 일회용 링크, 그 뒤 그 경로 전용 쿠키로 합니다.', 'Access is a one-minute one-time link, then a cookie for that path.')}</li>
+        <li>{L('쓰지 않으면 풀 정책의 유휴 시간 뒤 꺼집니다.', 'Unused, they end after the pool\'s idle time.')}</li>
+      </ul></HowTo>
       <div className="toolbar">
         <button type="button" className="btn" onClick={list.reload}><Icon name="refresh" size={16} />{L('새로 고침', 'Refresh')}</button>
         <label className="check"><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /><span>{L('끝난 세션도 보기', 'Show ended sessions')}</span></label>
@@ -440,9 +463,9 @@ export function IdeSessionsPage() {
         <h3 className="panel-title">{L('템플릿 준비 (데스크톱 · 빌드 VM 이미지)', 'Preparing the template (desktop and build VM image)')}</h3>
         <ol className="small guide-list">
           <li>{L('QEMU 게스트 에이전트를 켭니다: ', 'Turn on the QEMU guest agent: ')}<code className="code">apt install qemu-guest-agent && systemctl enable --now qemu-guest-agent</code></li>
-          <li>{L('사용자 계정이 VM 안에 있어야 합니다 (AD/LDAP 가입 SSSD — 공유 저장소와 같은 조건).', 'The user\'s account must exist in the VM (AD/LDAP via SSSD, as for shared storage).')}</li>
+          <li>{L('사용자 계정이 VM 안에 있어야 합니다(AD/LDAP 가입 SSSD, 공유 저장소와 같은 조건).', 'The user\'s account must exist in the VM (AD/LDAP via SSSD, as for shared storage).')}</li>
           <li>JupyterLab: <code className="code">python3 -m pip install 'jupyterlab&gt;=4' jupyter-server-proxy jupyter-vscode-proxy</code> {L('(모두가 쓰는 위치, 예: /opt/jupyter 가상환경 → PATH)', '(for everyone, e.g. a /opt/jupyter venv on the PATH)')}</li>
-          <li>VS Code: <code className="code">curl -fsSL https://code-server.dev/install.sh | sh</code> {L('— code-server는 127.0.0.1에서만 듣고 Jupyter 인증 뒤로 들어갑니다.', '— code-server listens on 127.0.0.1 only, behind Jupyter\'s authentication.')}</li>
+          <li>VS Code: <code className="code">curl -fsSL https://code-server.dev/install.sh | sh</code> {L('(127.0.0.1에서만 듣고 Jupyter 인증 뒤로 들어갑니다)', '(listens on 127.0.0.1 only, behind Jupyter\'s authentication)')}</li>
           <li>{L('GPU 작업용: NVIDIA 드라이버 · CUDA, 컨테이너를 쓰면 Docker + NVIDIA Container Toolkit (또는 Podman CDI · Apptainer), conda를 쓰면 /opt/conda 또는 각자 ~/miniconda3.', 'For GPU jobs: the NVIDIA driver and CUDA; for containers Docker with the NVIDIA Container Toolkit (or Podman CDI, Apptainer); for conda /opt/conda or each user\'s ~/miniconda3.')}</li>
           <li>{L('방화벽: vlab-proxy(콘솔 서버) → VM의 8890-8989/tcp만 엽니다. 사용자 PC에는 열지 않습니다.', 'Firewall: open 8890-8989/tcp from vlab-proxy (the console server) to the VMs only, never to user PCs.')}</li>
         </ol>

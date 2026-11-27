@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { accountsApi, downloadText, type AccountSettings, type Terms } from '../../api/accounts';
+import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { SettingsSection, SettingsShell, SettingsStatus } from '../../components/SettingsShell';
@@ -56,21 +57,25 @@ function ExpirySections({ initial, onSaved }: { initial: AccountSettings; onSave
   const dirty = JSON.stringify(f) !== JSON.stringify(initial);
   return (
     <>
-      <SettingsSection id="expiry" title={L('사용 기한', 'Expiry')} desc={L('계정마다 사용 기한(마지막 날)을 사용자 목록 · 일괄 등록 · 가입 승인에서 정합니다. 그날이 지나면 1분 안에 로그인이 막히고(정지) 열린 세션이 끝납니다.',
-        'Each account can have a last day of use (user list, import, sign-up approval). After it, within a minute, the account is disabled and its sessions end.')}>
+      <SettingsSection id="expiry" title={L('사용 기한', 'Expiry')} desc={L('기한이 지난 계정은 정지되고 열린 세션이 끝납니다.',
+        'Past its last day an account is disabled and its sessions end.')}>
+        <HowTo><ul>
+          <li>{L('기한은 사용자 목록 · 일괄 등록 · 가입 승인에서 계정마다 정합니다.', 'Set the last day per account in the user list, import or sign-up approval.')}</li>
+          <li>{L('기한이 지나면 1분 안에 정지됩니다.', 'The account is disabled within a minute of it.')}</li>
+        </ul></HowTo>
         <div className="form-row form-row-even">
           <label><span>{L('만료 전 메일 안내 (일)', 'Mail notice before (days)')}</span>
             <input id="acc-notice" type="number" min={0} max={60} value={f.notice_days} onChange={(e) => setF({ ...f, notice_days: Number(e.target.value) })} />
             <small className="muted">{L('0이면 보내지 않습니다. 메일 주소가 있는 계정에 한 번 보냅니다.', '0: none. Sent once to accounts with a mail address.')}</small></label>
           <label><span>{L('만료 뒤 계정 삭제 (일)', 'Delete after expiry (days)')}</span>
             <input id="acc-delete" type="number" min={0} max={3650} value={f.delete_after_days} onChange={(e) => setF({ ...f, delete_after_days: Number(e.target.value) })} />
-            <small className="muted">{L('0이면 지우지 않고 정지만 합니다. 그 사이 관리자가 다시 켜면 지우지 않습니다.', '0: never, disabled only. An account an admin enabled again is not deleted.')}</small></label>
+            <small className="muted">{L('0이면 지우지 않고 정지만 합니다.', '0: never, disabled only.')}</small></label>
         </div>
         <label className="check"><input id="acc-reclaim" type="checkbox" checked={f.reclaim} onChange={(e) => setF({ ...f, reclaim: e.target.checked })} />
           <span>{L('만료되면 배정된 데스크톱 회수 (초기화 풀은 기준 스냅샷으로 초기화)', 'Take back assigned desktops at expiry (resetting pools go back to their base)')}</span></label>
       </SettingsSection>
-      <SettingsSection id="mail" title={L('메일의 주소', 'Address in mails')} desc={L('비밀번호 재설정 링크, 메일 인증 링크, 일괄 등록 안내 메일에 넣는 콘솔 주소입니다. 비우면 요청이 들어온 주소를 씁니다. 메일은 일반 탭의 SMTP로 보냅니다.',
-        'The console address put in reset links, verification links and import mails. Empty: the address the request came to. Mail goes through the SMTP of the General tab.')}>
+      <SettingsSection id="mail" title={L('메일의 주소', 'Address in mails')} desc={L('안내 메일의 링크에 넣는 콘솔 주소입니다. 비우면 요청 주소를 씁니다.',
+        'The console address in mail links. Empty: the address the request came to.')}>
         <label><span>{L('사용자가 여는 주소', 'Address users open')}</span>
           <input id="acc-url" type="url" placeholder="https://desk.univ.ac.kr" value={f.public_url} onChange={(e) => setF({ ...f, public_url: e.target.value })} /></label>
         {msg && <div className={`alert small ${msg.ok ? 'info' : 'error'}`} role={msg.ok ? 'status' : 'alert'}>{msg.text}</div>}
@@ -100,8 +105,12 @@ function TermsSection({ initial, onSaved }: { initial: Terms; onSaved: () => voi
   }
   const dirty = f.enabled !== initial.enabled || f.version !== initial.version || textChanged;
   return (
-    <SettingsSection id="terms" title={L('약관 · 개인정보 처리 방침', 'Terms and privacy policy')} desc={L('켜면 가입 신청과 첫 로그인 때 동의를 받습니다(필수 체크). 버전을 바꾸면 모두 다시 동의합니다. 본문은 텍스트이며 "# 제목", "- 항목" 정도의 마크다운을 씁니다.',
-      'On: sign-up and the first sign-in ask for consent (a required tick). A new version asks everyone again. Plain text with a little markdown ("# heading", "- item").')}>
+    <SettingsSection id="terms" title={L('약관 · 개인정보 처리 방침', 'Terms and privacy policy')} desc={L('가입 신청과 첫 로그인 때 동의를 받습니다.',
+      'Ask for consent at sign-up and the first sign-in.')}>
+      <HowTo><ul>
+        <li>{L('버전을 바꾸면 모두 다시 동의합니다.', 'A new version asks everyone again.')}</li>
+        <li>{L('본문은 텍스트이며 "# 제목", "- 항목" 마크다운을 씁니다.', 'Plain text with a little markdown ("# heading", "- item").')}</li>
+      </ul></HowTo>
       <div className="form-row form-row-even">
         <label className="check"><input id="terms-on" type="checkbox" checked={f.enabled} onChange={(e) => setF({ ...f, enabled: e.target.checked })} />
           <span>{L('동의 받기', 'Ask for consent')}</span></label>
@@ -134,8 +143,8 @@ function ConsentsSection({ version }: { version?: string }) {
     try { downloadText(`terms-consents${v ? `-${v}` : ''}.csv`, await accountsApi.consentsCsv(v)); } catch (e) { alert((e as Error).message); }
   }
   return (
-    <SettingsSection id="consents" title={L('동의 기록', 'Consents')} desc={L('누가 · 언제 · 어떤 버전에 동의했는지(가입 신청 때 또는 로그인 때)와 접속 주소입니다. CSV로 받아 보관할 수 있습니다.',
-      'Who agreed to which version, when (at sign-up or at a sign-in), and from where. Download as CSV to keep.')}>
+    <SettingsSection id="consents" title={L('동의 기록', 'Consents')} desc={L('누가 언제 어떤 버전에 동의했는지 기록합니다.',
+      'Who agreed to which version, and when.')}>
       <div className="toolbar">
         <select aria-label={L('버전', 'Version')} value={which} onChange={(e) => setWhich(e.target.value as 'current' | 'all')}>
           <option value="current">{L(`현재 버전${version ? ` (${version})` : ''}`, `Current version${version ? ` (${version})` : ''}`)}</option>

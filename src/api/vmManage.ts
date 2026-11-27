@@ -15,6 +15,7 @@ export type VmInfo = {
   disks: VmDisk[]; networks: VmNic[]; passthrough: { key: string; value: string }[];
   desktop_id: string; pool_id: string; base_snap: string;
   bridges: string[]; storages: VmStorage[]; targets: VmTarget[];
+  ips?: string[];   // guest agent addresses of a running VM (engine claude/vm-table)
 };
 export type VmSnapshot = { name: string; description: string; time: number | null; vmstate: boolean; parent: string; base: boolean };
 export type Changed = { needs_restart: boolean };
@@ -36,7 +37,7 @@ const D = (id: string) => `/api/vlab/admin/desktops/${enc(id)}`;
 
 const realVmApi = {
   vm: async (id: string) => (await call<{ vm: VmInfo }>('GET', `${D(id)}/vm`)).vm,
-  setHardware: async (id: string, h: { cores?: number; sockets?: number; memory_mb?: number }) =>
+  setHardware: async (id: string, h: { cores?: number; sockets?: number; memory_mb?: number; name?: string }) =>
     call<Changed>('PUT', `${D(id)}/vm/hardware`, h),
   growDisk: async (id: string, disk: string, grow_gb: number) =>
     call<Changed>('POST', `${D(id)}/vm/disks/${enc(disk)}/resize`, { grow_gb }),
@@ -44,7 +45,7 @@ const realVmApi = {
     call<Changed & { disk: string }>('POST', `${D(id)}/vm/disks`, { storage, size_gb }),
   setNetwork: async (id: string, net: string, bridge: string, tag: number | null) =>
     call<Changed>('PUT', `${D(id)}/vm/networks/${enc(net)}`, { bridge, tag }),
-  snapshots: async (id: string) => call<{ snapshots: VmSnapshot[]; running: boolean }>('GET', `${D(id)}/snapshots`),
+  snapshots: async (id: string) => call<{ snapshots: VmSnapshot[]; running: boolean; current?: string }>('GET', `${D(id)}/snapshots`),
   takeSnapshot: async (id: string, s: { name: string; description: string; vmstate: boolean }) => {
     await call('POST', `${D(id)}/snapshots`, s);
   },
@@ -67,7 +68,7 @@ export type VmApi = typeof realVmApi;
 const delay = <T,>(v: T, ms = 250) => new Promise<T>((r) => setTimeout(() => r(v), ms));
 const fail = (status: number, msg: string, body?: unknown) => Promise.reject(new ApiError(status, msg, body ?? { error: msg }));
 type MockVm = { cores: number; sockets: number; memory_mb: number; disks: VmDisk[]; networks: VmNic[];
-  passthrough: { key: string; value: string }[]; snaps: VmSnapshot[] };
+  passthrough: { key: string; value: string }[]; snaps: VmSnapshot[]; current?: string };
 const vms = new Map<number, MockVm>();
 const tasks = new Map<string, { done: number; desk: string; to: string }>();
 const NODES = ['pve1', 'pve2', 'pve3'];
@@ -111,15 +112,19 @@ const mockVmApi: VmApi = {
       storages: [{ storage: 'ceph-vm', type: 'rbd', avail: 23 * 1024 ** 4, shared: true },
         { storage: 'local-lvm', type: 'lvmthin', avail: 1.2 * 1024 ** 4, shared: false }],
       targets: NODES.filter((n) => n !== x.g.node).map((n) => ({ node: n, online: true, maintenance: false })),
+      ips: running(x.g) ? [`10.20.${Math.floor(x.d.vmid / 100)}.${x.d.vmid % 100 + 11}`] : [],
     });
   },
   setHardware: (id, h) => {
     const x = deskOf(id); if (!x) return notFound();
     if (h.cores !== undefined && !(h.cores >= 1 && h.cores <= 256)) return fail(400, 'cores must be 1 to 256');
     if (h.memory_mb !== undefined && !(h.memory_mb >= 256)) return fail(400, 'memory_mb must be 256 to 4194304');
+    if (h.name !== undefined && !/^[A-Za-z0-9][A-Za-z0-9.-]{0,62}$/.test(h.name)) return fail(400, 'name: letters, digits, - and . only');
+    const { name, ...hw } = h;
+    if (name) { x.d.name = name; x.g.name = name; }
     const v = vmOf(x.d.vmid);
-    Object.assign(v, Object.fromEntries(Object.entries(h).filter(([, n]) => n !== undefined)));
-    return delay({ needs_restart: running(x.g) });
+    Object.assign(v, Object.fromEntries(Object.entries(hw).filter(([, n]) => n !== undefined)));
+    return delay({ needs_restart: Object.keys(hw).length > 0 && running(x.g) });
   },
   growDisk: (id, disk, gb) => {
     const x = deskOf(id); if (!x) return notFound();
@@ -147,7 +152,8 @@ const mockVmApi: VmApi = {
     const v = vmOf(x.d.vmid);
     const base = mockVmStore.withBase.has(x.d.id)
       ? [{ name: 'vlab-base', description: '', time: Math.floor(Date.now() / 1000) - 20 * 86400, vmstate: false, parent: '', base: true }] : [];
-    return delay({ snapshots: [...v.snaps, ...base].sort((a, b) => (b.time ?? 0) - (a.time ?? 0)), running: running(x.g) });
+    const list = [...v.snaps, ...base].sort((a, b) => (b.time ?? 0) - (a.time ?? 0));
+    return delay({ snapshots: list, running: running(x.g), current: v.current ?? list[0]?.name ?? '' });
   },
   takeSnapshot: (id, s) => {
     const x = deskOf(id); if (!x) return notFound();
@@ -155,6 +161,7 @@ const mockVmApi: VmApi = {
     if (s.name === 'vlab-base') return fail(400, "'vlab-base' is the base snapshot - take it from the pool's desktop list");
     const v = vmOf(x.d.vmid);
     if (v.snaps.some((k) => k.name === s.name)) return fail(502, `snapshot name '${s.name}' already used`);
+    v.current = s.name;
     v.snaps.unshift({ name: s.name, description: s.description, time: Math.floor(Date.now() / 1000), vmstate: s.vmstate && running(x.g), parent: '', base: false });
     return delay(undefined, 700);
   },
@@ -163,6 +170,7 @@ const mockVmApi: VmApi = {
     if (!force && x.d.assigned_user === 'alice') return fail(409, 'Someone is connected to this desktop', { error: 'Someone is connected to this desktop', code: 'IN_USE' });
     const s = vmOf(x.d.vmid).snaps.find((k) => k.name === name);
     if (!s && name !== 'vlab-base') return fail(502, 'snapshot does not exist');
+    vmOf(x.d.vmid).current = name;
     if (!s?.vmstate) x.g.status = 'stopped';
     return delay(undefined, 700);
   },

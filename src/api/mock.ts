@@ -3,6 +3,7 @@ import { forProfile } from './mockProfile';
 import { ApiError, type Api } from './client';
 import type { AuthStatus, Branding, Desktop, Lease, Notice, User, KioskInfo } from './types';
 import { mockDeskWork, mockLeaseExtras } from './mockWork';
+import { SHARED_SCREEN_TYPES, type PoolType } from './types';
 
 // Kept in sessionStorage so a page reload stays signed in, like the real session cookie.
 const KEY = 'vlab.mock.user';
@@ -29,17 +30,39 @@ export const mockWhoAmI = () => current?.username ?? '';
 
 const desktops: Desktop[] = [
   { id: 'd1', name: 'vivado-build-01', pool: 'FPGA 빌드 팜', state: 'ready', os: 'Rocky Linux 9', spec: { cpu: 16, memory_gb: 64 }, protocols: ['spice', 'vnc'], resources: [{ kind: 'card', name: 'Alveo U250 #2' }], pool_type: 'buildfarm', last_connected: new Date(Date.now() - 3 * 864e5).toISOString(),
+    policy: { clipboard: 'both', allow_power: true, start_on_connect: true, screen_thumbnail: true },   // the build farm turned it on
     storage: { kind: 'nfs', data_on_nas_only: false, ok: true, code: 'OK', warnings: [], folders: {
       home: { linux: '/nas/home/alice', windows: null, nas: 'nas01.lab.local:/export/eda/home/alice', folder: 'home/alice', quota_gb: 0 },
       scratch: { linux: '/nas/scratch/alice', windows: null, nas: 'nas01.lab.local:/export/eda/scratch/alice', folder: 'scratch/alice', quota_gb: 500, retention_days: 14 } } } },
   { id: 'd2', name: 'board-lab-zcu102', pool: '보드 LAB', state: 'in_use', os: 'Ubuntu 22.04', spec: { cpu: 8, memory_gb: 32 }, protocols: ['spice', 'vnc'], resources: [{ kind: 'usb', name: 'JTAG ZCU102 #1' }], pool_type: 'dedicated', last_connected: new Date(Date.now() - 2 * 36e5).toISOString(),
     storage: { kind: 'nfs', data_on_nas_only: false, ok: false, code: 'FOLDER_DENIED', warnings: [], folders: {
       home: { linux: '/nas/home/alice', windows: null, nas: 'nas01.lab.local:/export/board-lab/home/alice', folder: 'home/alice', quota_gb: 0 } } } },
-  { id: 'd4', name: 'ai-ws-03', pool: 'AI 연구실', state: 'ready', os: 'Windows 11', spec: { cpu: 8, memory_gb: 32 }, protocols: ['spice', 'vnc', 'rdp', 'guac'], gpu: { mode: 'vgpu', label: 'A16-4Q' }, pool_type: 'dedicated', last_connected: new Date(Date.now() - 26 * 36e5).toISOString() },
+  { id: 'd4', name: 'ai-ws-03', pool: 'AI 연구실', state: 'ready', os: 'Windows 11', spec: { cpu: 8, memory_gb: 32 }, protocols: ['spice', 'vnc', 'rdp'], gpu: { mode: 'vgpu', label: 'A16-4Q' }, pool_type: 'dedicated', policy: { clipboard: 'both', allow_power: true, start_on_connect: true, desktop_files: 'both' }, last_connected: new Date(Date.now() - 26 * 36e5).toISOString() },
   { id: 'd3', name: 'lab-win11-07', pool: '공용 LAB A', state: 'stopped', os: 'Windows 11', spec: { cpu: 4, memory_gb: 8 }, protocols: ['vnc', 'spice'], pool_type: 'reset', last_connected: null, policy: { clipboard: 'to_desktop', allow_power: false, start_on_connect: true },
     storage: { kind: 'smb', data_on_nas_only: true, ok: null, code: '', warnings: [], folders: {
       home: { linux: '/nas/home/alice', windows: 'H:\\', nas: '\\\\nas01.lab.local\\lab\\home\\alice', folder: 'home/alice', quota_gb: 20 } } } },
 ];
+
+// A sample "screen" for the card (the engine sends a PNG of the VM's console). A Windows
+// desktop shows its lock screen, as one used over RDP does on the real console.
+function mockScreen(d: Desktop): string {
+  const time = new Date().toTimeString().slice(0, 5);
+  if (/win/i.test(d.os ?? '')) {
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#0f3d6e"/><stop offset=".6" stop-color="#1f6fb2"/><stop offset="1" stop-color="#7cc4e8"/></linearGradient></defs>
+<rect width="480" height="270" fill="url(#g)"/><path d="M0 210 C120 170 260 240 480 190 V270 H0Z" fill="#0b2a4a" opacity=".55"/>
+<text x="240" y="118" font-family="Segoe UI, sans-serif" font-size="58" font-weight="300" fill="#fff" text-anchor="middle">${time}</text>
+<text x="240" y="146" font-family="Segoe UI, sans-serif" font-size="14" fill="#e6f0ff" text-anchor="middle">${d.name}</text></svg>`;
+  }
+  const lines = ['$ source /tools/Xilinx/Vivado/2024.2/settings64.sh', '$ vivado -mode batch -source build.tcl',
+    'INFO: [Synth 8-7079] Multithreading enabled', 'INFO: [Place 30-611] Placer completed', 'Phase 4 Router  | Checksum: 7f3a91c2', '$ _'];
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 270"><rect width="480" height="270" fill="#2c3e50"/>
+<rect width="480" height="18" fill="#1b2631"/><text x="10" y="13" font-family="sans-serif" font-size="10" fill="#cfd8e3">Activities</text>
+<text x="470" y="13" font-family="sans-serif" font-size="10" fill="#cfd8e3" text-anchor="end">${time}</text>
+<rect x="40" y="40" width="400" height="200" rx="6" fill="#111820"/><rect x="40" y="40" width="400" height="20" rx="6" fill="#3a4654"/>
+<text x="240" y="54" font-family="sans-serif" font-size="10" fill="#e8edf2" text-anchor="middle">${d.name} — Terminal</text>
+${lines.map((l, i) => `<text x="52" y="${84 + i * 22}" font-family="monospace" font-size="11" fill="${l.startsWith('$') ? '#8fe388' : '#c9d4df'}">${l}</text>`).join('')}</svg>`;
+}
 
 const leases: Lease[] = [
   { id: 'l1', kind: 'card', name: 'Alveo U250 #2', ends_at: '2026-10-31T18:00:00+09:00' },
@@ -110,7 +133,10 @@ export const mockApi: Api = {
     await delay(undefined);
   },
   async logout() { current = null; save(null); },
-  async myDesktops() { return delay(desktops.map((d) => ({ ...d, work: mockDeskWork(d.id, d.name) }))); },
+  async myDesktops() {
+    return delay(desktops.map((d) => ({ ...d, work: mockDeskWork(d.id, d.name),
+      signed_in: d.state === 'in_use' ? [{ user: 'alice', domain: 'MOAVI', login_time: Math.floor(Date.now() / 1000) - 1260 }] : [] })));
+  },
   async clientConfig() {
     return delay({ latest_version: '0.9.0', min_version: '', download_url: '', protocol: 'auto', support_url: 'https://support.makussystems.co.kr/' });
   },
@@ -147,10 +173,14 @@ export const mockApi: Api = {
       throw new ApiError(409, 'STARTING');
     }
     if (protocol === 'rdp') {
+      // localStorage vlab.mock.rdpgw = '1': the pool is on the devices route (보안 게이트웨이 · 장치 연결)
+      let devices = false;
+      try { devices = localStorage.getItem('vlab.mock.rdpgw') === '1'; } catch { /* per browser */ }
+      if (devices) {
+        return delay({ type: 'rdp' as const, via: 'rdpgw' as const, cert_url: '/moavi-gateway.crt', filename: `${d.name}.rdp`, session_id: 'mock-sess',
+          rdp: 'full address:s:10.20.3.41:3389\r\nusername:s:alice\r\ngatewayhostname:s:vlab.lab.example:443\r\ngatewayaccesstoken:s:MOCK\r\n' });
+      }
       return delay({ type: 'rdp' as const, filename: `${d.name}.rdp`, session_id: 'mock-sess', rdp: 'full address:s:10.20.3.41:3389\r\nusername:s:alice\r\n' });
-    }
-    if (protocol === 'guac') {
-      return delay({ type: 'guac' as const, session_id: 'mock-sess', url: 'https://guac.univ.ac.kr:8443/guacamole/?data=mock' });
     }
     if (protocol === 'spice') {
       return delay({ type: 'spice' as const, filename: `${d.name}.vv`, session_id: 'mock-sess',
@@ -161,6 +191,13 @@ export const mockApi: Api = {
     const storage = st ? { ok: st.ok, code: st.code, path: st.folders.home?.linux ?? '', os: 'linux', at: new Date().toISOString(), changed: false,
       warnings: st.warnings, usage: {}, detail: st.ok === false ? 'home/alice: alice may not make it (the top folder needs mode 1777)' : '' } : undefined;
     return delay({ type: 'vnc' as const, ws_path: '/api/mock/vncwebsocket', password: 'mock', session_id: 'mock-sess', clipboard: d.policy?.clipboard ?? 'both', storage });
+  },
+  async screenshot(desktopId) {
+    const d = desktops.find((x) => x.id === desktopId);
+    const allowed = d?.policy?.screen_thumbnail ?? !(d?.pool_type && SHARED_SCREEN_TYPES.includes(d.pool_type as PoolType));
+    if (!d || (d.state !== 'ready' && d.state !== 'in_use') || !allowed) return delay(null);
+    if (d.id === 'd1') return delay('off' as const);   // a build server whose display went to sleep
+    return delay(new Blob([mockScreen(d)], { type: 'image/svg+xml' }));
   },
   async endSession() { /* nothing to close */ },
   async power(desktopId, action) {

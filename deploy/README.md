@@ -6,8 +6,8 @@ Linux 서버 한 대에 `docker compose up` 한 번으로 설치한다. 시험�
 |---|---|---|
 | `vlab-proxy` | 콘솔 화면, HTTPS(443), `/api` 를 엔진으로 전달 (VNC 웹소켓 포함) | 이 저장소 |
 | `vlab-engine` | vLAB 엔진 (화면 없이 API 만, `WEB_UI=0`) | `makus-vlab` |
-| `guacd`, `guacamole` | 브라우저 RDP — Apache Guacamole 1.6 + guacamole-auth-json, 같은 443 의 `/guacamole/` (끄기: `VLAB_GUACAMOLE=0`) | 공식 이미지 |
-| `vlab-guac-key` | 시작할 때 한 번 돌고 끝남 — Guacamole 공유 키를 `vlab-guac` 볼륨에 둔다 | `alpine` |
+| `warpgate`, `warpgate-setup` | 접근 게이트웨이(bastion) — 데스크톱 RDP/SSH/VNC를 한 곳으로 중계, 웹 RDP/SSH·1회용 티켓·세션 녹화·비밀번호 비저장 (켜기: `VLAB_WARPGATE=1`) | 공식 이미지 |
+| `vlab-directory` | **선택**(`VLAB_DIRECTORY=1`) — 내장 디렉터리(Samba AD DC). AD 가 없는 곳에서 포털 계정 = 데스크톱 계정 | 이 저장소 `deploy/directory/` (Debian 12 · Samba 4.17) |
 
 사용자 PC 에서 열어야 하는 포트는 **443 하나**다. SPICE 를 쓰면 사용자 PC → Proxmox 노드 **3128**(spiceproxy)도 열어야 한다.
 엔진 → Proxmox 는 **8006**(API).
@@ -28,7 +28,7 @@ git clone <makus-vlab-console 저장소> makus-vlab-console
 cd ~/vlab/makus-vlab-console/deploy
 echo "VLAB_HOSTNAME=vlab.lab.example" > .env      # 사용자가 접속할 이름
 docker compose up -d --build
-docker compose ps                                  # vlab-proxy·vlab-engine·guacd·guacamole running (vlab-guac-key 는 exited 0)
+docker compose ps                                  # vlab-proxy·vlab-engine (+ VLAB_WARPGATE=1 이면 warpgate) running
 ```
 
 브라우저로 `https://vlab.lab.example` 을 연다. 처음에는 자체 서명 인증서라 경고가 나온다 → 아래 "인증서 바꾸기".
@@ -50,31 +50,174 @@ docker compose ps                                  # vlab-proxy·vlab-engine·gu
 `VLAB_FEATURES=gpuai,fpga`(더할 묶음, 쉼표)를 넣으면 엔진이 처음 한 번 그 값으로 정하고 첫 설정의 프로필 화면을 건너뛴다.
 이미 고른 뒤에는 `.env` 를 바꿔도 덮어쓰지 않는다(콘솔에서 바꾼다).
 
-## 브라우저 RDP (Guacamole)
-설치 묶음에 Guacamole 이 같이 들어 있어서, 위의 `docker compose up -d` 로 함께 올라간다. 따로 할 일은 없다.
-같은 443 의 `/guacamole/` 경로로 나가므로 더 열 포트도 없다. guacd 컨테이너 → 데스크톱 **3389** 만 열려 있으면 된다.
+## 브라우저 RDP · SSH
+번들 Guacamole 는 이 제거 커밋에서 걷어냈다. 브라우저 RDP·브라우저 SSH 는 Warpgate 가 맡는다(아래).
+Warpgate 를 켜지 않으면 브라우저 RDP 가 없다 — 이 커밋은 Warpgate 웹 RDP 를 실클러스터에서 검증하고
+`web_rdp_provider=warpgate` 로 바꾼 **뒤에만** 적용한다. 되돌리기: 이 커밋을 `git revert`.
 
-- **공유 키**: 첫 시작 때 `vlab-guac-key` 가 16진수 32자 키를 만들어 `vlab-guac` 볼륨에 둔다. 엔진과 guacamole 이 같은 파일을 읽는다.
-  정해진 키를 쓰려면 `.env` 에 `VLAB_GUAC_KEY=<16진수 32자>` (`openssl rand -hex 16`) 를 넣는다 — 볼륨의 키보다 앞선다.
-- **게이트웨이 등록**: 엔진이 시작할 때 **게이트웨이** 화면에 "MOAVI Desk 내장 Guacamole" 을 스스로 등록하고 키를 넣는다
-  (표시 주소 `VLAB_HOSTNAME`, 포트 `VLAB_HTTPS_PORT`/443). 사용자에게 주는 링크는 사용자가 콘솔에 들어온 주소 그대로
-  `https://<그 주소>/guacamole/?data=…` (5분짜리 서명 링크)라서, IP 로 들어오든 이름으로 들어오든 맞는다.
-  이 게이트웨이의 키는 콘솔에서 바꾸지 않는다 — 엔진이 다시 시작할 때 볼륨의 키로 되돌린다.
-- 포털에서 외부 데스크톱의 **브라우저로 연결** 을 눌러 확인한다. Guacamole 자체 로그인 화면은 쓰지 않는다 — 엔진이 서명한 링크로만 들어간다.
+## Warpgate 접근 게이트웨이(bastion)
+모든 데스크톱 RDP/SSH/VNC 를 Warpgate(Apache-2.0) 한 곳으로 중계한다. 대상 IP 가 사용자에게 숨고,
+세션이 녹화되며, 접속할 때 **사용자·데스크톱 비밀번호를 저장·전달하지 않는다**(그 사용자+그 대상에만
+쓸 수 있는 1회용·단시간 티켓). 번들 Guacamole 를 걷어낸 뒤에는 브라우저 RDP/SSH 도 Warpgate 가 맡으므로 `VLAB_WARPGATE=1` 이 필요하다.
 
-키 바꾸기 (`.env` 의 `VLAB_GUAC_KEY` 를 새 값으로 한 뒤):
-```bash
-docker compose up -d --force-recreate vlab-guac-key vlab-engine guacamole
-```
+1. `.env` 에 다음을 넣고 `docker compose up -d`:
+   ```
+   VLAB_WARPGATE=1
+   VLAB_WARPGATE_ADMIN_PASSWORD=<Warpgate 관리자 UI 로그인 비밀번호>
+   # VLAB_WARPGATE_HOST=warpgate.lab.example   # 비우면 VLAB_HOSTNAME 을 쓴다
+   ```
+   `warpgate-setup` 가 첫 기동 때 `warpgate-data` 볼륨에 설정을 만든다(HTTP 8888, SSH 2222,
+   RDP 3389, VNC 5900, 세션 녹화 켜짐; 이미 있으면 건너뜀). 열리는 포트: 8888(관리자 UI·브라우저
+   RDP/SSH·관리자 API), 2222/3389/5900(native SSH/RDP/VNC).
+2. **연결은 자동**: 엔진이 첫 기동 때 위 비밀번호로 Warpgate 에 로그인해 API 토큰을 만들고, 코어 DB 키로
+   봉인해 저장한다(base URL `https://<VLAB_WARPGATE_HOST>:8888`, 포트는 `.env` 값).
+   콘솔 > 플랫폼 설정 > **보안 게이트웨이**에서 '연결됨'만 확인한다. 이미 설정이 있으면 건드리지 않는다.
+   RDP 를 3389 가 아닌 포트로 게시했다면 `VLAB_WARPGATE_RDP_PORT` 도 `.env` 에 넣는다.
+3. **수동 연결(자동이 실패했을 때)**: Warpgate UI(`https://<호스트>:8888/@warpgate`)에 admin 으로 로그인 →
+   Profile > API tokens 에서 토큰을 만들어 콘솔 > 플랫폼 설정 > **보안 게이트웨이**에 넣고 **연결 테스트** 후 저장.
+4. **직접 접속 차단**: `proxmox-firewall/` 의 `moavi-relay` 에 Warpgate 주소를 넣어 데스크톱의
+   RDP/SSH/VNC 를 Warpgate 에서만 받게 한다.
+5. **Warpgate 로그인을 MOAVI Desk 로그인으로**: `.env` 에 `VLAB_WARPGATE_OIDC_SECRET=<openssl rand -hex 32 값>`.
+   `warpgate-setup` 이 `warpgate.yaml` 에 `MOAVI Desk` 로그인(sso_providers `moavi-desk`)을 한 번 넣고, 엔진이
+   그 로그인을 포털 세션으로 받아 준다(비밀번호 없음). 포털의 보안 게이트웨이 링크 → Warpgate 로그인 화면에서
+   **MOAVI Desk** 한 번 → 데스크톱. Warpgate 세션이 남아 있는 동안은 바로 열린다. 이미 설치된 곳은
+   `docker compose up -d && docker compose restart warpgate`. 다른 sso_providers 가 이미 있으면 setup 은 손대지 않으니
+   엔진 `docs/warpgate-gateway.md` 4-6 의 항목을 직접 넣는다.
 
-**끄기** (브라우저 RDP 를 쓰지 않는 현장): `.env` 에 `VLAB_GUACAMOLE=0` 을 넣고 `docker compose up -d --remove-orphans`.
-guacd·guacamole 컨테이너가 만들어지지 않고(이미 있으면 내려간다), 내장 게이트웨이는 "사용 안 함" 이 된다. 다시 켜려면 줄을 지우고 `docker compose up -d`.
-별도로 둔 Guacamole 을 쓰려면 끈 다음 **게이트웨이** 화면에서 그 서버(주소·포트·공유 키)를 추가한다.
+인증은 비밀번호를 저장하지 않는다: VNC 는 인증 없음, SSH 는 Warpgate 공개키, RDP 는 자동 로그인하지
+않는 모드(`interactive_logon`; NLA 가 필요하면 콘솔의 Warpgate 설정에 **서비스 계정**만 넣는다 —
+사용자 비밀번호가 아니다). 외부 OIDC/LDAP 로그인과 디렉터리 연동은 Warpgate `config.yaml` 에서 설정한다.
+
+### 장치 연결 방식 (rdpgw) — RDP 파일에서 드라이브·프린터·USB
+![보안 게이트웨이: 녹화 방식과 장치 연결 방식](../docs/images/gateway-routes.png)
+
+Warpgate 는 녹화하려고 RDP 를 풀었다 다시 맺으며 장치 채널을 버린다. 장치가 꼭 필요한 풀만 **장치 연결 방식**으로
+보낸다: 번들 rdpgw(Apache-2.0, RD Gateway)가 암호화된 RDP 를 그대로 데스크톱까지 실어 나른다. 녹화는 되지 않고
+접속은 감사 로그에 남는다. 브라우저 RDP 는 그대로 Warpgate 로 녹화된다.
+
+1. `.env` 에 넣고 `docker compose up -d`:
+   ```
+   VLAB_RDPGW=1
+   VLAB_RDPGW_KEY=<openssl rand -hex 16 값, 정확히 32자>
+   # VLAB_RDPGW_HOST=vdi.lab.example:443   # 비우면 VLAB_HOSTNAME:VLAB_HTTPS_PORT
+   ```
+   포트를 따로 열지 않는다. vlab-proxy(443)가 `/remoteDesktopGateway/` 만 rdpgw 로 넘긴다.
+2. 풀 정책 > **USB · 장치** > RDP 파일 경로 **장치 연결**. 드라이브·프린터·USB 는 같은 화면의 스위치를 따르고,
+   Windows 데스크톱은 그 값을 스스로도 지킨다(.rdp 를 고쳐도 켜지지 않는다).
+3. **인증서**: Windows 원격 데스크톱은 믿지 않는 게이트웨이에 붙지 않는다. 콘솔 인증서가 자체 서명이면 사용자 PC 에서
+   포털의 **게이트웨이 인증서 받기**(`/moavi-gateway.crt`)를 "신뢰할 수 있는 루트 인증 기관"에 한 번 설치한다.
+   IP 로 접속하는 곳은 `VLAB_HOSTNAME` 을 그 IP 로 두고 인증서를 새로 만든다(`vlab-tls` 볼륨의 tls.crt·tls.key 를 지우고
+   vlab-proxy 재시작 — IP 항목이 들어간다). 공인 인증서를 쓰면 이 단계가 없다.
+4. 토큰: 엔진이 접속마다 만든다(5분, 그 사용자·그 데스크톱·받은 PC 주소). 비밀번호는 들어 있지 않다.
+
+### 연구자 네이티브 SSH (자기 도구로 접속)
+풀 정책에서 **"연구자 네이티브 SSH"** 를 켜면(브라우저 SSH와 별개), 연구자가 PuTTY·scp·WinSCP·
+VS Code Remote-SSH 로 데스크톱에 평소처럼 붙되 Warpgate를 거친다(대상 IP 숨김, 세션 녹화).
+- 포털 **내 자원 > SSH 키 · 접속** 에서 **공개키**를 등록한다(개인키는 올리지 않는다). MOAVI Desk
+  클라이언트는 공개키를 자동으로 올리고, `~/.ssh/config` 의 관리 블록(BEGIN/END MOAVI)에 데스크톱별
+  `Host moavi-<이름>` 항목을 써 준다. 그 뒤:
+  - **VS Code Remote-SSH**: 호스트 목록에서 `moavi-<이름>` 선택.
+  - **PuTTY/WinSCP**: 호스트에 Warpgate 주소·포트(기본 2222), 사용자 이름에 `moavi-내아이디:대상이름`(포털의
+    "User" 값 복사), 인증은 개인키.
+  - 터미널: `ssh moavi-<이름>`, 파일 전송 `scp 파일 moavi-<이름>:` (SFTP 정책·기록 적용).
+  - Warpgate는 점프 호스트가 아니라 사용자 이름으로 대상을 고른다(ProxyJump 아님). 엄격한 풀은 셸/
+    scp를 막고 브라우저 터미널만 허용하는 편이 안전하다(셸은 유출을 완전히 막지 못함).
+
+**끄기**: `.env` 에서 `VLAB_WARPGATE=0` (또는 줄 삭제) 후 `docker compose up -d --remove-orphans`.
+`warpgate-data` 볼륨(설정·세션 녹화)은 남는다.
+
+### 전환(cutover) — 이 제거 커밋의 전제와 롤백
+이 커밋은 **전환이 끝난 뒤의 상태**다. 적용 전에 다음이 모두 끝나 있어야 한다:
+1. 실클러스터 검증(엔진 `docs/warpgate-gateway.md` 4-3): 브라우저 RDP·네이티브 RDP·네이티브 SSH·
+   브라우저 SSH·VNC·세션 녹화 재생·직접 접속 차단·1회용 티켓·비밀번호 비저장·디렉터리 로그인.
+2. 엔진의 `/ssh` 제거 커밋(별도)도 같이 적용한다. 엔진은 시작할 때 게이트웨이 카탈로그(Guacamole · RD 게이트웨이)를
+   지운다 — 브라우저 RDP 는 보안 게이트웨이뿐이다.
+- **롤백**: 이 커밋을 `git revert` 하고 `docker compose up -d` 하면 번들 Guacamole(guacd·guacamole·
+  vlab-guac-key·`/guacamole/`)가 돌아온다. 엔진도 게이트웨이 카탈로그가 있던 커밋으로 되돌려야 한다.
 
 ## 데스크톱 직접 접속 차단 (Proxmox 보안 그룹)
 사용자가 데스크톱 안에서 IP 를 알아내 원격 데스크톱·SSH 로 직접 붙는 길을 막아, 모든 접속이 MOAVI Desk
 서버·게이트웨이를 거치게 한다(접속 기록·시간 제한·정책이 항상 적용). VM 밖(하이퍼바이저)에서 걸리므로
 VM 안에서 root·관리자여도 끌 수 없다. 설정 예시와 점검법: [proxmox-firewall/README.md](proxmox-firewall/README.md).
+
+## 내장 디렉터리 (AD 가 없는 곳)
+기관 AD 가 없으면 설치 묶음의 **Samba AD DC** 를 켜서 포털 계정을 그대로 데스크톱(Windows · Linux) 계정으로 쓴다.
+사용자는 포털과 데스크톱에 같은 아이디 · 비밀번호로 로그인하고, 부서는 디렉터리 그룹이 된다.
+**기관 AD 가 있으면 켜지 않는다** — 그 AD 를 **운영 > 플랫폼 설정 > 도메인(AD/LDAP)** 에 넣는다(그 설정이 켜져 있으면 내장 DC 는 로그인에 쓰이지 않는다).
+
+### 켜기
+```bash
+cat >> .env <<'ENV'
+VLAB_DIRECTORY=1
+VLAB_DIRECTORY_IP=10.20.0.5          # 이 서버의 데스크톱 망 주소 (데스크톱이 DNS · 로그인에 쓰는 주소)
+VLAB_DIRECTORY_REALM=moavi.lan       # 도메인 DNS 이름 (바꾸려면 처음 켜기 전에)
+VLAB_DIRECTORY_DOMAIN=MOAVI          # NetBIOS 이름 (MOAVI\alice), 15자 이내
+VLAB_DIRECTORY_HOSTNAME=dc1          # DC 이름 (dc1.moavi.lan)
+# VLAB_DIRECTORY_ADMIN_PASSWORD=...  # 비우면 처음에 만들어 볼륨에 둔다 (아래 "관리자 비밀번호")
+# VLAB_DIRECTORY_DNS_FORWARDER=...   # 도메인 밖 이름을 물을 DNS (기본: 도커가 주는 호스트의 DNS)
+ENV
+docker compose up -d --build
+docker compose logs -f vlab-directory     # "starting samba (primary)" 가 나오면 준비됨
+```
+
+첫 시작에 도메인을 만들고 `OU=MOAVI` 아래에 `Users` · `Groups` · `Desktops` · `Service` 를 둔다. 엔진 서비스 계정 `vlab-svc` 는
+`OU=MOAVI` 만 관리할 수 있고(비밀번호는 `vlab-directory-out` 볼륨에, 엔진은 읽기만), 가입 계정 `vlab-join` 은 `OU=Desktops` 에 컴퓨터만 만들 수 있다.
+엔진은 시작할 때 이를 알아채고 **포털 로그인을 내장 DC(LDAPS 636, DC 가 만든 CA 로 인증서 확인)로** 돌린다.
+콘솔 **사용자 > 도메인(AD/LDAP)** 맨 위의 **내장 디렉터리** 에서 상태 · 연결 확인 · 지금 맞추기 · 계정 목록을 본다.
+
+- **열 포트 (데스크톱 망 쪽만, `VLAB_DIRECTORY_IP` 에만 묶임)**: 53 tcp/udp(DNS), 88 tcp/udp(Kerberos), 389 tcp/udp(LDAP), 445 tcp(SMB · SYSVOL),
+  464 tcp/udp(비밀번호 변경), 636 tcp(LDAPS), 3268 · 3269 tcp(글로벌 카탈로그). 인터넷 쪽에는 절대 열지 않는다.
+  `VLAB_DIRECTORY_IP` 를 넣지 않으면 컨테이너가 시작하지 않는다(포트도 127.0.0.1 에만).
+- **데스크톱 DNS**: 데스크톱이 DC 를 DNS 로 써야 한다. 데스크톱 망의 DHCP 가 `VLAB_DIRECTORY_IP` 를 DNS 로 주는 것이 가장 좋다.
+  아니면 도메인 가입 때 엔진이 데스크톱의 DNS 를 DC 로 바꾼다(설정 "가입할 때 DNS 를 DC 로", 기본 켬).
+- **계정**: 포털에서 만들거나(한 명씩 · CSV) 가입을 승인하면 같은 계정이 DC 에 생긴다. 사용 중지 · 삭제 · 부서 이동도 바로 간다.
+  켜기 전부터 있던 포털 계정은 **다음 로그인 때** 그 비밀번호로 옮겨진다. 관리자 계정은 포털 계정으로 남는다(DC 가 멈춰도 콘솔에 들어오도록).
+- **비밀번호**: 사용자가 정한 비밀번호(가입 · 비밀번호 찾기 · 내 계정)는 그 자리에서 DC 로만 간다. 엔진은 사용자 비밀번호를 저장하지 않는다.
+  비밀번호 규칙은 포털의 비밀번호 정책과 DC 의 규칙을 합친 것이다. DC 는 AD 기본 복잡도(대문자 · 소문자 · 숫자 · 기호 중 셋, 아이디 · 이름 포함 금지)를
+  켜 두고 만료 · 이력 · 잠금은 꺼 두었다(포털이 따로 한다). 포털 화면이 같은 규칙을 보여 주고 미리 검사하므로 포털이 받은 비밀번호는 DC 도 받는다.
+
+### 데스크톱 도메인 가입
+**데스크톱 풀 > 풀 > (풀) > 도메인 가입** 에서 한 대씩 또는 켜진 데스크톱을 한꺼번에 가입시킨다(QEMU 게스트 에이전트 필요).
+
+- **Windows**: `Add-Computer` 로 `OU=Desktops` 에, 이름은 `MD-{vmid}`(설정에서 바꿈). 재시작해야 적용된다("가입 후 재시작" 을 켜면 15초 뒤 재시작).
+  `moavi-users` 를 원격 데스크톱 사용자에 넣는다. **템플릿은 반드시 sysprep 으로 일반화**한다(`sysprep /generalize /oobe /shutdown`) —
+  일반화하지 않은 설치본을 복제하면 SID · 이름이 같아 가입이 꼬인다. 가입한 데스크톱의 RDP 파일은 `MOAVI\아이디` 로 로그인한다.
+- **Linux**: 템플릿에 `realmd sssd adcli` 와 홈 폴더 자동 생성(Ubuntu: `libpam-mkhomedir` / `pam-auth-update`, RHEL 계열: `oddjob-mkhomedir`)을 넣어 둔다.
+  엔진이 `realm join` 하고 짧은 이름(`alice`)으로 로그인하게 sssd 를 맞추고 `moavi-users` 만 허용한다.
+  uid/gid 는 SSSD id 매핑(계정의 SID 에서 계산, 범위는 sssd.conf 에 고정)이라 모든 데스크톱에서 같고, 공유 저장소(NFS)의 폴더 소유자도 VM 마다 같다.
+  가입한 데스크톱에서는 공유 저장소 확인의 LOCAL_ACCOUNT 경고가 사라진다(사용자가 VM 의 `/etc/passwd` 가 아니라 디렉터리에 있으므로).
+- 가입 계정 `vlab-join` 의 비밀번호는 엔진이 만들어 DC 에 넣고 엔진 DB 에 봉인한다. 게스트에는 에이전트의 표준 입력으로만 간다.
+  **내장 디렉터리 > 디렉터리 구조 · 가입 계정 > 비밀번호 새로 정하기** 로 언제든 바꾼다.
+
+### 관리자 비밀번호
+도메인 `Administrator` 비밀번호는 `.env` 의 `VLAB_DIRECTORY_ADMIN_PASSWORD` 이거나(넣었으면), 처음 만들 때 볼륨에 둔 값이다:
+```bash
+docker compose exec vlab-directory cat /var/lib/samba/private/vlab-admin-password
+```
+GPO · DNS 를 관리할 때는 Windows 관리 PC 를 도메인에 가입시키고 RSAT 로 접속한다. `OU=MOAVI` 안의 계정 · 그룹은 엔진이 맞추므로 손으로 바꾸지 않는다
+(엔진이 만들지 않은 계정은 건드리지 않는다).
+
+### 이중화 (HA 상대 서버에 두 번째 DC)
+MOAVI Desk 서버 이중화를 쓰면 상대 서버에도 DC 를 두어 DC 가 하나 멈춰도 로그인 · 데스크톱 로그인이 된다. 두 DC 는 서로 복제하고,
+각 서버의 엔진은 자기 쪽 DC 를 쓴다(엔진의 봉인된 계정과 가입 상태는 HA 동기화로 넘어간다).
+
+1. 두 DC 가 서로의 실제 주소로 닿아야 한다(복제는 RPC 135 + 49152-49200 도 쓴다). **macvlan 으로 DC 마다 데스크톱 망 주소를 주는 방식**을 권한다:
+   `docker compose -f docker-compose.yml -f docker-compose.directory-macvlan.yml up -d` (`.env`: `VLAB_DIRECTORY_PARENT`, `VLAB_DIRECTORY_SUBNET`,
+   `VLAB_DIRECTORY_GATEWAY`, compose 2.24 이상). macvlan 주소는 호스트 자신에서는 닿지 않는다(엔진은 내부 망으로 닿는다).
+2. 상대 서버의 `.env`: 같은 `VLAB_DIRECTORY_REALM` · `VLAB_DIRECTORY_DOMAIN`, 다른 `VLAB_DIRECTORY_HOSTNAME`(예: `dc2`) · `VLAB_DIRECTORY_IP`,
+   `VLAB_DIRECTORY_ROLE=replica`, `VLAB_DIRECTORY_PRIMARY_IP=<첫 DC 주소>`, `VLAB_DIRECTORY_ADMIN_PASSWORD=<첫 DC 의 관리자 비밀번호>`.
+   첫 시작에 `samba-tool domain join ... DC` 로 합류한다. 상대 서버의 엔진은 `vlab-svc` 비밀번호를 HA 동기화로 받는다.
+3. 데스크톱 망 DHCP 에 DNS 를 두 DC 주소로 준다(또는 설정의 "DNS 서버" 에 둘 다).
+4. 확인: `docker compose exec vlab-directory samba-tool drs showrepl` — 양쪽 모두 오류 없이 "Last attempt ... was successful".
+
+**한계**: Samba 는 SYSVOL(GPO 파일)을 복제하지 않는다. GPO 를 쓰면 첫 DC 에서 만들고 `/var/lib/samba/sysvol` 을 상대 쪽으로 복사한다(rsync, 바꿀 때마다).
+FSMO 역할은 첫 DC 에 있다. 첫 DC 가 오래 멈추면 `samba-tool fsmo seize` 로 넘긴다.
+
+### 백업
+`vlab-directory` 볼륨이 도메인 DB 다. `vlab-config` 와 함께 백업한다(엔진 쪽에는 봉인된 가입 계정만 있다).
+```bash
+docker compose exec vlab-directory samba-tool domain backup offline --targetdir=/var/lib/samba/backup
+```
 
 ## 웹 IDE (JupyterLab · VS Code)
 같은 443 의 `/ide/<세션>/` 경로로 나간다. 더 열 포트는 없고, **vlab-proxy(이 서버) → 데스크톱 · 빌드 VM 의 8890-8989/tcp** 만 열려 있으면 된다
@@ -126,7 +269,7 @@ cd deploy && docker compose up -d --build
 설정·DB 는 `vlab-config` 볼륨에 남는다.
 
 ## 백업
-`vlab-config` 볼륨이 전부다 (DB 와 그 암호화 키가 같이 있어야 복원된다).
+`vlab-config` 볼륨이 전부다 (DB 와 그 암호화 키가 같이 있어야 복원된다). 내장 디렉터리를 켰으면 `vlab-directory` 볼륨도 (위 "내장 디렉터리 > 백업").
 
 ```bash
 docker run --rm -v vlab_vlab-config:/data -v "$PWD":/backup alpine \
@@ -139,12 +282,14 @@ docker run --rm -v vlab_vlab-config:/data -v "$PWD":/backup alpine \
 | 로그인 후 저장할 때 `CSRF validation failed` | 프록시가 Host 를 바꾸고 있다. 앞에 다른 프록시(L4/L7)를 두면 원래 Host 를 그대로 넘겨야 한다 |
 | 콘솔 화면이 "연결이 끊어졌습니다" | VM 이 켜져 있는지, 엔진 → 노드 8006 이 열려 있는지. `docker compose logs vlab-engine` |
 | SPICE 파일이 열리지 않음 | virt-viewer 설치, 사용자 PC → 노드 3128 |
-| 브라우저 RDP 가 502 | Guacamole 이 안 떠 있다: `.env` 에 `VLAB_GUACAMOLE=0` 이 있는지, `docker compose logs vlab-guac-key guacamole` (`VLAB_GUAC_KEY` 형식이 틀리면 키 단계에서 멈춘다) |
-| 브라우저 RDP 링크가 로그인 화면/거부 | 엔진과 guacamole 의 키가 다르다(키를 바꾼 뒤 둘 다 다시 만들지 않음 — 위 "키 바꾸기"), 또는 서버 시계가 틀리다(링크 5분 유효) |
-| Guacamole 화면 뒤 "연결 오류" | guacd → 데스크톱 3389, 데스크톱의 RDP 허용·NLA 설정. `docker compose logs guacd` |
+| Warpgate 연결 테스트 실패 | base URL(`https://<호스트>:8888`)·API 토큰이 맞는지, `VLAB_WARPGATE=1` 로 떠 있는지. `docker compose logs warpgate warpgate-setup` (`VLAB_WARPGATE_ADMIN_PASSWORD` 가 없으면 setup 이 멈춘다) |
+| Warpgate 연결 뒤 "연결 오류" | Warpgate → 데스크톱 3389/22/VNC 가 닿는지(같은 `vlab` 네트워크·방화벽 relay), RDP 는 데스크톱의 NLA 설정 확인 |
 | 웹 IDE 가 포털로 돌아옴(`?ide=expired`) | 링크는 1분 · 한 번만. 포털에서 다시 "열기". IDE 가 유휴 시간으로 꺼졌으면 다시 시작 |
 | 웹 IDE 가 502 | vlab-proxy → VM 8890-8989/tcp 가 막혀 있거나 IDE 가 아직 뜨는 중. 가속 자원 > GPU 작업 › 웹 IDE 의 상태 · 오류, VM 의 `~/.moavi/ide-<세션>.log` |
 | 웹 IDE "설치돼 있지 않음" | 템플릿에 jupyter(VS Code 는 code-server 도)가 없음 — 위 "템플릿 준비" |
+| 내장 디렉터리 컨테이너가 계속 재시작 | `docker compose logs vlab-directory` — `VLAB_DIRECTORY_IP` 가 비었거나, 이름 형식(NetBIOS 15자) 이 틀림. 53 번을 이미 쓰는 서비스(dnsmasq 등)가 그 주소에 있는지 |
+| 포털 로그인은 되는데 데스크톱 로그인이 안 됨 | 데스크톱이 도메인에 가입했는지(풀 > 도메인 가입), Windows 는 가입 뒤 재시작했는지, 데스크톱의 DNS 가 DC 인지 |
+| 도메인 가입이 NO_DNS | 데스크톱이 DC 를 DNS 로 쓰지 않음 — DHCP 의 DNS 를 DC 로, 또는 내장 디렉터리 설정의 "가입할 때 DNS 를 DC 로" |
 | 클러스터 연결 실패 | 엔진 컨테이너에서 노드 8006 접속, 사용자/비밀번호, 인증서 확인 옵션 |
 
 ```bash

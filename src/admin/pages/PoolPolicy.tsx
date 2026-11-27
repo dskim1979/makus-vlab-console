@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from '../../api/admin';
-import type { Clipboard, Pool, PoolPolicy } from '../../api/types';
+import type { Clipboard, Pool, PoolPolicy, UsbClass, UsbDevice, UsbMode } from '../../api/types';
+import { USB_CLASSES } from '../../api/types';
+import type { IconName } from '../../components/Icon';
+import { SHARED_SCREEN_TYPES } from '../../api/types';
 import { Dialog } from '../../components/Dialog';
+import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
@@ -12,6 +16,9 @@ import { draftOf, StorageStep, storageBody, storageStepError, storageSummary } f
 import type { StorageDraft } from './PoolStorage';
 import { useL } from './OpsPages';
 import { useFeatures } from '../../features';
+import { directoryApi } from '../../api/directory';
+import { nextApi } from '../../api/next';
+import { SubjectListEditor } from './PoolGrants';
 
 // 데스크톱 풀 > (풀) > 정책: how the pool's desktops are reached and kept - a summary on the
 // pool page and a wizard in six steps plus review. The engine applies it (pegaprox/vlab/policy.py; the
@@ -57,16 +64,126 @@ function Summary({ p, storage }: { p: PoolPolicy; storage: PoolStorage | null })
     `${t('pol.s.clip')}: ${t(`pol.clip.${p.clipboard}` as MessageKey)}`,
     `USB: ${p.usb_redirect ? t('pol.on') : t('pol.offShort')}`,
   ];
+  const usbRules = (p.usb_classes?.length ?? 0) + (p.usb_devices?.length ?? 0);
+  if (p.usb_redirect && usbRules) chips.push(`${(p.usb_mode ?? 'deny') === 'allow' ? L('USB 허용 목록', 'USB allow list') : L('USB 차단 목록', 'USB block list')} ${usbRules}`);
+  if (p.rdp_route === 'devices') chips.push(L('RDP: 장치 연결', 'RDP: devices'));
   if (p.client_drives) chips.push(L('내 PC 드라이브 연결', 'PC drives'));
   if (p.start_on_connect) chips.push(t('pol.startOnConnect'));
   if (p.idle_shutdown_min) chips.push(`${t('pol.idle')} ${p.idle_shutdown_min}${t('pol.min')}`);
   if (p.reset_on_logout) chips.push(t('pol.resetOnLogout'));
   if (!p.allow_power) chips.push(`${t('pol.s.power')}: ${t('pol.offShort')}`);
+  if (p.screen_thumbnail === false) chips.push(`${L('화면 미리보기', 'Screen preview')}: ${t('pol.offShort')}`);
   if (p.max_session_hours) chips.push(`${t('pol.maxSession')} ${p.max_session_hours}${t('pol.hours')}`);
   if (p.defer_when_busy) chips.push(L(`작업 중이면 미루기 (최대 ${p.defer_max_hours}시간)`, `Wait while working (up to ${p.defer_max_hours} h)`));
   if (p.web_ide?.length) chips.push(`${L('웹 IDE', 'Web IDE')}: ${p.web_ide.map((k) => (k === 'jupyter' ? 'JupyterLab' : 'VS Code')).join(' · ')}`);
   if (storage?.enabled) chips.push(`${L('공유 저장소', 'Shared storage')}: ${storage.kind.toUpperCase()} ${storage.server}`);
+  if (p.auto_domain_join === true) chips.push(L('자동 도메인 조인', 'Auto domain join'));
   return <div className="policy-chips">{chips.map((c) => <span key={c} className="chip">{c}</span>)}</div>;
+}
+
+// --- USB 정책 -----------------------------------------------------------------------------------
+// which devices go over when USB is on: a block list (all but the checked) or an allow list (only those),
+// by kind and by VID/PID. The engine turns it into the .vv's usb-filter and the .rdp's device lines.
+
+const USB_KIND: Record<UsbClass, { icon: IconName; tone: string; ko: string; en: string }> = {
+  storage: { icon: 'box', tone: 'blue', ko: '저장 장치', en: 'Storage' },
+  printer: { icon: 'download', tone: 'violet', ko: '프린터', en: 'Printers' },
+  smartcard: { icon: 'shield', tone: 'teal', ko: '스마트카드', en: 'Smart cards' },
+  camera: { icon: 'spark', tone: 'pink', ko: '카메라', en: 'Cameras' },
+  audio: { icon: 'support', tone: 'amber', ko: '오디오 · 마이크', en: 'Audio, microphone' },
+  imaging: { icon: 'layers', tone: 'green', ko: '스캐너', en: 'Scanners' },
+  serial: { icon: 'link', tone: 'slate', ko: '직렬 · 통신', en: 'Serial, modems' },
+  wireless: { icon: 'globe', tone: 'sky', ko: '무선 · 블루투스', en: 'Wireless, Bluetooth' },
+};
+
+function usbSummary(p: PoolPolicy, L: (ko: string, en: string) => string): string {
+  const kinds = (p.usb_classes ?? []).map((c) => L(USB_KIND[c].ko, USB_KIND[c].en));
+  const devices = (p.usb_devices ?? []).map((d) => d.name || `${d.vid}:${d.pid}`);
+  const list = [...kinds, ...devices];
+  if ((p.usb_mode ?? 'deny') === 'allow') return `${L('허용 목록', 'Allow list')}: ${list.join(', ') || L('없음 — 아무것도 전달 안 함', 'none - nothing goes over')}`;
+  return list.length ? `${L('차단', 'Blocked')}: ${list.join(', ')}` : L('모두 허용', 'Everything allowed');
+}
+
+const HEX4 = /^[0-9a-fA-F]{4}$/;
+
+function UsbPolicy({ p, set }: { p: PoolPolicy; set: <K extends keyof PoolPolicy>(k: K, v: PoolPolicy[K]) => void }) {
+  const { L } = useL();
+  const mode: UsbMode = p.usb_mode ?? 'deny';
+  const classes = p.usb_classes ?? [];
+  const devices = p.usb_devices ?? [];
+  const [draft, setDraft] = useState<UsbDevice>({ name: '', vid: '', pid: '' });
+  const draftOk = HEX4.test(draft.vid) && HEX4.test(draft.pid);
+  const dup = devices.some((d) => d.vid.toLowerCase() === draft.vid.toLowerCase() && d.pid.toLowerCase() === draft.pid.toLowerCase());
+  function toggle(c: UsbClass) {
+    set('usb_classes', classes.includes(c) ? classes.filter((x) => x !== c) : USB_CLASSES.filter((x) => x === c || classes.includes(x)));
+  }
+  function add() {
+    if (!draftOk || dup || devices.length >= 50) return;
+    set('usb_devices', [...devices, { name: draft.name.trim().slice(0, 40), vid: draft.vid.toLowerCase(), pid: draft.pid.toLowerCase() }]);
+    setDraft({ name: '', vid: '', pid: '' });
+  }
+  return (
+    <div className="usb-policy">
+      <div className="usb-policy-head">
+        <span className="field-label">{L('USB 정책', 'USB policy')}</span>
+        <select value={mode} onChange={(e) => set('usb_mode', e.target.value as UsbMode)} aria-label={L('정책 방식', 'Policy mode')}>
+          <option value="deny">{L('차단 목록', 'Block list')}</option>
+          <option value="allow">{L('허용 목록', 'Allow list')}</option>
+        </select>
+        <small className="muted">{mode === 'deny'
+          ? L('고른 종류와 장치만 막고 나머지는 전달합니다.', 'The checked kinds and devices stay on the PC; the rest go over.')
+          : L('고른 종류와 장치만 전달합니다.', 'Only the checked kinds and devices go over.')}</small>
+      </div>
+      <div className="usb-kinds">
+        {USB_CLASSES.map((c) => {
+          const k = USB_KIND[c];
+          const on = classes.includes(c);
+          return (
+            <label key={c} className={`usb-kind${on ? ' on' : ''} ${mode}`}>
+              <span className={`usb-kind-icon tone-${k.tone}`}><Icon name={k.icon} size={16} /></span>
+              <span className="usb-kind-name">{L(k.ko, k.en)}</span>
+              <span className="switch">
+                <input type="checkbox" role="switch" checked={on} onChange={() => toggle(c)} aria-label={L(k.ko, k.en)} />
+                <span className="switch-track" aria-hidden="true" />
+              </span>
+            </label>
+          );
+        })}
+      </div>
+      <span className="field-label">{L('특정 장치 (VID · PID)', 'Specific devices (VID, PID)')}</span>
+      {devices.length > 0 && (
+        <ul className="usb-devices">
+          {devices.map((d) => (
+            <li key={`${d.vid}:${d.pid}`}>
+              <span className="strong">{d.name || L('이름 없음', 'Unnamed')}</span>
+              <code className="code">{d.vid}:{d.pid}</code>
+              <button type="button" className="btn-ghost" onClick={() => set('usb_devices', devices.filter((x) => x !== d))}>{L('빼기', 'Remove')}</button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="usb-device-add">
+        <input value={draft.name} maxLength={40} placeholder={L('이름 (예: 보안 USB)', 'Name (e.g. secure USB)')}
+          onChange={(e) => setDraft({ ...draft, name: e.target.value })} aria-label={L('장치 이름', 'Device name')} />
+        <input value={draft.vid} maxLength={4} placeholder="VID" className="mono"
+          onChange={(e) => setDraft({ ...draft, vid: e.target.value.trim() })} aria-label="VID" />
+        <input value={draft.pid} maxLength={4} placeholder="PID" className="mono"
+          onChange={(e) => setDraft({ ...draft, pid: e.target.value.trim() })} aria-label="PID" />
+        <button type="button" className="btn" disabled={!draftOk || dup || devices.length >= 50} onClick={add}>{L('추가', 'Add')}</button>
+      </div>
+      {(draft.vid || draft.pid) && !draftOk && <small className="error-text">{L('VID · PID는 16진수 4자리입니다 (예: 046d).', 'VID and PID are 4 hex digits (e.g. 046d).')}</small>}
+      {dup && <small className="error-text">{L('이미 있는 장치입니다.', 'Already in the list.')}</small>}
+      <HowTo>
+        <ul>
+          <li>{L('SPICE는 종류와 장치 규칙을 그대로 지킵니다.', 'SPICE follows the kinds and devices exactly.')}</li>
+          <li>{L('RDP(장치 연결 경로)는 허용 목록이면 정확히 지킵니다. 차단 목록에서는 스마트카드 · 카메라 · 마이크 · 프린터 · 저장 장치만 막을 수 있습니다.',
+            'RDP (devices route) is exact with an allow list. A block list can hold back smart cards, cameras, the microphone, printers and storage only.')}</li>
+          <li>{L('VID · PID는 Windows 장치 관리자 › 속성 › 하드웨어 ID에서 볼 수 있습니다.', 'VID and PID are in Windows Device Manager > Properties > Hardware Ids.')}</li>
+          <li>{L('녹화 경로(보안 게이트웨이)는 USB를 전달하지 않습니다.', 'The recorded route (security gateway) carries no USB.')}</li>
+        </ul>
+      </HowTo>
+    </div>
+  );
 }
 
 function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }: {
@@ -83,6 +200,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
   const [error, setError] = useState<string | null>(null);
   useEffect(() => { setP(initial); }, [initial]);
   const set = <K extends keyof PoolPolicy>(k: K, v: PoolPolicy[K]) => setP((o) => ({ ...o, [k]: v }));
+  const deps = useLoad(nextApi.departments);
   const i = STEPS.indexOf(step);
   const last = i === STEPS.length - 1;
 
@@ -99,8 +217,8 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
     finally { setBusy(false); }
   }
 
-  const toggleProto = (x: 'vnc' | 'spice' | 'rdp' | 'guac') =>
-    set('protocols', p.protocols.includes(x) ? p.protocols.filter((y) => y !== x) : (['vnc', 'spice', 'rdp', 'guac'] as const).filter((y) => y === x || p.protocols.includes(y)));
+  const toggleProto = (x: 'vnc' | 'spice' | 'rdp') =>
+    set('protocols', p.protocols.includes(x) ? p.protocols.filter((y) => y !== x) : (['vnc', 'spice', 'rdp'] as const).filter((y) => y === x || p.protocols.includes(y)));
 
   return (
     <Dialog open wide title={`${t('pol.title')} · ${pool.name}`} onClose={onClose} onSubmit={next}
@@ -120,7 +238,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
         <div className="wiz-body">
           <span className="field-label">{t('pol.protocols')}</span>
           <div className="mode-cards mode-cards-2">
-            {(['rdp', 'spice', 'vnc', 'guac'] as const).map((x) => (
+            {(['rdp', 'spice', 'vnc'] as const).map((x) => (
               <label key={x} className={`mode-card${p.protocols.includes(x) ? ' on' : ''}`}>
                 <input type="checkbox" checked={p.protocols.includes(x)} onChange={() => toggleProto(x)} aria-label={t(`pol.${x}` as MessageKey)} />
                 <span className="strong">{t(`pol.${x}` as MessageKey)}</span>
@@ -128,12 +246,14 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
               </label>
             ))}
           </div>
-          <label className="check"><input type="checkbox" checked={p.rdp_tune ?? true} disabled={!p.protocols.includes('rdp') && !p.protocols.includes('guac')}
+          <label className="check"><input type="checkbox" checked={p.rdp_tune ?? true} disabled={!p.protocols.includes('rdp')}
             onChange={(e) => set('rdp_tune', e.target.checked)} />
-            <span>{L('Windows 데스크톱 RDP 자동 준비 — 처음 RDP로 접속할 때 원격 데스크톱 켜기 · 방화벽 · H.264/AVC 444 · UDP 설정',
-              'Prepare Windows desktops for RDP - at the first RDP connect: Remote Desktop on, firewall, H.264/AVC 444, UDP')}</span></label>
-          <small className="muted hint-indent">{L('Linux 데스크톱은 xrdp(또는 gnome-remote-desktop)가 있을 때만 RDP로 열리고, 없으면 전용 앱이 SPICE · VNC로 엽니다. AD가 없는 VM은 그 VM의 로컬 계정이 RDP로 들어오게 하고, AD가 있으면 도메인 사용자를 GPO로 원격 데스크톱 사용자 그룹에 넣으세요.',
-            'A Linux desktop opens with RDP only when it runs xrdp (or gnome-remote-desktop); otherwise the client opens SPICE or VNC. Off a domain the VM\'s own accounts may sign in over RDP; with AD put the domain users in Remote Desktop Users by GPO.')}</small>
+            <span>{L('Windows 데스크톱 RDP 자동 준비 (첫 접속 때 원격 데스크톱 · 방화벽 · H.264 설정)',
+              'Prepare Windows desktops for RDP (Remote Desktop, firewall, H.264 at the first connect)')}</span></label>
+          <HowTo><ul>
+            <li>{L('Linux 데스크톱은 xrdp(또는 gnome-remote-desktop)가 있을 때만 RDP로 열고, 없으면 SPICE · VNC로 엽니다.', 'A Linux desktop opens with RDP only when it runs xrdp (or gnome-remote-desktop); otherwise SPICE or VNC.')}</li>
+            <li>{L('AD가 있으면 도메인 사용자를 GPO로 원격 데스크톱 사용자 그룹에 넣으세요.', 'With AD put the domain users in Remote Desktop Users by GPO.')}</li>
+          </ul></HowTo>
           <label className="check"><input type="checkbox" checked={p.spice_fullscreen} disabled={!p.protocols.includes('spice')}
             onChange={(e) => set('spice_fullscreen', e.target.checked)} /><span>{t('pol.fullscreen')}</span></label>
           <span className="field-label">{L('웹 IDE (브라우저)', 'Web IDE (browser)')}</span>
@@ -159,9 +279,47 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
                   onChange={(e) => set('web_ide_idle_min', Math.max(10, Math.min(10080, Number(e.target.value) || 240)))} />
                 <span className="muted small">{t('pol.min')}</span>
               </span>
-              <small className="muted">{L('Linux 데스크톱 · 빌드 VM에 JupyterLab(과 code-server)이 설치돼 있어야 합니다. 가속 자원 > 웹 IDE 세션의 "템플릿 준비"를 보세요.',
-                'Linux desktops and build VMs need JupyterLab (and code-server) installed; see 가속 자원 > 웹 IDE 세션, "preparing the template".')}</small>
+              <small className="muted">{L('템플릿에 JupyterLab(과 code-server)이 있어야 합니다.',
+                'The template needs JupyterLab (and code-server).')}</small>
             </label>
+          )}
+          <span className="field-label">{L('SSH 접속 (Linux 데스크톱)', 'SSH access (Linux desktops)')}</span>
+          <label className="check"><input type="checkbox" checked={!!p.browser_ssh} onChange={(e) => set('browser_ssh', e.target.checked)} />
+            <span>{L('브라우저 SSH 터미널 (내장 Guacamole, 포털에서 열기)', 'Browser SSH terminal (bundled Guacamole, open from the portal)')}</span></label>
+          <label className="check"><input type="checkbox" checked={!!p.researcher_ssh} onChange={(e) => set('researcher_ssh', e.target.checked)} />
+            <span>{L('연구자 네이티브 SSH — 자기 도구(PuTTY · scp · WinSCP · VS Code Remote-SSH)로 보안 게이트웨이 경유 접속',
+              'Researcher native SSH - own tools (PuTTY, scp, WinSCP, VS Code Remote-SSH) through Warpgate')}</span></label>
+          {(p.browser_ssh || p.researcher_ssh) && (
+            <label>
+              <span>{L('파일 전송 (SFTP/scp)', 'File transfer (SFTP/scp)')}</span>
+              <select value={p.ssh_files ?? 'off'} onChange={(e) => set('ssh_files', e.target.value as 'off' | 'down' | 'up' | 'both')}>
+                <option value="off">{L('없음', 'None')}</option>
+                <option value="down">{L('내려받기만', 'Download only')}</option>
+                <option value="up">{L('올리기만', 'Upload only')}</option>
+                <option value="both">{L('양방향', 'Both')}</option>
+              </select>
+              <small className="muted">{L('연구자 네이티브 SSH는 셸을 주므로 유출을 완전히 막지 못합니다. 엄격한 풀은 이 기능을 끄고 브라우저 터미널만 허용하세요. 전송은 보안 게이트웨이가 기록합니다.',
+                'Native SSH gives a shell and cannot fully prevent exfiltration. For strict pools, turn it off and allow only the browser terminal. Transfers are recorded by Warpgate.')}</small>
+            </label>
+          )}
+          <span className="field-label">{L('포털 파일 전송', 'Portal file transfer')}</span>
+          <label>
+            <span>{L('내 데스크톱 MOAVI 폴더로', "To the desktop's MOAVI folder")}</span>
+            <select value={p.desktop_files ?? 'off'} onChange={(e) => set('desktop_files', e.target.value as 'off' | 'up' | 'down' | 'both')}>
+              <option value="off">{L('없음', 'None')}</option>
+              <option value="up">{L('올리기만', 'Upload only')}</option>
+              <option value="down">{L('내려받기만', 'Download only')}</option>
+              <option value="both">{L('양방향', 'Both')}</option>
+            </select>
+            <small className="muted">{L('포털의 \'파일\'에서 게스트 에이전트로 주고받습니다. 전송은 모두 기록됩니다.', "Through the guest agent from the portal's Files; every transfer is logged.")}</small>
+          </label>
+          {(p.desktop_files ?? 'off') !== 'off' && (
+            <div className="form-row form-row-even">
+              <label><span>{L('파일 하나 최대 (MB)', 'Largest file (MB)')}</span>
+                <input type="number" min={1} max={10240} value={p.desktop_files_max_mb ?? 500} onChange={(e) => set('desktop_files_max_mb', Number(e.target.value) || 1)} /></label>
+              <label><span>{L('하루 한도 (MB, 0 = 없음)', 'Per day (MB, 0 = none)')}</span>
+                <input type="number" min={0} max={1048576} value={p.desktop_files_day_mb ?? 0} onChange={(e) => set('desktop_files_day_mb', Number(e.target.value) || 0)} /></label>
+            </div>
           )}
         </div>
       )}
@@ -189,12 +347,33 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
           <small className="muted hint-indent">{t('pol.usbRedirectHint')}</small>
           <label className="check"><input type="checkbox" checked={p.usb_autoshare} disabled={!p.usb_redirect}
             onChange={(e) => set('usb_autoshare', e.target.checked)} /><span>{t('pol.usbAuto')}</span></label>
+          {p.usb_redirect && <UsbPolicy p={p} set={set} />}
           {on('fpga') && <div className="callout"><Icon name="info" size={18} /><p>{t('pol.usbNote')}</p></div>}
-          <span className="field-label">{L('RDP 접속 (Windows 앱 · 브라우저 RDP)', 'RDP connections (Windows app, browser RDP)')}</span>
+          <span className="field-label">{L('RDP 파일 (Windows 원격 데스크톱 · 전용 앱)', 'RDP file (Remote Desktop app, MOAVI Desk client)')}</span>
+          <div className="mode-cards mode-cards-2" role="radiogroup" aria-label={L('RDP 파일 경로', 'RDP file route')}>
+            {([['record', L('녹화', 'Recorded'), L('보안 게이트웨이가 녹화합니다. 드라이브·프린터·USB는 연결되지 않습니다.', 'The security gateway records it. No drives, printers or USB.')],
+              ['devices', L('장치 연결', 'Devices'), L('내 PC의 드라이브·프린터·USB를 씁니다. 녹화하지 않습니다.', 'Drives, printers and USB of the PC work. Not recorded.')]] as const).map(([v, title, hint]) => (
+              <label key={v} className={`mode-card${(p.rdp_route ?? 'record') === v ? ' on' : ''}`}>
+                <input type="radio" name="rdp-route" checked={(p.rdp_route ?? 'record') === v} onChange={() => set('rdp_route', v)} />
+                <span className="strong">{title}</span><span className="muted small">{hint}</span>
+              </label>
+            ))}
+          </div>
+          {(p.rdp_route ?? 'record') === 'devices' && <small className="muted">{L('USB는 위 "USB 장치 연결 허용"을 따릅니다. 브라우저 RDP는 그대로 보안 게이트웨이로 녹화됩니다.',
+            'USB follows "Allow USB redirection" above. Browser RDP stays recorded through the security gateway.')}</small>}
+          {(p.rdp_route ?? 'record') !== 'devices' && (
+            <>
+              <span className="field-label">{L('장치 연결 허용 대상', 'Device route for')}</span>
+              <small className="muted">{L('이 사람·부서·그룹은 이 풀에서도 장치 연결 경로로 접속합니다. 사용자 화면에는 표시되지 않습니다.',
+                'These people, departments and groups connect over the devices route in this pool. Nothing tells the user.')}</small>
+              <SubjectListEditor list={p.device_route_for ?? []} onChange={(l) => set('device_route_for', l.map((g) => ({ ...g, include_children: !!g.include_children })))}
+                deps={deps.state === 'ok' ? deps.data : []} empty={L('없음 — 모두 보안 게이트웨이 경로로 접속합니다.', 'Nobody - everyone takes the security gateway route.')} />
+            </>
+          )}
           <label className="check"><input type="checkbox" checked={!!p.client_drives} onChange={(e) => set('client_drives', e.target.checked)} />
             <span className="strong">{L('내 PC 드라이브 연결 허용', 'Allow the PC\'s drives')}</span></label>
-          <small className="muted hint-indent">{L('사용자 PC의 C: · USB 메모리가 데스크톱 안에 보입니다. 끄면 이 길로 파일을 들이거나 내갈 수 없습니다(기본: 끔).',
-            'The user\'s PC drives and USB sticks show inside the desktop. Off, files cannot be carried in or out that way (default: off).')}</small>
+          <small className="muted hint-indent">{L('켜면 PC의 드라이브 · USB 메모리로 파일을 옮길 수 있습니다.',
+            'On, files can move through PC drives and USB sticks.')}</small>
           <label className="check"><input type="checkbox" checked={p.client_printers ?? true} onChange={(e) => set('client_printers', e.target.checked)} />
             <span className="strong">{L('내 PC 프린터로 인쇄', 'Print to the PC\'s printers')}</span></label>
           <small className="muted hint-indent">{L('브라우저 RDP는 PDF로 내려받아 인쇄합니다.', 'Browser RDP prints to a PDF the browser downloads.')}</small>
@@ -205,6 +384,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
         <div className="wiz-body">
           <label className="check"><input type="checkbox" checked={p.start_on_connect} onChange={(e) => set('start_on_connect', e.target.checked)} />
             <span>{t('pol.startOnConnect')}</span></label>
+          <AutoJoinSwitch value={p.auto_domain_join ?? null} onChange={(v) => set('auto_domain_join', v)} />
           <label>
             <span>{t('pol.idle')}</span>
             <span className="with-unit">
@@ -225,6 +405,11 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
         <div className="wiz-body">
           <label className="check"><input type="checkbox" checked={p.allow_power} onChange={(e) => set('allow_power', e.target.checked)} />
             <span>{t('pol.allowPower')}</span></label>
+          <label className="check"><input type="checkbox" checked={p.screen_thumbnail !== false} onChange={(e) => set('screen_thumbnail', e.target.checked)} />
+            <span>{L('포털 카드에 화면 미리보기', 'Screen preview on the portal card')}</span></label>
+          <small className="muted hint-indent">{SHARED_SCREEN_TYPES.includes(pool.type)
+            ? L('공유 풀은 기본으로 꺼짐 — 켜도 지금 쓰는 사용자만 봅니다.', 'Off by default in shared pools - when on, only the user on it sees it.')
+            : L('VM 콘솔 화면입니다 — RDP로 쓰는 Windows는 잠금 화면이 보입니다.', "The VM's console - a Windows desktop used over RDP shows its lock screen.")}</small>
           <label>
             <span>{t('pol.maxSession')}</span>
             <span className="with-unit">
@@ -246,6 +431,8 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
             <dt>{L('웹 IDE', 'Web IDE')}</dt><dd>{(p.web_ide ?? []).length ? `${p.web_ide.map((k) => (k === 'jupyter' ? 'JupyterLab' : 'VS Code')).join(', ')} · ${L(`유휴 ${p.web_ide_idle_min}분 뒤 끔`, `ends after ${p.web_ide_idle_min} min unused`)}` : t('pol.offShort')}</dd>
             <dt>{t('pol.s.clip')}</dt><dd>{t(`pol.clip.${p.clipboard}` as MessageKey)}</dd>
             <dt>{t('pol.s.usb')}</dt><dd>{p.usb_redirect ? `${t('pol.on')}${p.usb_autoshare ? ` · ${t('pol.usbAuto')}` : ''}` : t('pol.offShort')}</dd>
+            {p.usb_redirect && <><dt>{L('USB 정책', 'USB policy')}</dt><dd>{usbSummary(p, L)}</dd></>}
+            <dt>{L('RDP 파일 경로', 'RDP file route')}</dt><dd>{(p.rdp_route ?? 'record') === 'devices' ? L('장치 연결 (녹화 안 함)', 'Devices (not recorded)') : L('녹화 (보안 게이트웨이)', 'Recorded (security gateway)')}</dd>
             <dt>{L('RDP 드라이브 · 프린터', 'RDP drives, printers')}</dt><dd>{`${L('내 PC 드라이브', 'PC drives')} ${p.client_drives ? t('pol.on') : t('pol.offShort')} · ${L('프린터', 'printers')} ${(p.client_printers ?? true) ? t('pol.on') : t('pol.offShort')}`}</dd>
             <dt>{t('pol.s.power')}</dt><dd>{[p.start_on_connect && t('pol.startOnConnect'),
               p.idle_shutdown_min ? `${t('pol.idle')} ${p.idle_shutdown_min}${t('pol.min')}` : '',
@@ -255,7 +442,8 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
                 `Wait while working · GPU/NPU ${p.busy_gpu_pct}%+${p.busy_cpu_pct ? ` or CPU ${p.busy_cpu_pct}%+` : ''} · up to ${p.defer_max_hours} h`)
               : L('끔 — 정해진 때 바로 끄거나 초기화', 'Off - shut down or reset on time')}</dd>
             <dt>{t('pol.s.account')}</dt><dd>{p.allow_power ? t('pol.allowPower') : `${t('pol.s.power')}: ${t('pol.offShort')}`}
-              {p.max_session_hours ? ` · ${t('pol.maxSession')} ${p.max_session_hours}${t('pol.hours')}` : ''}</dd>
+              {p.max_session_hours ? ` · ${t('pol.maxSession')} ${p.max_session_hours}${t('pol.hours')}` : ''}
+              {` · ${L('화면 미리보기', 'Screen preview')} ${p.screen_thumbnail !== false ? t('pol.on') : t('pol.offShort')}`}</dd>
             <dt>{L('공유 저장소', 'Shared storage')}</dt><dd>{storageSummary({ ...st, has_password: storage.has_password }, L)}
               {st.enabled ? ` · ${st.kind === 'smb' || st.create_by === 'user' ? L('폴더는 사용자 본인이 만듦', 'folders made by the user') : L('폴더는 엔진이 만듦', 'folders made by the engine')}` : ''}</dd>
           </dl>
@@ -276,8 +464,13 @@ function BusyFields({ p, set }: { p: PoolPolicy; set: <K extends keyof PoolPolic
       <legend>{L('장시간 작업 보호', 'Long jobs')}</legend>
       <label className="check"><input type="checkbox" checked={p.defer_when_busy} onChange={(e) => set('defer_when_busy', e.target.checked)} />
         <span className="strong">{L('작업 중이면 미루기', 'Wait while the desktop is working')}</span></label>
-      <small className="muted hint-indent">{L('미사용 자동 종료 · 최대 접속 시간 · LAB 수업/예약 정리 · 예약 작업이 끄거나 초기화하기 전에, GPU/NPU 사용률 · CPU 부하(게스트 에이전트) · 실행 중인 빌드 작업 · 사용자가 켠 "작업 중"을 확인합니다. 작업 중이면 미루고 사용자와 관리자에게 알립니다.',
-        'Before the idle shutdown, the session limit, LAB class / booking clean-up or a scheduled action stops or resets a desktop, the engine checks GPU/NPU use and CPU load (guest agent), running build jobs and the user’s "Working" switch. While it works, the step waits and the user and admins are told.')}</small>
+      <small className="muted hint-indent">{L('작업 중인 데스크톱은 자동으로 끄거나 초기화하지 않고 미룹니다.',
+        'A working desktop is not stopped or reset automatically; the step waits.')}</small>
+      <HowTo><ul>
+        <li>{L('대상: 미사용 자동 종료 · 최대 접속 시간 · LAB 수업/예약 정리 · 예약 작업', 'Applies to idle shutdown, session limit, LAB class / booking clean-up and scheduled actions.')}</li>
+        <li>{L('GPU/NPU 사용률 · CPU 부하 · 빌드 작업 · 사용자의 "작업 중"을 봅니다.', 'Checks GPU/NPU use, CPU load, build jobs and the user’s "Working" switch.')}</li>
+        <li>{L('미루면 사용자와 관리자에게 알립니다.', 'The user and admins are told.')}</li>
+      </ul></HowTo>
       <div className="form-row form-row-even">
         <label><span>{L('GPU/NPU 사용률 기준', 'GPU/NPU use from')}</span>
           <span className="with-unit"><input type="number" min={1} max={100} value={p.busy_gpu_pct} disabled={!p.defer_when_busy} onChange={num('busy_gpu_pct', 1, 100)} /><span className="muted small">%</span></span></label>
@@ -287,5 +480,18 @@ function BusyFields({ p, set }: { p: PoolPolicy; set: <K extends keyof PoolPolic
           <span className="with-unit"><input type="number" min={1} max={168} value={p.defer_max_hours} disabled={!p.defer_when_busy} onChange={num('defer_max_hours', 1, 168)} /><span className="muted small">{L('시간', 'h')}</span></span></label>
       </div>
     </fieldset>
+  );
+}
+
+// 자동 도메인 조인: only while the bundled directory is on; unset follows it (on)
+function AutoJoinSwitch({ value, onChange }: { value: boolean | null; onChange: (v: boolean) => void }) {
+  const { L } = useL();
+  const [dir, setDir] = useState<{ enabled: boolean; active: boolean } | null>(null);
+  useEffect(() => { directoryApi.get().then((d) => setDir({ enabled: d.enabled, active: d.active })).catch(() => setDir(null)); }, []);
+  if (!dir?.enabled) return null;
+  return (
+    <label className="check"><input type="checkbox" checked={value ?? dir.active} disabled={!dir.active} onChange={(e) => onChange(e.target.checked)} />
+      <span>{L('자동 도메인 조인', 'Auto domain join')}</span>
+      <small className="muted hint-indent">{L('새 · 복제 · 초기화된 데스크톱이 스스로 도메인에 들어갑니다', 'New, cloned and reset desktops join by themselves')}</small></label>
   );
 }

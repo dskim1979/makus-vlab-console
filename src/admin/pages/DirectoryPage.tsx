@@ -6,6 +6,7 @@ import { SettingsSection, SettingsShell, SettingsStatus } from '../../components
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
+import { BundledDirectoryPanel } from './BundledDirectory';
 
 const ROLES = ['user', 'viewer', 'admin'];
 
@@ -14,9 +15,12 @@ const ROLES = ['user', 'viewer', 'admin'];
 export function DirectoryPage() {
   const dir = useLoad(adminApi.directory);
   return (
-    <LoadState value={dir} retry={dir.reload}>
-      {(d) => <DirectoryForm initial={d} onSaved={dir.reload} />}
-    </LoadState>
+    <>
+      <BundledDirectoryPanel />
+      <LoadState value={dir} retry={dir.reload}>
+        {(d) => <DirectoryForm initial={d} onSaved={dir.reload} />}
+      </LoadState>
+    </>
   );
 }
 

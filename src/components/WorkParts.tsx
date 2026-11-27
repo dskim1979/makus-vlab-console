@@ -95,8 +95,8 @@ export function HoldDialog({ deskId, max = 72, onClose, onDone }: { deskId: stri
   return (
     <Dialog open title={L('작업 중 — 끄지 마세요', 'Working — keep it on')} onClose={onClose} onSubmit={submit}
       submitLabel={L('켜기', 'Turn on')} busy={busy} error={error}>
-      <p className="muted small">{L('이 시간 동안 미사용 자동 종료 · 최대 접속 시간 · LAB 수업/예약 정리 · 예약 작업이 이 데스크톱을 끄거나 초기화하지 않고 미룹니다. 풀의 최대 연장 시간이 지나면 진행될 수 있으니 결과는 수시로 저장하세요.',
-        'Until then the idle shutdown, the session limit, LAB class or booking clean-up and scheduled actions put off shutting down or resetting this desktop. Past the pool\'s longest extension they may still run - save your results as you go.')}</p>
+      <p className="muted small">{L('이 시간 동안 자동 종료 · 초기화를 미룹니다. 결과는 수시로 저장하세요.',
+        'Until then automatic shutdowns and resets wait. Save your results as you go.')}</p>
       <label><span>{L('기간', 'For')}</span>
         <select value={hours} onChange={(e) => setHours(Number(e.target.value))}>
           {HOURS.filter((h) => h <= max).map((h) => <option key={h} value={h}>{h < 24 ? L(`${h}시간`, `${h} h`) : L(`${h / 24}일`, `${h / 24} d`)}</option>)}

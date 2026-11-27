@@ -11,7 +11,8 @@ export type AccelBooking = {
 };
 export type ABSettings = { enabled: boolean; approval: boolean; max_hours: number; max_days_ahead: number; roles: string[]; remind_min: number };
 export type ABCard = { cluster_id: string; id: string; name: string; count: number; kind: 'gpu' | 'npu' | 'fpga' };
-export type ABBoard = { cluster_id: string; id: string; name: string; node: string; kind: string };
+// target 'network': JTAG shared over TCP (hw_server / XVC / jtagd), bookable from a desktop on any node
+export type ABBoard = { cluster_id: string; id: string; name: string; node: string; kind: string; target?: 'usb' | 'network'; protocol?: string };
 export type ABOptions = { settings: ABSettings; allowed: boolean; desktops: { id: string; name: string; cluster_id: string; node: string; pool?: string }[];
   cards: ABCard[]; boards: ABBoard[] };
 export type ABInput = { kind: ABKind; cluster_id: string; resource: string; desktop_id: string; start_at: string; end_at: string; purpose?: string };
@@ -41,6 +42,7 @@ const CARDS: ABCard[] = [
 const BOARDS: ABBoard[] = [
   { cluster_id: 'lab-cluster', id: 'brd-zcu102', name: 'ZCU102 #1', node: 'pve1', kind: 'Zynq UltraScale+' },
   { cluster_id: 'lab-cluster', id: 'brd-vck190', name: 'VCK190 #1', node: 'pve2', kind: 'Versal' },
+  { cluster_id: 'lab-cluster', id: 'brd-vcu118', name: 'VCU118 (hw_server)', node: '', kind: 'Virtex UltraScale+', target: 'network', protocol: 'hw_server' },
 ];
 let seq = 10;
 const mk = (id: string, kind: ABKind, resource: string, name: string, ck: string, d: number, h0: number, h1: number, status: ABStatus, user: string, extra: Partial<AccelBooking> = {}): AccelBooking => ({

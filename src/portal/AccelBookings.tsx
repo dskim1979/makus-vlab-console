@@ -127,7 +127,9 @@ function BookForm({ o, taken, onDone }: { o: ABOptions; taken: AccelBooking[]; o
       <p className="muted small">{kind === 'card'
         ? L(`시작 5분 전에 카드를 붙입니다. 카드는 데스크톱을 다시 시작해야 보이니, 시작 시간에 작업을 저장하고 다시 시작하세요. 최대 ${o.settings.max_hours}시간, ${o.settings.max_days_ahead}일 앞까지.`,
           `It goes on 5 minutes before; restart the desktop to see the card. Up to ${o.settings.max_hours} h, ${o.settings.max_days_ahead} days ahead.`)
-        : L('보드는 데스크톱이 보드가 꽂힌 서버에서 돌고 있을 때 붙습니다.', 'A board goes on while the desktop runs on the board\'s server.')}
+        : res && 'target' in res && res.target === 'network'
+          ? L('네트워크 보드(JTAG 서버 공유)는 VM을 바꾸지 않습니다. 시작하면 내 자원 › 내 보드에 접속 주소와 사용법이 나옵니다.', 'A network board leaves the VM alone; once it starts, My resources › My boards shows the address and how to connect.')
+          : L('보드는 데스크톱이 보드가 꽂힌 서버에서 돌고 있을 때 붙습니다.', 'A board goes on while the desktop runs on the board\'s server.')}
         {o.settings.approval ? L(' 승인 뒤에 확정됩니다.', ' It needs approval.') : ''}</p>
       {err && <div className="alert small error" role="alert">{err}</div>}
       <div><button type="submit" className="btn primary" disabled={busy || !res || !desk || to <= from}>{L('예약', 'Book')}</button></div>

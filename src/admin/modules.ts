@@ -38,24 +38,25 @@ export const MODULES: AdminModule[] = [
   {
     id: 'vms', icon: 'vm', tone: 'blue',
     label: { ko: '가상머신', en: 'Virtual machines' },
-    summary: { ko: '데스크톱 VM(만들기 · ISO · 상태), 이미지(템플릿 · 골든 이미지 · 환경 카탈로그)', en: 'Desktop VMs (make, ISO, status), images (templates, golden images, environments)' },
+    summary: { ko: '데스크톱 VM(만들기 · ISO · 상태), 이미지(템플릿 · 기본 제공 · 환경 카탈로그)', en: 'Desktop VMs (make, ISO, status), images (templates, starters, environments)' },
     pages: [
       { id: 'desktops', label: { ko: '데스크톱(VM)', en: 'Desktop VMs' }, phase: 1, tabs: [
         T('list', '목록', 'List', 'vms/desktops'), T('create', 'VM 만들기', 'Make a VM', 'vms/create'),
         T('isos', 'ISO · 이미지', 'ISO library', 'vms/isos'), T('status', '풀별 상태', 'By pool', 'pools/status')] },
       { id: 'images', label: { ko: '이미지', en: 'Images' }, phase: 1, tabs: [
-        T('templates', '템플릿', 'Templates', 'vms/templates'), T('golden', '골든 이미지', 'Golden images', 'vms/golden'),
+        T('templates', '템플릿', 'Templates', 'vms/templates'),
+        T('desktpl', '기본 제공', 'Starters', 'vms/desktpl'),
         T('environments', '환경 카탈로그', 'Environments', 'vms/environments', ['gpuai', 'fpga'])] },
     ],
   },
   {
     id: 'pools', icon: 'pool', tone: 'violet',
     label: { ko: '데스크톱 풀', en: 'Desktop pools' },
-    summary: { ko: '풀(정책 · 권한 · 공유 저장소), 접속 설정(게이트웨이 · USB · 외부 데스크톱)', en: 'Pools (policy, access, shared storage), access settings (gateways, USB, external desktops)' },
+    summary: { ko: '풀(정책 · 권한 · 공유 저장소), 접속 설정(USB · 외부 데스크톱)', en: 'Pools (policy, access, shared storage), access settings (USB, external desktops)' },
     pages: [
       { id: 'list', label: { ko: '풀', en: 'Pools' }, phase: 1, render: 'pools/list' },
       { id: 'access', label: { ko: '접속 설정', en: 'Access settings' }, phase: 1, feature: ['external'], tabs: [
-        T('gateways', '게이트웨이', 'Gateways', 'pools/gateways'), T('usb', 'USB 장치', 'USB devices', 'pools/usb'),
+        T('usb', 'USB 장치', 'USB devices', 'pools/usb'),
         T('external', '외부 데스크톱', 'External desktops', 'pools/external')] },
     ],
   },
@@ -66,7 +67,8 @@ export const MODULES: AdminModule[] = [
     pages: [
       { id: 'list', label: { ko: '사용자', en: 'Users' }, phase: 1, tabs: [
         T('list', '사용자 목록', 'Users', 'users/list'), T('signups', '가입 심사', 'Sign-up review', 'users/signups', ['signup']),
-        T('departments', '부서', 'Departments', 'users/departments', ['org', 'signup'])] },
+        T('departments', '부서', 'Departments', 'users/departments', ['org', 'signup']),
+        T('ad', 'AD 디렉터리', 'AD directory', 'users/ad')] },
       { id: 'perm', label: { ko: '권한', en: 'Access rights' }, phase: 1, feature: ['org'], tabs: [
         T('roles', '역할', 'Roles', 'users/roles'), T('access', '유효 권한 조회', 'Effective access', 'users/access')] },
       { id: 'access', label: { ko: '유효 권한 조회', en: 'Effective access' }, phase: 1, hidden: true, render: 'users/access' },
@@ -98,7 +100,8 @@ export const MODULES: AdminModule[] = [
       { id: 'gpujobs', label: { ko: 'GPU 작업', en: 'GPU jobs' }, phase: 1, feature: ['gpuai'], tabs: [
         T('queue', '작업 큐', 'Job queue', 'accel/gpuqueue'), T('quotas', '할당량', 'Quotas', 'accel/quotas'),
         T('usage', 'GPU-시간', 'GPU-hours', 'accel/gpuusage'), T('ide', '웹 IDE', 'Web IDE', 'accel/ide')] },
-      { id: 'boards', label: { ko: '보드 LAB(JTAG)', en: 'Board lab (JTAG)' }, phase: 1, feature: ['fpga'], render: 'accel/boards' },
+      { id: 'boards', label: { ko: '보드 LAB(JTAG)', en: 'Board lab (JTAG)' }, phase: 1, feature: ['fpga'], tabs: [
+        T('boards', '보드', 'Boards', 'accel/boards'), T('gateways', 'JTAG 게이트웨이', 'JTAG gateways', 'accel/jtag-gateways')] },
       { id: 'buildfarm', label: { ko: '빌드 팜', en: 'Build farm' }, phase: 1, feature: ['fpga'], tabs: [
         T('farm', '작업 큐', 'Job queue', 'accel/buildfarm'), T('ci', 'CI 연동', 'CI', 'accel/ci'), T('results', '결과물 보관', 'Results kept', 'accel/artifacts')] },
       { id: 'licenses', label: { ko: '라이선스 서버', en: 'License servers' }, phase: 1, feature: ['fpga'], render: 'accel/licenses' },

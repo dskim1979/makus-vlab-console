@@ -5,6 +5,7 @@ import {
   addDays, kindText, mondayOf, reservationsApi, type Block, type GlobalSettings, type Reservation, type ReserveSettings, type SettingsAnswer,
 } from '../../api/reservations';
 import { Dialog } from '../../components/Dialog';
+import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { MonthCalendar, ReserveForm, StatusChip, WeekCalendar, monthRange, useL, weekRange, whenText } from '../../components/ReserveParts';
@@ -239,8 +240,12 @@ function SettingsTab() {
     <LoadState value={data} retry={data.reload}>
       {(s) => (
         <>
-          <p className="muted small">{L('승인 · 예약 관리는 vlab.lab.manage 권한(관리자 또는 LAB 담당자 역할)이 합니다. 역할 관리에서 "LAB 담당자" 역할에 이 권한과 vlab.pool.view 를 주면 됩니다.',
-            'Approving and managing bookings takes vlab.lab.manage (the administrator or a LAB staff role). Give a role this permission and vlab.pool.view in Roles.')}</p>
+          <p className="muted small">{L('승인 · 예약 관리에는 vlab.lab.manage 권한이 필요합니다.',
+            'Approving and managing bookings takes vlab.lab.manage.')}</p>
+          <HowTo><ul>
+            <li>{L('관리자 또는 LAB 담당자 역할이 이 권한을 가집니다.', 'The administrator and LAB staff roles hold it.')}</li>
+            <li>{L('역할 관리에서 역할에 vlab.lab.manage 와 vlab.pool.view 를 주세요.', 'Give a role vlab.lab.manage and vlab.pool.view in Roles.')}</li>
+          </ul></HowTo>
           <NotifyCard s={s} onSaved={data.reload} />
           {labs.state === 'ok' && labs.data.map((l) => (
             <LabSettingsCard key={l.id} keyId={l.id} title={l.name} sub={l.seats ? L(`${l.seats}석`, `${l.seats} seats`) : ''} value={s.labs[l.id] ?? s.defaults}
@@ -263,13 +268,13 @@ function NotifyCard({ s, onSaved }: { s: SettingsAnswer; onSaved: () => void }) 
   return (
     <section className="panel rsv-set">
       <h2 className="section-title">{L('알림', 'Notifications')}</h2>
-      <p className="muted small">{L('승인 · 거절 · 취소 · 변경 때 신청자에게 알립니다. 새 신청은 고른 웹훅 채널로 담당자에게 갑니다.',
-        'The requester hears of approvals, rejections, cancellations and changes; new requests go to the chosen webhook channels.')}</p>
+      <p className="muted small">{L('처리 결과는 신청자에게, 새 신청은 웹훅 채널로 담당자에게 알립니다.',
+        'Decisions go to the requester; new requests go to the webhook channels.')}</p>
       <label className="check"><input type="checkbox" checked={v.mail} onChange={(e) => setV({ ...v, mail: e.target.checked })} /><span>{L('신청자에게 메일 (계정의 이메일, 플랫폼 설정의 메일 서버)', 'Mail the requester (their account email, the platform mail server)')}</span></label>
       <label className="rsv-remind"><span>{L('시작 전 알림 (분, 0이면 보내지 않음)', 'Reminder before the start (min, 0: none)')}</span>
         <input type="number" min={0} max={1440} value={v.remind_min ?? 30} onChange={(e) => setV({ ...v, remind_min: Number(e.target.value) })} />
-        <small className="muted">{L('승인된 예약의 신청자 · 참가자(사용자 · 부서)에게 한 번 메일을 보냅니다. 각자 내 계정 › 알림 메일에서 끌 수 있습니다.',
-          'The requester and participants (users, departments) of an approved booking get one mail; each can turn it off under My account › Notice mails.')}</small></label>
+        <small className="muted">{L('승인된 예약의 신청자 · 참가자에게 한 번 보냅니다.',
+          'One mail to the requester and participants of an approved booking.')}</small></label>
       <span className="field-label">{L('웹훅 채널 (알림 채널에서 만든 것)', 'Webhook channels (from the alert channels)')}</span>
       <div className="check-row">
         {s.channels.length === 0 && <span className="muted small">{L('알림 채널이 없습니다.', 'No alert channels yet.')}</span>}
