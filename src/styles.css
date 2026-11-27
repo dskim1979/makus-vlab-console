@@ -1763,3 +1763,9 @@ tr.clickable:hover td { background: var(--surface-2); }
 .bg-row button img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
 .bg-row button.on { border-color: var(--accent); }
 .bg-row button:focus-visible { outline: 2px solid var(--accent-ring); outline-offset: 1px; }
+/* 로그인됨: who is on the desktop, in place of its console picture */
+.td-screen .scr-session { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: .7rem;
+  background: linear-gradient(135deg, #12807c 0%, #1d58c8 100%); color: #fff; }
+.td-screen .scr-session-icon { width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, .18); display: grid; place-items: center; }
+.td-screen .scr-session-text { display: flex; flex-direction: column; gap: 2px; font-size: .82rem; }
+.td-screen .scr-session-text strong { font-size: .95rem; }

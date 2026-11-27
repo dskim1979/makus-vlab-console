@@ -33,6 +33,25 @@ export function PortalHome() {
   const { t, lang, pick } = useI18n();
   const { user } = useAuth();
   const desktops = useLoad(api.myDesktops);
+  // keep the cards live, like a VDI client: every 10 s while the tab is visible, and at once on return
+  useEffect(() => {
+    let timer: number | undefined;
+    const start = () => {
+      window.clearInterval(timer);
+      timer = undefined;
+      if (document.visibilityState !== 'visible') return;
+      timer = window.setInterval(() => desktops.reload(), 10_000);
+    };
+    const back = () => { if (document.visibilityState === 'visible') desktops.reload(); start(); };
+    start();
+    document.addEventListener('visibilitychange', back);
+    window.addEventListener('focus', back);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', back);
+      window.removeEventListener('focus', back);
+    };
+  }, [desktops.reload]); // eslint-disable-line react-hooks/exhaustive-deps
   const [view, setView] = useState<'grid' | 'list'>(savedView);
   const [help, setHelp] = useState(false);
   const [client, setClient] = useState<ClientConfig | null>(null);
