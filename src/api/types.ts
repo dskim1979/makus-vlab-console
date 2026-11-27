@@ -159,6 +159,9 @@ export type PoolPolicy = {
   client_drives: boolean; client_printers: boolean;
   // the .rdp's way: 'record' = 보안 게이트웨이 (recorded, no devices), 'devices' = its device route (rdpgw)
   rdp_route?: 'record' | 'devices';
+  // 장치 연결 허용 대상: these users / departments / groups connect over the devices route anyway; nothing
+  // on the user's side says so (pegaprox/vlab/policy.py)
+  device_route_for?: { subject_type: 'user' | 'department' | 'group'; subject_id: string; include_children: boolean }[];
   // Windows desktops: RDP on, H.264/AVC 444 and UDP set up at the first RDP connect
   rdp_tune: boolean;
   start_on_connect: boolean; idle_shutdown_min: number; reset_on_logout: boolean;
