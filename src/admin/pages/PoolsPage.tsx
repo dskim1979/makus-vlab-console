@@ -78,7 +78,7 @@ export function PoolsPage() {
   );
 }
 
-function CreatePoolDialog({ clusters, onClose, onCreated }: { clusters: Cluster[]; onClose: () => void; onCreated: () => void }) {
+export function CreatePoolDialog({ clusters, onClose, onCreated }: { clusters: Cluster[]; onClose: () => void; onCreated: () => void }) {
   const { t } = useI18n();
   const [name, setName] = useState('');
   const [type, setType] = useState<PoolType>('dedicated');

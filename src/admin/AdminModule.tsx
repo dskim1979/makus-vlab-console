@@ -21,7 +21,7 @@ import { VmDesktopsPage } from './pages/VmPages';
 import { IsoLibraryPage, VmCreatePage } from './pages/BuildPages';
 import { ClusterHaPage, TasksPage } from './pages/OpsPages';
 import { PoolDetailPage } from './pages/PoolDetailPage';
-import { PoolsPage } from './pages/PoolsPage';
+import { PoolTablePage } from './pages/PoolTable';
 import { SessionsPage } from './pages/SessionsPage';
 import { SettingsHub } from './pages/SettingsHub';
 import { SummaryPage } from './pages/SummaryPage';
@@ -39,7 +39,7 @@ import { BoardsPage, BuildFarmPage, CardUsagePage, DepartmentsPage, ExternalDesk
 
 // Pages that exist so far; every other menu entry shows its planned phase.
 function pageBody(key: string, subId?: string) {
-  if (key === 'pools/list') return subId ? <PoolDetailPage poolId={subId} /> : <PoolsPage />;
+  if (key === 'pools/list') return subId ? <PoolDetailPage poolId={subId} /> : <PoolTablePage />;
   if (key === 'pools/status') return <DesktopStatusPage />;
   if (key === 'ops/sessions') return <SessionsPage />;
   if (key === 'ops/summary') return <SummaryPage />;

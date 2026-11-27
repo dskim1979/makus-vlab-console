@@ -176,3 +176,29 @@
 .ut-desks { font-weight: 650; }
 .ut-desk-list { min-width: 15rem; }
 .ut-desk-list a[role=menuitem] { justify-content: space-between; }
+
+/* 데스크톱 풀 > 풀 (PoolTable.tsx) */
+.pt-exp { width: 1.8rem; padding-left: .2rem !important; padding-right: 0 !important; }
+.pt-chev { display: inline-grid; place-items: center; width: 22px; height: 22px; border: 0; border-radius: 5px; background: none; color: var(--subtle); cursor: pointer; }
+.pt-chev:hover { background: var(--surface-3); color: var(--text); }
+.pt-chev svg { transition: transform .15s; }
+.pt-chev.open svg { transform: rotate(90deg); }
+.pt-dot { display: inline-block; width: 8px; height: 8px; margin-right: .45rem; border-radius: 50%; vertical-align: middle; background: var(--subtle); }
+.pt-type { display: inline-block; padding: 0 .45rem; height: 20px; line-height: 20px; border-radius: 4px; font-size: .72rem; font-weight: 600; background: var(--surface-3); color: var(--text-2); }
+.pt-dedicated.pt-dot, .pt-type.pt-dedicated { --c: var(--tile-blue); }
+.pt-reset.pt-dot, .pt-type.pt-reset { --c: var(--tile-teal); }
+.pt-shared.pt-dot, .pt-type.pt-shared { --c: var(--tile-violet); }
+.pt-classroom.pt-dot, .pt-type.pt-classroom { --c: var(--tile-amber); }
+.pt-buildfarm.pt-dot, .pt-type.pt-buildfarm { --c: var(--tile-rose); }
+.pt-dot[class*="pt-"] { background: var(--c, var(--subtle)); }
+.pt-type[class*="pt-"] { background: color-mix(in srgb, var(--c, var(--subtle)) 15%, transparent); color: color-mix(in srgb, var(--c, var(--subtle)) 75%, var(--text)); }
+.pt-proto { display: inline-block; margin-right: .25rem; padding: 0 .35rem; height: 18px; line-height: 18px; border: 1px solid var(--border); border-radius: 4px; font-size: .68rem; color: var(--text-2); }
+.pt-counts b { font-variant-numeric: tabular-nums; }
+.pt-desc { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-sub-row > td { padding: 0 .6rem .6rem 3.6rem !important; background: var(--surface-2); }
+.pt-table tbody tr.pt-sub-row:hover td { background: var(--surface-2); }
+.pt-sub { width: 100%; border-collapse: collapse; font-size: .8rem; margin-top: .3rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.pt-sub th, .pt-sub td { padding: .32rem .6rem; text-align: left; border-bottom: 1px solid var(--border); }
+.pt-sub th { font-size: .72rem; color: var(--subtle); font-weight: 600; background: var(--surface-2); }
+.pt-sub tr:last-child td { border-bottom: 0; }
+.pt-sub-empty { margin: .5rem 0 0; }
