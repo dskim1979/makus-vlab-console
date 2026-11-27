@@ -620,7 +620,7 @@ fieldset.choices legend { font-size: .85rem; font-weight: 550; margin-bottom: .3
 
 /* ---------- sign-in ---------- */
 .login-page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 1rem;
-  background: url("/backdrop.jpg") center / cover no-repeat fixed, #EAF2FB;
+  background: var(--backdrop, url("/backgrounds/1.jpg")) center / cover no-repeat fixed, #EAF2FB;
   color-scheme: light;
   --bg: #F4F6FA;
   --surface: #FFFFFF;
@@ -1723,7 +1723,8 @@ tr.clickable:hover td { background: var(--surface-2); }
 .usb-policy .error-text { color: var(--danger); font-size: .8rem; }
 
 /* ---------- the portal on the bright picture (light theme) ---------- */
-:root[data-theme="light"] .app-workspace { background: url("/backdrop.jpg") center top / cover no-repeat fixed, var(--bg); }
+:root[data-theme="light"] .app-workspace { background: linear-gradient(180deg, rgba(244, 246, 250, .35) 0%, rgba(244, 246, 250, .78) 340px, rgba(244, 246, 250, .9) 100%),
+  var(--backdrop, url("/backgrounds/1.jpg")) center top / cover no-repeat; background-attachment: fixed; }
 :root[data-theme="light"] .app-workspace .ws-foot { background: rgba(255, 255, 255, .78); border-radius: 10px; margin: 1rem auto; width: fit-content; padding: .35rem 1rem; }
 :root[data-theme="light"] .app-workspace .topbar { --head-text: #0F182C; --head-muted: #4A5873;
   background: rgba(255, 255, 255, .82); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(15, 24, 44, .08); }
@@ -1751,3 +1752,8 @@ tr.clickable:hover td { background: var(--surface-2); }
 :root[data-theme="light"] .app-workspace .tb-feedback { color: #0F182C !important; border-color: rgba(15, 24, 44, .16); }
 :root[data-theme="light"] .app-workspace .tb-support:hover,
 :root[data-theme="light"] .app-workspace .tb-feedback:hover { background: rgba(15, 24, 44, .06); }
+.bg-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: .35rem; padding: .2rem .6rem .5rem; }
+.bg-row button { padding: 0; border: 2px solid transparent; border-radius: 6px; overflow: hidden; cursor: pointer; background: none; line-height: 0; }
+.bg-row button img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
+.bg-row button.on { border-color: var(--accent); }
+.bg-row button:focus-visible { outline: 2px solid var(--accent-ring); outline-offset: 1px; }

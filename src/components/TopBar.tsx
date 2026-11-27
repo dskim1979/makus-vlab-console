@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import { useFeedbackUrl, useSupportUrl } from '../branding';
 import { useI18n } from '../i18n';
 import { useTheme, type ThemePref } from '../theme';
+import { BACKGROUNDS, useBackdrop } from '../backdrop';
 import { AboutDialog } from './AboutDialog';
 import { BrandLockup } from './Brand';
 import { Icon } from './Icon';
@@ -20,7 +21,7 @@ function initials(name: string) {
 // Dark top bar across the whole app: brand, where you are (workspace tabs or "admin
 // console"), language, about and the user menu.
 export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu: () => void }) {
-  const { t, lang, setLang } = useI18n();
+  const { t, lang, setLang, pick } = useI18n();
   const { on } = useFeatures();
   const { user, logout, isAdmin } = useAuth();
   const [about, setAbout] = useState(false);
@@ -31,6 +32,7 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
   const support = useSupportUrl();
   const feedback = useFeedbackUrl();
   const { pref, mode: theme, setPref } = useTheme();
+  const backdrop = useBackdrop();
 
   useEffect(() => {
     if (!open) return;
@@ -102,6 +104,15 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
                 {(['system', 'light', 'dark'] as ThemePref[]).map((p) => (
                   <button key={p} type="button" className={pref === p ? 'on' : ''} aria-pressed={pref === p} onClick={() => setPref(p)}>
                     {t(`theme.${p}` as 'theme.system')}
+                  </button>
+                ))}
+              </div>
+              <div className="menu-label">{pick({ ko: '배경', en: 'Background' })}</div>
+              <div className="bg-row" role="group" aria-label={pick({ ko: '배경', en: 'Background' })}>
+                {BACKGROUNDS.map((b) => (
+                  <button key={b.key} type="button" className={backdrop.key === b.key ? 'on' : ''} aria-pressed={backdrop.key === b.key}
+                    title={pick({ ko: b.ko, en: b.en })} onClick={() => backdrop.pick(b.key)}>
+                    <img src={`/backgrounds/thumbs/${b.key}.jpg`} alt={pick({ ko: b.ko, en: b.en })} />
                   </button>
                 ))}
               </div>

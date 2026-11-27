@@ -16,3 +16,17 @@ This console (MOAVI Desk console, © MAKUS SYSTEMS) is licensed under the GNU AG
 엔진 소스(수정본): https://github.com/dskim1979/makus-vlab · 원본: https://github.com/PegaProx/project-pegaprox
 
 The engine this console connects to is based on PegaProx (© 2025-2026 PegaProx Team, AGPL-3.0).
+
+## Background photos (Unsplash)
+
+`public/backgrounds/1.jpg` - `6.jpg` (and their thumbnails) are photos published under the Unsplash License
+(https://unsplash.com/license): free for commercial use, no attribution required. Credited anyway:
+
+1. Ansgar Scheffold - https://unsplash.com/photos/z_f2JrBRbOg
+2. Roberto Nickson - https://unsplash.com/photos/vZ1JAXUO3-0
+3. Tobias Reich - https://unsplash.com/photos/kOFvKxzph30
+4. Sudip Saha - https://unsplash.com/photos/9aomUwLRN5E
+5. Annelie Turner - https://unsplash.com/photos/LdrE86KvLO0
+6. Donna Elliot - https://unsplash.com/photos/bRGsLkB2h2I
+
+`public/backgrounds/moavi.jpg` is MOAVI Desk's own drawing.
