@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
-import { Link, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { adminApi } from '../../api/admin';
 import type { AdminDesktop, AssignableUser, ClusterNode, Guest, Pool, PowerAction } from '../../api/types';
 import { HowTo } from '../../components/HowTo';
@@ -9,6 +8,8 @@ import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import { bytes } from './ClusterPages';
+import { Caret, Drop, Modal, Pager, Usage } from './TableKit';
+import { VmDetail } from './VmDetail';
 import { useAdminConsole, VmManageDialog, type ManagedDesktop, type VmManageTab } from './VmManage';
 
 // 가상머신 > 데스크톱(VM) 관리: every VM of the connected clusters in one dense table - the pools'
@@ -70,6 +71,14 @@ function toRows(inv: Inventory): Row[] {
 }
 
 export function VmTablePage() {
+  const [params, setParams] = useSearchParams();
+  const open = params.get('vm');
+  const go = (id: string | null) => setParams((p) => { const n = new URLSearchParams(p); if (id) n.set('vm', id); else n.delete('vm'); return n; });
+  if (open) return <VmDetail deskId={open} onBack={() => go(null)} />;
+  return <VmList onOpen={(id) => go(id)} />;
+}
+
+function VmList({ onOpen }: { onOpen: (id: string) => void }) {
   const { pick } = useI18n();
   const L = (ko: string, en: string) => pick({ ko, en });
   const navigate = useNavigate();
@@ -285,7 +294,8 @@ export function VmTablePage() {
                         <td className="vt-check"><input type="checkbox" aria-label={r.name} checked={picked.has(r.key)} onChange={() => toggle(r.key)} /></td>
                         <td className="vt-vm">
                           <span className="vt-vm-id">{r.vmid}</span>
-                          <span className="vt-vm-name" title={r.name}>{r.name}</span>
+                          {r.desk && r.phase !== 'missing' ? <button type="button" className="vt-vm-name vt-name-link" title={r.name} onClick={() => onOpen(r.desk!.id)}>{r.name}</button>
+                            : <span className="vt-vm-name" title={r.name}>{r.name}</span>}
                           <span className={`vt-st vt-st-${r.phase}`}>{phaseLabel[r.phase]}</span>
                         </td>
                         <td className="vt-use">{r.cpus == null ? <span className="muted">-</span> : (
@@ -322,7 +332,7 @@ export function VmTablePage() {
                               void each([r], u ? L(`${u}에게 배정`, `assigned to ${u}`) : L('배정 해제', 'unassigned'), (x) => adminApi.assign(x.desk!.id, u), true, true);
                             }} />}
                           </Drop>
-                          <button type="button" className="vt-link" disabled={!r.desk || r.phase === 'missing'} onClick={() => manage(r)}>{L('상세', 'Details')}</button>
+                          <button type="button" className="vt-link" disabled={!r.desk || r.phase === 'missing'} onClick={() => onOpen(r.desk!.id)}>{L('상세', 'Details')}</button>
                           <Drop disabled={busy} className="vt-more" label={<>{L('더보기', 'More')}<Caret /></>}>
                             {(close) => r.desk ? (
                               <>
@@ -373,87 +383,6 @@ export function VmTablePage() {
   );
 }
 
-function Caret() {
-  return <svg className="vt-caret" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>;
-}
-
-function Usage({ main, pct }: { main: string; pct: number | null }) {
-  const level = pct == null ? '' : pct >= 90 ? ' hot' : pct >= 70 ? ' warm' : '';
-  return (
-    <span className="vt-usage">
-      <span className="vt-usage-main">{main}</span>
-      <span className="vt-usage-bar"><span className={`vt-usage-fill${level}`} style={{ width: `${Math.min(100, pct ?? 0)}%` }} /></span>
-      <span className="vt-usage-pct">{pct == null ? '-' : `${pct < 10 ? pct.toFixed(1) : Math.round(pct)}%`}</span>
-    </span>
-  );
-}
-
-function Pager({ page, pages, onPage }: { page: number; pages: number; onPage: (p: number) => void }) {
-  const list: (number | '…')[] = [];
-  for (let i = 0; i < pages; i++) {
-    if (i === 0 || i === pages - 1 || Math.abs(i - page) <= 1) list.push(i);
-    else if (list[list.length - 1] !== '…') list.push('…');
-  }
-  return (
-    <nav className="vt-pages" aria-label="pages">
-      <button type="button" disabled={page === 0} onClick={() => onPage(page - 1)} aria-label="previous">‹</button>
-      {list.map((p, i) => p === '…' ? <span key={`e${i}`} className="muted">…</span>
-        : <button key={p} type="button" className={p === page ? 'on' : ''} aria-current={p === page ? 'page' : undefined} onClick={() => onPage(p)}>{p + 1}</button>)}
-      <button type="button" disabled={page >= pages - 1} onClick={() => onPage(page + 1)} aria-label="next">›</button>
-    </nav>
-  );
-}
-
-// A small menu that floats over the page (fixed), so the table's scroll box does not clip it.
-function Drop({ label, children, className, disabled, align = 'right' }: {
-  label: ReactNode; children: (close: () => void) => ReactNode; className: string; disabled?: boolean; align?: 'left' | 'right';
-}) {
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
-  const btn = useRef<HTMLButtonElement>(null);
-  const menu = useRef<HTMLDivElement>(null);
-  const close = useCallback(() => { setOpen(false); setPos(null); }, []);
-
-  useLayoutEffect(() => {
-    if (!open || !btn.current || !menu.current) return;
-    const r = btn.current.getBoundingClientRect();
-    const h = menu.current.offsetHeight; const w = menu.current.offsetWidth;
-    const up = r.bottom + h + 8 > window.innerHeight && r.top - h - 8 > 0;
-    const left = align === 'left' ? r.left : r.right - w;
-    setPos({ top: up ? r.top - h - 4 : r.bottom + 4, left: Math.max(8, Math.min(left, window.innerWidth - w - 8)) });
-  }, [open, align]);
-
-  useEffect(() => {
-    if (!open) return;
-    const inside = (t: EventTarget | null) => !!t && (menu.current?.contains(t as Node) || btn.current?.contains(t as Node));
-    const down = (e: MouseEvent) => { if (!inside(e.target)) close(); };
-    const scroll = (e: Event) => { if (!inside(e.target)) close(); };
-    const key = (e: KeyboardEvent) => { if (e.key === 'Escape') { close(); btn.current?.focus(); } };
-    document.addEventListener('mousedown', down);
-    document.addEventListener('keydown', key);
-    window.addEventListener('scroll', scroll, true);
-    window.addEventListener('resize', close);
-    return () => {
-      document.removeEventListener('mousedown', down);
-      document.removeEventListener('keydown', key);
-      window.removeEventListener('scroll', scroll, true);
-      window.removeEventListener('resize', close);
-    };
-  }, [open, close]);
-
-  return (
-    <>
-      <button ref={btn} type="button" className={className} disabled={disabled} aria-haspopup="menu" aria-expanded={open}
-        onClick={() => (open ? close() : setOpen(true))}>{label}</button>
-      {open && createPortal(
-        <div ref={menu} role="menu" className="menu vt-pop"
-          style={pos ? { top: pos.top, left: pos.left } : { top: 0, left: 0, visibility: 'hidden' }}>
-          {children(close)}
-        </div>, document.body)}
-    </>
-  );
-}
-
 function AssignPop({ row, users, onDone }: { row: Row; users: AssignableUser[] | null; onDone: (user: string | null) => void }) {
   const { pick } = useI18n();
   const L = (ko: string, en: string) => pick({ ko, en });
@@ -471,18 +400,6 @@ function AssignPop({ row, users, onDone }: { row: Row; users: AssignableUser[] |
         <button type="button" className="btn primary small-btn" disabled={!u || u === row.user} onClick={() => onDone(u)}>{L('배정', 'Assign')}</button>
       </div>
     </div>
-  );
-}
-
-function Modal({ title, onClose, children, actions }: { title: string; onClose: () => void; children: ReactNode; actions: ReactNode }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => { const d = ref.current; if (d && !d.open) d.showModal(); }, []);
-  return (
-    <dialog ref={ref} className="dialog" onClose={onClose} aria-label={title}>
-      <h2>{title}</h2>
-      {children}
-      <div className="dialog-actions">{actions}</div>
-    </dialog>
   );
 }
 
