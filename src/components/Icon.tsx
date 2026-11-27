@@ -2,7 +2,7 @@
 export type IconName =
   | 'vm' | 'pool' | 'users' | 'lab' | 'fpga' | 'gpu' | 'npu' | 'layers' | 'link' | 'spark' | 'cluster' | 'ops'
   | 'home' | 'grid' | 'list' | 'refresh' | 'gear' | 'download' | 'book' | 'info' | 'logout'
-  | 'cpu' | 'memory' | 'usb' | 'globe' | 'box' | 'play' | 'chevron' | 'search' | 'star' | 'more' | 'plus' | 'shield' | 'clock' | 'sun' | 'moon' | 'support' | 'code';
+  | 'cpu' | 'memory' | 'usb' | 'globe' | 'box' | 'play' | 'chevron' | 'search' | 'star' | 'more' | 'plus' | 'shield' | 'clock' | 'sun' | 'moon' | 'support' | 'code' | 'power';
 
 const PATHS: Record<IconName, JSX.Element> = {
   vm: (<><rect x="3" y="4" width="18" height="12" rx="2" /><path d="M8 20h8M12 16v4" /></>),
@@ -40,6 +40,7 @@ const PATHS: Record<IconName, JSX.Element> = {
   search: (<><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></>),
   star: (<><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z" /></>),
   more: (<><circle cx="5" cy="12" r="1.4" /><circle cx="12" cy="12" r="1.4" /><circle cx="19" cy="12" r="1.4" /></>),
+  power: (<><path d="M12 3.5v8" /><path d="M6.6 7a7.5 7.5 0 1 0 10.8 0" /></>),
   plus: (<><path d="M12 5v14M5 12h14" /></>),
   shield: (<><path d="M12 3 4.5 6v6c0 4.4 3.2 7.9 7.5 9 4.3-1.1 7.5-4.6 7.5-9V6z" /><path d="m9 12 2 2 4-4" /></>),
   clock: (<><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>),
