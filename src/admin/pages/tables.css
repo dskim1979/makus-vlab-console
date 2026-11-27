@@ -157,3 +157,22 @@
 .th-behind { margin-left: .35rem; }
 .th-next { margin: 0; padding-left: 1.1rem; font-size: .86rem; display: flex; flex-direction: column; gap: .35rem; }
 @media (max-width: 900px) { .th-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* 사용자 > 사용자 목록 (UsersTable.tsx) */
+.vt-btns { display: inline-flex; gap: .45rem; flex-wrap: wrap; }
+.vt-table tbody tr.vt-off td { color: var(--subtle); }
+.ut-avatar { display: inline-grid; place-items: center; width: 24px; height: 24px; margin-right: .45rem; border-radius: 7px; vertical-align: middle;
+  background: color-mix(in srgb, var(--tile-teal) 18%, transparent); color: color-mix(in srgb, var(--tile-teal) 70%, var(--text)); font-size: .72rem; font-weight: 700; }
+.vt-off .ut-avatar { filter: grayscale(1); opacity: .6; }
+.ut-src { display: inline-block; padding: 0 .45rem; height: 20px; line-height: 20px; border-radius: 4px; font-size: .72rem; font-weight: 600; }
+.ut-src-local { background: var(--surface-3); color: var(--muted); }
+.ut-src-ad { background: color-mix(in srgb, var(--tile-blue) 15%, transparent); color: color-mix(in srgb, var(--tile-blue) 75%, var(--text)); }
+.ut-src-ext { background: color-mix(in srgb, var(--tile-violet) 15%, transparent); color: color-mix(in srgb, var(--tile-violet) 75%, var(--text)); }
+.ut-switch { position: relative; width: 36px; height: 20px; padding: 0; border: 0; border-radius: 999px; background: var(--border-strong); cursor: pointer; transition: background .15s; }
+.ut-switch span { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: left .15s; }
+.ut-switch.on { background: var(--ok); }
+.ut-switch.on span { left: 18px; }
+.ut-switch:disabled { opacity: .45; cursor: not-allowed; }
+.ut-desks { font-weight: 650; }
+.ut-desk-list { min-width: 15rem; }
+.ut-desk-list a[role=menuitem] { justify-content: space-between; }
