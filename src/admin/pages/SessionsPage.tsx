@@ -1,5 +1,5 @@
 import { useCallback, useState, type FormEvent } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { adminApi } from '../../api/admin';
 import type { EndedSession, SessionRow } from '../../api/types';
 import { Icon } from '../../components/Icon';
@@ -14,7 +14,8 @@ export function SessionsPage() {
   const { t, lang } = useI18n();
   const pools = useLoad(adminApi.pools);
   const [user, setUser] = useState('');
-  const [filter, setFilter] = useState<{ username: string; pool_id: string }>({ username: '', pool_id: '' });
+  const [params] = useSearchParams();   // a pool page's 전체 보기 passes ?pool=
+  const [filter, setFilter] = useState<{ username: string; pool_id: string }>({ username: '', pool_id: params.get('pool') ?? '' });
   const sessions = useLoad(useCallback(() => adminApi.sessions({ ...filter, limit: 500 }), [filter]), [filter]);
   const [notice, setNotice] = useState<{ kind: 'info' | 'error'; text: string } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
