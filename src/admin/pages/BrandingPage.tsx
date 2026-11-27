@@ -73,7 +73,7 @@ function BrandingForm({ initial }: { initial: Branding }) {
   ];
   const logos = [b.logoUrl, b.loginLogoUrl, b.faviconUrl].filter(Boolean).length;
   const name = b.enabled ? b.appName : BRAND.productName;
-  const tagline = b.loginTagline || pick({ ko: '연구·개발·교육을 위한 가상 데스크톱과 자원 할당', en: 'Virtual desktops and shared resources for R&D and labs' });
+  const tagline = b.loginTagline || pick(BRAND.tagline);
 
   const preview = (
     <div className="wl-preview" aria-label={t('wl.preview')}>

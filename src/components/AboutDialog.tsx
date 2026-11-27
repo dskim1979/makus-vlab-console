@@ -46,8 +46,6 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
         {b.docsUrl && <><dt>{t('wl.docs')}</dt><dd><a href={b.docsUrl} target="_blank" rel="noreferrer">{b.docsUrl}</a></dd></>}
         <dt>{pick({ ko: '라이선스', en: 'Licence' })}</dt>
         <dd>
-          <span className="strong">{pick(BRAND.openSource)}</span>
-          <br />
           {pick({ ko: '콘솔 · 엔진 AGPL-3.0, Windows 클라이언트 MIT', en: 'Console and engine AGPL-3.0, Windows client MIT' })}
           <br />
           <a href={BRAND.sources.console} target="_blank" rel="noreferrer">{BRAND.sources.console}</a>

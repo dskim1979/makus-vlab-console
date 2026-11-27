@@ -648,7 +648,10 @@ fieldset.choices legend { font-size: .85rem; font-weight: 550; margin-bottom: .3
   --shadow-2: 0 1px 2px rgba(15, 24, 44, .06), 0 6px 18px rgba(15, 24, 44, .08);
   --shadow-3: 0 12px 40px rgba(15, 24, 44, .18);
   color: var(--text); }
-.login-top { width: 100%; display: flex; justify-content: flex-end; }
+.login-top { width: 100%; display: flex; justify-content: flex-end; align-items: center; gap: .5rem; }
+.login-top-link { display: inline-flex; align-items: center; gap: .4rem; height: 34px; padding: 0 .8rem; border-radius: 10px;
+  background: rgba(255, 255, 255, .72); color: #1F2A44 !important; font-size: .86rem; font-weight: 600; text-decoration: none !important; }
+.login-top-link:hover { background: rgba(255, 255, 255, .92); color: #0F182C !important; }
 .login-top .btn-ghost { color: #1F2A44; background: rgba(255, 255, 255, .72); border-radius: 10px; }
 .login-top .btn-ghost:hover { background: rgba(255, 255, 255, .92); color: #0F182C; }
 .login-card { width: 100%; max-width: 400px; margin: auto; display: flex; flex-direction: column; gap: 1.2rem; padding: 2rem 2rem 1.75rem;
@@ -658,7 +661,10 @@ fieldset.choices legend { font-size: .85rem; font-weight: 550; margin-bottom: .3
 .login-brand p { margin: .1rem 0 0; font-size: .82rem; }
 .login-card .btn.primary { height: 40px; font-size: .92rem; }
 .login-card input:not([type=checkbox]) { height: 40px; }
-.login-foot { padding: .45rem 1rem; margin: 1rem 0 .5rem; background: rgba(255, 255, 255, .72); border-radius: 10px; }
+.login-foot { padding: .35rem .9rem; margin: 1rem 0 .5rem; background: rgba(255, 255, 255, .72); border-radius: 10px;
+  display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.login-foot .oss-note { font-size: .7rem; color: #33415C; }
+.login-foot .engine-notice { font-size: .68rem; }
 .login-foot .engine-notice, .login-foot .engine-notice a { color: #1F2A44; }
 
 /* ---------- narrow screens ---------- */
