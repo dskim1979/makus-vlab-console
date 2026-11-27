@@ -277,6 +277,7 @@ export type Template = {
   disks?: { key: string; storage: string; volume: string; plugin: string }[] | null;
   linked_clone?: boolean | null;
   pools?: number;
+  ostype?: string;   // with ?details=1 (engine claude/vm-table)
 };
 
 export type CloneResult = {

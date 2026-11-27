@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import './tables.css';
 
 // Parts the admin tables share (VM, users, pools, nodes): a floating menu that the table's scroll box
 // does not clip, the small usage bar, the pager, the caret, a plain modal.

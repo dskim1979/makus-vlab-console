@@ -37,6 +37,7 @@ export type GoldenImage = {
   id: string; cluster_id: string; node: string; vmid: number; name: string; current_version: string; notes: string;
   created_by: string; created_at: string; versions: GoldenVersion[] | null; status: string; pools: string[];
   rollout?: { pool_id: string; pool: string; total: number; outdated: number }[];
+  ostype?: string;   // engine claude/vm-table
 };
 export type RolloutResult = { replaced: { name: string; old_vmid: number; new_vmid: number; user: string | null; old_deleted: boolean }[];
   skipped: string[]; failed: { name: string; error: string } | null };
@@ -479,7 +480,7 @@ const mockNextApi: NextApi = {
   },
   deleteExternal: (id) => { external.splice(external.findIndex((x) => x.id === id), 1); return delay(undefined); },
 
-  goldenImages: () => delay(golden.map((g) => ({ ...g, versions: g.versions ? [...g.versions] : null }))),
+  goldenImages: () => delay(golden.map((g) => ({ ...g, ostype: /win/i.test(g.name) ? 'win11' : 'l26', versions: g.versions ? [...g.versions] : null }))),
   addGolden: (b) => {
     if (golden.some((g) => g.vmid === b.vmid)) return fail(409, 'This VM is already a golden image');
     const g: GoldenImage = { id: nid('gold'), cluster_id: b.cluster_id, node: 'pve1', vmid: b.vmid, name: b.name || `vm-${b.vmid}`, current_version: '',
