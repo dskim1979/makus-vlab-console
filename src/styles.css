@@ -540,7 +540,7 @@ fieldset.choices legend { font-size: var(--fs-sm); font-weight: 550; margin-bott
 .ws-hero { position: relative; padding: 2.4rem 2rem 4.4rem; color: #fff; overflow: hidden;
   background:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320' preserveAspectRatio='none'%3E%3Cpath fill='%23ffffff' fill-opacity='.05' d='M0 200 L110 150 L210 185 L340 104 L455 168 L585 86 L715 158 L842 116 L965 172 L1090 98 L1214 158 L1336 116 L1440 146 L1440 320 L0 320Z'/%3E%3Cpath fill='%23ffffff' fill-opacity='.07' d='M0 246 L150 196 L282 232 L420 176 L566 228 L705 186 L862 238 L1004 196 L1152 242 L1302 202 L1440 228 L1440 320 L0 320Z'/%3E%3C/svg%3E") bottom / 100% 72% no-repeat,
-    radial-gradient(900px 340px at 82% -40px, rgba(83, 177, 177, .30), transparent 65%),
+    radial-gradient(900px 340px at 82% -40px, color-mix(in srgb, var(--accent) 30%, transparent), transparent 65%),
     radial-gradient(700px 300px at 8% 120%, rgba(74, 154, 240, .18), transparent 60%),
     linear-gradient(180deg, #0F182C 0%, #13223F 55%, #1A2E52 100%); }
 .ws-hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 46px; background: var(--scene-tail);
@@ -908,7 +908,7 @@ fieldset.choices legend { font-size: var(--fs-sm); font-weight: 550; margin-bott
 .tb-menu .theme-row button { flex: 1; justify-content: center; font-size: var(--fs-xs); padding: .3rem .4rem; border: 1px solid var(--border); border-radius: var(--radius-sm); }
 .tb-menu .theme-row button.on { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 .tb-menu .menu-label { padding: .45rem .75rem 0; font-size: var(--fs-xs); color: var(--subtle); }
-.login-support { display: inline-flex; align-items: center; gap: .35rem; margin-top: .6rem; font-size: var(--fs-sm); color: #0B7373 !important; }
+.login-support { display: inline-flex; align-items: center; gap: .35rem; margin-top: .6rem; font-size: var(--fs-sm); color: var(--accent) !important; }
 /* the sign-in footer sits on the navy scene in both themes */
 .login-tools { display: flex; align-items: center; gap: .5rem; }
 .theme-btn { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .25); background: transparent; color: #fff; cursor: pointer; }
@@ -1793,7 +1793,7 @@ tr.clickable:hover td { background: var(--surface-2); }
 .bg-row button:focus-visible { outline: 2px solid var(--accent-ring); outline-offset: 1px; }
 /* 로그인됨: who is on the desktop, in place of its console picture */
 .td-screen .scr-session { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: .7rem;
-  background: linear-gradient(135deg, #12807c 0%, #1d58c8 100%); color: #fff; }
+  background: linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 50%, #1d58c8) 100%); color: #fff; }
 .td-screen .scr-session-icon { width: 44px; height: 44px; border-radius: 50%; background: rgba(255, 255, 255, .18); display: grid; place-items: center; }
 .td-screen .scr-session-text { display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-sm); }
 .td-screen .scr-session-text strong { font-size: var(--fs-md); }
