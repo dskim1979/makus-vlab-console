@@ -113,9 +113,10 @@ function SegmentDialog({ cid, zone, seg, onClose, onSaved }: { cid: string; zone
           <label><span>{L('DHCP 끝', 'DHCP to')}</span><input value={s.dhcp_end} placeholder="10.20.1.199" onChange={(e) => setS({ ...s, dhcp_end: e.target.value })} /></label>
         </div>
       )}
-      <label className="check"><input type="checkbox" checked={s.snat} onChange={(e) => setS({ ...s, snat: e.target.checked })} />
-        <span>{L('SNAT — 노드 주소로 바꿔서 밖으로 나감 (라우터 없이 인터넷)', 'SNAT - out through the node\'s address (internet without a router)')}</span></label>
-      {!simple && <small className="muted">{L('DHCP는 이 VLAN에 있는 기존 DHCP 서버(또는 라우터)가 줍니다.', 'Addresses come from the DHCP server (or router) already on this VLAN.')}</small>}
+      {simple && <label className="check"><input type="checkbox" checked={s.snat} onChange={(e) => setS({ ...s, snat: e.target.checked })} />
+        <span>{L('SNAT — 노드 주소로 바꿔서 밖으로 나감 (라우터 없이 인터넷)', 'SNAT - out through the node\'s address (internet without a router)')}</span></label>}
+      {!simple && <small className="muted">{L('게이트웨이 주소는 이 망의 라우터(또는 게이트웨이 VM)가 가집니다. DHCP도 그쪽에서 줍니다.',
+        'The gateway address lives on this network\'s router (or a gateway VM), which also hands out DHCP.')}</small>}
       {seg && seg.desktops > 0 && <div className="callout warn"><Icon name="info" size={18} />
         <p>{L(`데스크톱 ${seg.desktops}대가 이 망에 있습니다. 서브넷이나 VLAN을 바꾸면 주소가 바뀝니다.`, `${seg.desktops} desktops are on it. Changing the subnet or VLAN changes their addresses.`)}</p></div>}
     </Dialog>
