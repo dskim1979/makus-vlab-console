@@ -28,6 +28,8 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
   const [account, setAccount] = useState(false);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const [help, setHelp] = useState(false);
+  const helpRef = useRef<HTMLDivElement>(null);
   const name = user?.display_name || user?.username || '';
   const support = useSupportUrl();
   const feedback = useFeedbackUrl();
@@ -40,6 +42,13 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
   }, [open]);
+
+  useEffect(() => {
+    if (!help) return;
+    const close = (e: MouseEvent) => { if (!helpRef.current?.contains(e.target as Node)) setHelp(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [help]);
 
   return (
     <header className="topbar">
@@ -70,12 +79,38 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
           <Link to="/" className="tb-link"><Icon name="vm" size={16} />{t('nav.workspace')}</Link>
         )}
         {user && <TaskIndicator console={mode === 'console'} admin={isAdmin} />}
-        <a href={feedback} target="_blank" rel="noopener noreferrer" className="tb-link tb-support tb-feedback" title={t('sup.feedbackHint')}>
-          <Icon name="info" size={16} /><span>{t('sup.feedback')}</span>
-        </a>
-        <a href={support} target="_blank" rel="noopener noreferrer" className="tb-link tb-support" title={t('sup.hint')}>
-          <Icon name="support" size={16} /><span>{t('sup.remote')}</span>
-        </a>
+        {mode === 'workspace' ? (
+          <>
+            <a href={feedback} target="_blank" rel="noopener noreferrer" className="tb-link tb-support tb-feedback" title={t('sup.feedbackHint')}>
+              <Icon name="info" size={16} /><span>{t('sup.feedback')}</span>
+            </a>
+            <a href={support} target="_blank" rel="noopener noreferrer" className="tb-link tb-support" title={t('sup.hint')}>
+              <Icon name="support" size={16} /><span>{t('sup.remote')}</span>
+            </a>
+          </>
+        ) : (
+          // the console keeps the bar quiet: help, feedback and remote support in one menu
+          <div className="menu-wrap" ref={helpRef}>
+            <button type="button" className="tb-icon" aria-haspopup="menu" aria-expanded={help}
+              title={pick({ ko: '도움말 · 지원', en: 'Help and support' })} aria-label={pick({ ko: '도움말 · 지원', en: 'Help and support' })}
+              onClick={() => setHelp((h) => !h)}>
+              <Icon name="support" size={18} />
+            </button>
+            {help && (
+              <div className="menu tb-menu" role="menu">
+                <a role="menuitem" href={support} target="_blank" rel="noopener noreferrer" title={t('sup.hint')} onClick={() => setHelp(false)}>
+                  <Icon name="support" size={16} />{t('sup.remote')}
+                </a>
+                <a role="menuitem" href={feedback} target="_blank" rel="noopener noreferrer" title={t('sup.feedbackHint')} onClick={() => setHelp(false)}>
+                  <Icon name="info" size={16} />{t('sup.feedback')}
+                </a>
+                <button type="button" role="menuitem" onClick={() => { setHelp(false); setAbout(true); }}>
+                  <Icon name="book" size={16} />{t('nav.about')}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
         <button type="button" className="tb-icon" title={t(theme === 'dark' ? 'theme.toLight' : 'theme.toDark')}
           aria-label={t(theme === 'dark' ? 'theme.toLight' : 'theme.toDark')} onClick={() => setPref(theme === 'dark' ? 'light' : 'dark')}>
           <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={18} />

@@ -32,6 +32,7 @@ export function AdminHome() {
       <LoadState value={summary} retry={summary.reload}>
         {(s) => (
           <>
+            <Attention s={s} />
             <InfraBoard s={s} onRefresh={summary.reload} />
             <ForecastPanel />
             <div className="dash-lower">
@@ -63,6 +64,27 @@ export function AdminHome() {
 function Quick({ to, icon, label }: { to: string; icon: IconName; label: string }) {
   return (
     <li><Link to={to}><span className="li-icon"><Icon name={icon} size={17} /></span><span className="li-text">{label}</span><Icon name="chevron" size={14} /></Link></li>
+  );
+}
+
+// Needs attention (Prism / Horizon style): what is wrong now, on top; one quiet line when all is well.
+function Attention({ s }: { s: Summary }) {
+  const { t, pick } = useI18n();
+  const offline = s.clusters.total - s.clusters.connected;
+  const errors = s.desktops.by_state.error ?? 0;
+  const items: { text: string; to: string }[] = [];
+  if (s.clusters.total === 0) items.push({ text: pick({ ko: '연결된 클러스터가 없습니다', en: 'No cluster connected' }), to: '/admin/cluster/connections' });
+  else if (offline) items.push({ text: `${t('dash.clusters')} · ${t('dash.offline').replace('{n}', String(offline))}`, to: '/admin/cluster/connections' });
+  if (errors) items.push({ text: `${t('dash.desktopsOk')} · ${t('dash.errors').replace('{n}', String(errors))}`, to: '/admin/pools/status' });
+  if (!items.length) {
+    return <div className="attn attn-ok" role="status"><span className="st-badge st-ok">{pick({ ko: '정상', en: 'Healthy' })}</span>
+      <span>{pick({ ko: '클러스터와 데스크톱에 확인할 문제가 없습니다.', en: 'Nothing needs attention in clusters and desktops.' })}</span></div>;
+  }
+  return (
+    <div className="attn" role="alert">
+      <span className="st-badge st-warn">{pick({ ko: `확인 필요 ${items.length}`, en: `${items.length} to check` })}</span>
+      {items.map((x) => <Link key={x.text} to={x.to} className="attn-item">{x.text}<Icon name="chevron" size={12} /></Link>)}
+    </div>
   );
 }
 

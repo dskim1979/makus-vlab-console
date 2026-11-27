@@ -2,6 +2,7 @@ import { AccelBookingsAdmin, ArtifactSettingsPage, CiLinksPage } from './pages/B
 import { Link, NavLink, Navigate, useParams } from 'react-router-dom';
 import { useFeatures } from '../features';
 import { Icon } from '../components/Icon';
+import { PageHeadProvider, usePageHeadSlots } from '../components/PageHead';
 import { useI18n } from '../i18n';
 import { findModule, findRender, pageVisible, visibleModules, visibleTabs } from './modules';
 import { AccelInventoryPage, MappingsPage, VgpuProfilesPage } from './pages/AccelPages';
@@ -109,6 +110,7 @@ export function AdminModule() {
   const features = useFeatures();
   const on = (g?: Parameters<typeof features.on>[0]) => features.on(g);
   const mod = findModule(moduleId);
+  const head = usePageHeadSlots();
 
   // 도메인 and 화이트라벨 moved into 플랫폼 설정
   if (moduleId === 'users' && pageId === 'directory') return <Navigate to="/admin/ops/settings/directory" replace />;
@@ -130,15 +132,19 @@ export function AdminModule() {
   const body = off ? null : pageBody(key, tab ? undefined : subId);
 
   return (
+    <PageHeadProvider slots={head.slots}>
     <main className="page">
       <header className="page-head">
-        <div>
+        <div className="ph-main">
           <nav className="crumbs" aria-label="breadcrumb">
-            <span>{pick(mod.label)}</span><Icon name="chevron" size={12} /><span>{pick(page.label)}</span>
-            {tab && <><Icon name="chevron" size={12} /><span>{pick(tab.label)}</span></>}
+            <Link to={`/admin/${mod.id}/${mod.pages.find((p) => !p.hidden && pageVisible(p, on))?.id ?? page.id}`}>{pick(mod.label)}</Link>
+            {pick(mod.label) !== pick(page.label) && <><Icon name="chevron" size={12} /><Link to={`/admin/${mod.id}/${page.id}`}>{pick(page.label)}</Link></>}
+            {tab && tabs.length > 1 && <><Icon name="chevron" size={12} /><span>{pick(tab.label)}</span></>}
           </nav>
-          <h1>{pick(page.label)}</h1>
+          <h1 className="ph-default">{pick(page.label)}</h1>
+          <div className="ph-title-slot" ref={head.titleRef} />
         </div>
+        <div className="page-actions" ref={head.actionsRef} />
       </header>
       {tabs.length > 1 && (
         <nav className="page-tabs" aria-label={pick(page.label)}>
@@ -161,5 +167,6 @@ export function AdminModule() {
         </div>
       )}
     </main>
+    </PageHeadProvider>
   );
 }

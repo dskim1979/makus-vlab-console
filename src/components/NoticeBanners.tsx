@@ -21,8 +21,10 @@ function saveClosed(list: string[]) {
   try { localStorage.setItem(KEY, JSON.stringify(list.slice(-50))); } catch { /* private window: closed for this visit only */ }
 }
 
-export function NoticeBanners() {
-  const { t } = useI18n();
+// compact (admin console): one line with the most serious notice, the rest behind "+n"
+export function NoticeBanners({ compact = false }: { compact?: boolean }) {
+  const { t, pick } = useI18n();
+  const [more, setMore] = useState(false);
   const [notices, setNotices] = useState<ActiveNotice[]>([]);
   const [closed, setClosed] = useState<string[]>(loadClosed);
 
@@ -44,12 +46,22 @@ export function NoticeBanners() {
     saveClosed(next);
   }
 
+  const rank = (n: ActiveNotice) => (n.severity === 'info' ? 2 : n.severity === 'warning' ? 1 : 0);
+  const sorted = compact ? [...shown].sort((a, b) => rank(a) - rank(b)) : shown;
+  const list = compact && !more ? sorted.slice(0, 1) : sorted;
+  const extra = sorted.length - 1;
+
   return (
-    <div className="notice-bars" role="region" aria-label={t('notice.region')}>
-      {shown.map((n) => (
+    <div className={`notice-bars${compact ? ' compact' : ''}`} role="region" aria-label={t('notice.region')}>
+      {list.map((n, i) => (
         <div key={n.id} className={`notice-bar notice-${n.severity}`} role={n.severity === 'info' ? 'status' : 'alert'}>
           <span className="notice-kind">{t(`notice.kind.${n.severity}`)}</span>
-          <span className="notice-text">{n.text}</span>
+          <span className="notice-text" title={compact ? n.text : undefined}>{n.text}</span>
+          {compact && i === 0 && extra > 0 && (
+            <button type="button" className="notice-more" aria-expanded={more} onClick={() => setMore((m) => !m)}>
+              {more ? pick({ ko: '접기', en: 'Less' }) : pick({ ko: `공지 ${extra}건 더`, en: `${extra} more` })}
+            </button>
+          )}
           <button type="button" className="notice-close" aria-label={t('notice.dismiss')} title={t('notice.dismiss')}
             onClick={() => close(n)}>×</button>
         </div>

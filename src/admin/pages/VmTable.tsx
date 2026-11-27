@@ -5,6 +5,7 @@ import type { AdminDesktop, AssignableUser, ClusterNode, Guest, Pool, PowerActio
 import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
+import { PageActions } from '../../components/PageHead';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import { bytes } from './ClusterPages';
@@ -84,7 +85,6 @@ function VmList({ onOpen }: { onOpen: (id: string) => void }) {
   const navigate = useNavigate();
   const inv = useLoad(loadInventory);
   const users = useLoad(adminApi.users);
-  const [vmidDraft, setVmidDraft] = useState('');
   const [nameDraft, setNameDraft] = useState('');
   const [query, setQuery] = useState({ vmid: '', name: '' });
   const [node, setNode] = useState('');
@@ -109,7 +109,7 @@ function VmList({ onOpen }: { onOpen: (id: string) => void }) {
     const name = query.name.trim().toLowerCase();
     const vmid = query.vmid.trim();
     const out = all.filter((r) => (!vmid || String(r.vmid).startsWith(vmid))
-      && (!name || r.name.toLowerCase().includes(name))
+      && (!name || r.name.toLowerCase().includes(name) || (/^\d+$/.test(name) && String(r.vmid).startsWith(name)))
       && (!node || r.node === node)
       && (!pool || (pool === '-' ? !r.desk : r.poolId === pool))
       && (!user || (user === '-' ? !r.user : r.user === user)));
@@ -133,7 +133,6 @@ function VmList({ onOpen }: { onOpen: (id: string) => void }) {
 
   useEffect(() => { setPage(0); }, [query, node, pool, user, size]);
 
-  const search = () => setQuery({ vmid: vmidDraft, name: nameDraft });
   const reload = () => { inv.reload(); users.reload(); };
   const toggle = (key: string) => setPicked((s) => { const n = new Set(s); if (n.has(key)) n.delete(key); else n.add(key); return n; });
   const sortBy = (key: SortKey) => setSort((s) => (!s || s.key !== key ? { key, dir: -1 } : s.dir === -1 ? { key, dir: 1 } : null));
@@ -200,12 +199,13 @@ function VmList({ onOpen }: { onOpen: (id: string) => void }) {
 
   return (
     <>
+      <PageActions>
+        <button type="button" className="btn primary" onClick={() => navigate('/admin/vms/create')}><Icon name="plus" size={16} />{L('VM 만들기', 'Create VM')}</button>
+      </PageActions>
       <div className="vt-bar">
         <div className="vt-row">
-          <input className="vt-vmid" inputMode="numeric" placeholder="VMID" aria-label="VMID" value={vmidDraft}
-            onChange={(e) => setVmidDraft(e.target.value.replace(/\D/g, ''))} onKeyDown={(e) => e.key === 'Enter' && search()} />
-          <input className="vt-name" type="search" placeholder={L('VM 이름', 'VM name')} aria-label={L('VM 이름', 'VM name')} value={nameDraft}
-            onChange={(e) => setNameDraft(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && search()} />
+          <input className="vt-name vt-search" type="search" placeholder={L('VMID · VM 이름 검색', 'Search VMID · name')} aria-label={L('VMID · VM 이름', 'VMID · VM name')} value={nameDraft}
+            onChange={(e) => { setNameDraft(e.target.value); setQuery({ vmid: '', name: e.target.value }); }} />
           <select value={node} onChange={(e) => setNode(e.target.value)} aria-label={L('노드', 'Node')}>
             <option value="">{L('노드 전체', 'All nodes')}</option>
             {nodes.map((n) => <option key={n} value={n}>{n}</option>)}
@@ -220,14 +220,20 @@ function VmList({ onOpen }: { onOpen: (id: string) => void }) {
             {holders.map((u) => <option key={u} value={u}>{u}</option>)}
             <option value="-">{L('배정 안 됨', 'Unassigned')}</option>
           </select>
-          <button type="button" className="btn primary" onClick={search}><Icon name="search" size={16} />{L('검색', 'Search')}</button>
-          <button type="button" className="btn" onClick={reload}><Icon name="refresh" size={16} />{L('새로 고침', 'Refresh')}</button>
-          <button type="button" className="btn vt-create" onClick={() => navigate('/admin/vms/create')}>
-            <Icon name="plus" size={16} />{L('VM 만들기', 'Create VM')}</button>
+          <button type="button" className="btn vt-icon-btn" onClick={reload} title={L('새로 고침', 'Refresh')} aria-label={L('새로 고침', 'Refresh')}><Icon name="refresh" size={16} /></button>
+          <HowTo>
+            <ul>
+              <li>{L('풀에 없는 클러스터 VM도 함께 보입니다. 일괄 작업 › 풀에 추가로 데스크톱으로 만듭니다.',
+                'Cluster VMs no pool holds are listed too. Bulk actions › Add to pool makes them desktops.')}</li>
+              <li>{L('전원 · 배정 · 상세는 풀에 든 VM만 됩니다.', 'Power, assignment and details work for VMs in a pool.')}</li>
+              <li>{L('VMID는 앞자리로, 이름은 일부로 찾습니다. 입력하는 대로 걸러집니다.', 'VMID matches from the start, name anywhere. Filters as you type.')}</li>
+              <li>{L('접속 › 콘솔은 관리자 지원용 브라우저 화면이며 감사 기록에 남습니다. RDP · SPICE는 사용자 포털에서 씁니다.',
+                'Connect › Console opens the screen in the browser for support; it is audited. RDP and SPICE are in the user portal.')}</li>
+            </ul>
+          </HowTo>
         </div>
-        <div className="vt-row">
-          <span className={`vt-count${chosen.length ? ' on' : ''}`}>
-            {chosen.length ? L(`${chosen.length}대 선택`, `${chosen.length} selected`) : L('선택 없음', 'None selected')}</span>
+        {chosen.length > 0 && <div className="vt-row vt-selbar" role="region" aria-label={L('선택한 VM', 'Selected VMs')}>
+          <span className="vt-count on">{L(`${chosen.length}대 선택`, `${chosen.length} selected`)}</span>
           <button type="button" className="btn small-btn" disabled={busy || !chosenDesks.length} onClick={() => setDialog('assign')}>
             <Icon name="users" size={15} />{L('사용자 일괄 배정', 'Assign users')}</button>
           <Drop disabled={busy || !chosen.length} className="btn small-btn" label={<>{L('일괄 작업', 'Bulk actions')}<Caret /></>} align="left">
@@ -246,18 +252,8 @@ function VmList({ onOpen }: { onOpen: (id: string) => void }) {
               </>
             )}
           </Drop>
-          {chosen.length > 0 && <button type="button" className="btn-ghost small-btn" onClick={() => setPicked(new Set())}>{L('선택 해제', 'Clear')}</button>}
-          <HowTo>
-            <ul>
-              <li>{L('풀에 없는 클러스터 VM도 함께 보입니다. 일괄 작업 › 풀에 추가로 데스크톱으로 만듭니다.',
-                'Cluster VMs no pool holds are listed too. Bulk actions › Add to pool makes them desktops.')}</li>
-              <li>{L('전원 · 배정 · 상세는 풀에 든 VM만 됩니다.', 'Power, assignment and details work for VMs in a pool.')}</li>
-              <li>{L('VMID는 앞자리로, 이름은 일부로 찾습니다. Enter나 검색을 누르세요.', 'VMID matches from the start, name anywhere. Press Enter or Search.')}</li>
-              <li>{L('접속 › 콘솔은 관리자 지원용 브라우저 화면이며 감사 기록에 남습니다. RDP · SPICE는 사용자 포털에서 씁니다.',
-                'Connect › Console opens the screen in the browser for support; it is audited. RDP and SPICE are in the user portal.')}</li>
-            </ul>
-          </HowTo>
-        </div>
+          <button type="button" className="btn-ghost small-btn" onClick={() => setPicked(new Set())}>{L('선택 해제', 'Clear')}</button>
+        </div>}
       </div>
       {notice && <div className={`alert small ${notice.kind === 'error' ? 'error' : 'info'}`} role="status">{notice.text}</div>}
 

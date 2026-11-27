@@ -19,7 +19,7 @@ export function Shell({ children }: { children: ReactNode }) {
         {consoleMode && <Sidebar open={menu} onNavigate={() => setMenu(false)} />}
         {consoleMode && menu && <div className="sidebar-scrim" onClick={() => setMenu(false)} />}
         <div className="app-content">
-          <NoticeBanners />
+          <NoticeBanners compact={consoleMode} />
           {children}
           {!consoleMode && <footer className="ws-foot"><CompanyNotice /></footer>}
         </div>

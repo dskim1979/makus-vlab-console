@@ -22,8 +22,19 @@ export type AdminPage = {
 
 export type Tone = 'blue' | 'violet' | 'teal' | 'orange' | 'green' | 'navy' | 'slate' | 'pink';
 
+export type NavGroup = 'desk' | 'people' | 'research' | 'infra';
+
+/** Sidebar headings (Horizon / Citrix style: inventory, people, resources, infrastructure). */
+export const NAV_GROUPS: { id: NavGroup; label: Localized }[] = [
+  { id: 'desk', label: { ko: '데스크톱 서비스', en: 'Desktop service' } },
+  { id: 'people', label: { ko: '사용자 · 접근', en: 'Users and access' } },
+  { id: 'research', label: { ko: '연구 자원', en: 'Research resources' } },
+  { id: 'infra', label: { ko: '인프라 · 운영', en: 'Infrastructure' } },
+];
+
 export type AdminModule = {
   id: string;
+  group: NavGroup;
   icon: IconName;
   tone: Tone; // the module's colour: home tile, sidebar icon, page header
   label: Localized;
@@ -36,7 +47,7 @@ const T = (id: string, ko: string, en: string, render: string, feature?: Feature
 
 export const MODULES: AdminModule[] = [
   {
-    id: 'vms', icon: 'vm', tone: 'blue',
+    id: 'vms', group: 'desk', icon: 'vm', tone: 'blue',
     label: { ko: '가상머신', en: 'Virtual machines' },
     summary: { ko: '데스크톱 VM(만들기 · ISO · 상태), 이미지(템플릿 · 기본 제공 · 환경 카탈로그)', en: 'Desktop VMs (make, ISO, status), images (templates, starters, environments)' },
     pages: [
@@ -50,7 +61,7 @@ export const MODULES: AdminModule[] = [
     ],
   },
   {
-    id: 'pools', icon: 'pool', tone: 'violet',
+    id: 'pools', group: 'desk', icon: 'pool', tone: 'violet',
     label: { ko: '데스크톱 풀', en: 'Desktop pools' },
     summary: { ko: '풀(정책 · 권한 · 공유 저장소), 접속 설정(USB · 외부 데스크톱)', en: 'Pools (policy, access, shared storage), access settings (USB, external desktops)' },
     pages: [
@@ -61,7 +72,7 @@ export const MODULES: AdminModule[] = [
     ],
   },
   {
-    id: 'users', icon: 'users', tone: 'teal',
+    id: 'users', group: 'people', icon: 'users', tone: 'teal',
     label: { ko: '사용자', en: 'Users' },
     summary: { ko: '사용자(가입 심사 · 부서), 권한(역할 · 유효 권한)', en: 'Users (sign-up review, departments), access (roles, effective access)' },
     pages: [
@@ -75,7 +86,7 @@ export const MODULES: AdminModule[] = [
     ],
   },
   {
-    id: 'labs', icon: 'lab', tone: 'orange',
+    id: 'labs', group: 'desk', icon: 'lab', tone: 'orange',
     label: { ko: 'LAB', en: 'Labs' },
     summary: { ko: 'LAB(실습실 · 단말 에이전트), 일정 · 예약(예약 · 시간표 · 일정형 풀)', en: 'Labs (rooms, terminal agents), schedules and bookings' },
     pages: [
@@ -87,7 +98,7 @@ export const MODULES: AdminModule[] = [
     ],
   },
   {
-    id: 'accel', icon: 'gpu', tone: 'green', vlabOnly: true,
+    id: 'accel', group: 'research', icon: 'gpu', tone: 'green', vlabOnly: true,
     label: { ko: '가속 자원', en: 'Accelerators' },
     summary: { ko: '카드(재고 · vGPU · MIG · 매핑 · 점검), 대여, GPU 작업(큐 · 할당량 · 웹 IDE), 보드 LAB · 빌드 팜 · 라이선스', en: 'Cards (inventory, vGPU, MIG, mappings, checks), loans, GPU jobs (queue, quotas, web IDE), board lab, build farm, licences' },
     pages: [
@@ -108,7 +119,7 @@ export const MODULES: AdminModule[] = [
     ],
   },
   {
-    id: 'data', icon: 'layers', tone: 'pink',
+    id: 'data', group: 'research', icon: 'layers', tone: 'pink',
     label: { ko: '연구 데이터', en: 'Research data' },
     summary: { ko: '데이터셋(반출 승인 · 규칙), 용량 · 반출 보고서', en: 'Datasets (export approvals, rules), capacity and export report' },
     pages: [
@@ -120,7 +131,7 @@ export const MODULES: AdminModule[] = [
     ],
   },
   {
-    id: 'cluster', icon: 'cluster', tone: 'navy',
+    id: 'cluster', group: 'infra', icon: 'cluster', tone: 'navy',
     label: { ko: '클러스터', en: 'Cluster' },
     summary: { ko: '클러스터(개요 · 노드 · 스토리지 · 고가용성), 클러스터 연결', en: 'Cluster (overview, nodes, storage, HA), connections' },
     pages: [
@@ -131,7 +142,7 @@ export const MODULES: AdminModule[] = [
     ],
   },
   {
-    id: 'ops', icon: 'ops', tone: 'slate',
+    id: 'ops', group: 'infra', icon: 'ops', tone: 'slate',
     label: { ko: '운영', en: 'Operations' },
     summary: { ko: '요약(작업 진행), 기록(접속 · 감사), 보고서, 경보, 백업, 플랫폼 설정', en: 'Summary (tasks), logs (sessions, audit), reports, alerts, backup, platform settings' },
     pages: [

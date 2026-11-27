@@ -6,6 +6,7 @@ import type { AdminDesktop, Cluster, Pool, PoolPolicy, PoolType } from '../../ap
 import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
+import { PageActions } from '../../components/PageHead';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
@@ -110,10 +111,13 @@ export function PoolTablePage() {
 
   return (
     <>
+      <PageActions>
+        <button type="button" className="btn primary" onClick={() => setCreating(true)}><Icon name="plus" size={16} />{L('풀 만들기', 'New pool')}</button>
+      </PageActions>
       <div className="vt-bar">
         <div className="vt-row">
-          <input className="vt-name" type="search" placeholder={L('풀 이름 · 설명', 'Pool name · description')} aria-label={L('풀 검색', 'Search pools')} value={draft}
-            onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && setQ(draft)} />
+          <input className="vt-name vt-search" type="search" placeholder={L('풀 이름 · 설명 검색', 'Search name · description')} aria-label={L('풀 검색', 'Search pools')} value={draft}
+            onChange={(e) => { setDraft(e.target.value); setQ(e.target.value); }} />
           <select value={type} onChange={(e) => setType(e.target.value as '' | PoolType)} aria-label={L('풀 종류', 'Pool type')}>
             <option value="">{L('종류 전체', 'All types')}</option>
             {POOL_TYPES.map((x) => <option key={x} value={x}>{t(`pooltype.${x}` as MessageKey)}</option>)}
@@ -123,25 +127,26 @@ export function PoolTablePage() {
             <option value="on">{L('사용', 'Enabled')}</option>
             <option value="off">{L('중지', 'Disabled')}</option>
           </select>
-          <button type="button" className="btn primary" onClick={() => setQ(draft)}><Icon name="search" size={16} />{L('검색', 'Search')}</button>
-          <button type="button" className="btn" onClick={inv.reload}><Icon name="refresh" size={16} />{L('새로 고침', 'Refresh')}</button>
-          <button type="button" className="btn primary vt-create" onClick={() => setCreating(true)}><Icon name="plus" size={16} />{L('풀 만들기', 'New pool')}</button>
-        </div>
-        <div className="vt-row">
-          <span className={`vt-count${chosen.length ? ' on' : ''}`}>{chosen.length ? L(`${chosen.length}개 선택`, `${chosen.length} selected`) : L('선택 없음', 'None selected')}</span>
-          <button type="button" className="btn small-btn" disabled={busy || !chosen.length} onClick={() => setEnabled(chosen, true)}>{L('사용', 'Enable')}</button>
-          <button type="button" className="btn small-btn" disabled={busy || !chosen.length} onClick={() => setEnabled(chosen, false)}>{L('중지', 'Disable')}</button>
-          <button type="button" className="btn small-btn danger" disabled={busy || !chosen.length} onClick={() => remove(chosen)}>{L('삭제', 'Delete')}</button>
-          {chosen.length > 0 && <button type="button" className="btn-ghost small-btn" onClick={() => setPicked(new Set())}>{L('선택 해제', 'Clear')}</button>}
+          <button type="button" className="btn vt-icon-btn" onClick={inv.reload} title={L('새로 고침', 'Refresh')} aria-label={L('새로 고침', 'Refresh')}><Icon name="refresh" size={16} /></button>
           <HowTo>
             <ul>
               <li>{L('▸를 누르면 풀의 데스크톱이 펼쳐집니다. 이름을 누르면 풀 페이지로 갑니다.', '▸ unfolds the desktops; the name opens the pool page.')}</li>
               <li>{L('접속 경로: 게이트웨이는 보안 게이트웨이를 거쳐 녹화, 장치 연결은 USB · 드라이브를 넘기고 녹화하지 않습니다.',
                 'Route: Gateway goes through the security gateway and is recorded; Devices passes USB and drives, unrecorded.')}</li>
+              <li>{L('사용 · 중지 · 삭제는 행의 더보기나, 여러 개를 골라 위에 나오는 막대에서 합니다.', 'Enable, disable and delete: the More menu on a row, or pick several and use the bar that appears.')}</li>
               <li>{L('데스크톱이 남은 풀은 지울 수 없습니다.', 'A pool with desktops cannot be deleted.')}</li>
             </ul>
           </HowTo>
         </div>
+        {chosen.length > 0 && (
+          <div className="vt-row vt-selbar" role="region" aria-label={L('선택한 풀', 'Selected pools')}>
+            <span className="vt-count on">{L(`${chosen.length}개 선택`, `${chosen.length} selected`)}</span>
+            <button type="button" className="btn small-btn" disabled={busy} onClick={() => setEnabled(chosen, true)}>{L('사용', 'Enable')}</button>
+            <button type="button" className="btn small-btn" disabled={busy} onClick={() => setEnabled(chosen, false)}>{L('중지', 'Disable')}</button>
+            <button type="button" className="btn small-btn danger" disabled={busy} onClick={() => remove(chosen)}>{L('삭제', 'Delete')}</button>
+            <button type="button" className="btn-ghost small-btn" onClick={() => setPicked(new Set())}>{L('선택 해제', 'Clear')}</button>
+          </div>
+        )}
       </div>
       {notice && <div className={`alert small ${notice.kind === 'error' ? 'error' : 'info'}`} role="status">{notice.text}</div>}
 
@@ -183,17 +188,15 @@ export function PoolTablePage() {
                           </td>
                           <td className="nowrap small">{grantText(d.grants[p.id])}</td>
                           <td className="vt-center">
-                            <button type="button" role="switch" aria-checked={p.enabled} className={`ut-switch${p.enabled ? ' on' : ''}`} disabled={busy}
-                              aria-label={p.enabled ? L(`${p.name} 중지`, `Disable ${p.name}`) : L(`${p.name} 사용`, `Enable ${p.name}`)}
-                              onClick={() => setEnabled([p], !p.enabled)}><span /></button>
+                            <span className={`st-badge ${p.enabled ? 'st-ok' : 'st-neutral'}`}>{p.enabled ? L('사용', 'Enabled') : L('중지', 'Disabled')}</span>
                           </td>
                           <td className="pt-desc small" title={p.description}>{p.description || <span className="muted">-</span>}</td>
                           <td className="vt-actions">
-                            <Link className="vt-link" to={`/admin/pools/list/${p.id}`}>{L('데스크톱 보기', 'Desktops')}</Link>
                             <button type="button" className="vt-link" onClick={() => setEditing(p)}>{L('편집', 'Edit')}</button>
                             <Drop className="vt-more" label={<>{L('더보기', 'More')}<Caret /></>}>
                               {(close) => (
                                 <>
+                                  <Link role="menuitem" to={`/admin/pools/list/${p.id}`} onClick={close}>{L('풀 페이지 열기', 'Open the pool')}</Link>
                                   <button type="button" role="menuitem" onClick={() => { close(); setEnabled([p], !p.enabled); }}>{p.enabled ? L('중지', 'Disable') : L('사용', 'Enable')}</button>
                                   <hr className="vt-sep" />
                                   <button type="button" role="menuitem" className="danger" onClick={() => { close(); remove([p]); }}>{L('삭제', 'Delete')}</button>

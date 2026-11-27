@@ -6,6 +6,7 @@ import { nextApi, type Grant, type GrantType } from '../../api/next';
 import type { AdminDesktop, AssignableUser, Pool } from '../../api/types';
 import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
+import { PageActions, PageTitle } from '../../components/PageHead';
 import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
@@ -92,18 +93,21 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
 
   return (
     <div className="vd">
-      <Link className="vd-back" to="/admin/pools/list"><Icon name="chevron" size={14} />{L('풀 목록', 'Pools')}</Link>
       {pool && (
-        <section className="vd-head">
-          <div className="vd-title">
-            <span className={`vd-icon pv-icon pt-${pool.type}`} aria-hidden="true"><Icon name="pool" size={20} /></span>
-            <h2 className="vd-name">{pool.name}</h2>
-            <span className={`pt-type pt-${pool.type}`}>{t(`pooltype.${pool.type}` as MessageKey)}</span>
-            {!pool.enabled && <span className="vt-st vt-st-offline">{L('중지됨', 'Disabled')}</span>}
-            <div className="vd-actions">
-              <button type="button" className="btn" onClick={() => setDlg('edit')}>{L('편집', 'Edit')}</button>
-            </div>
-          </div>
+        <>
+          <PageTitle title={pool.name} back={{ to: '/admin/pools/list', label: L('풀 목록', 'Pools') }}
+            icon={<span className={`vd-icon pv-icon pt-${pool.type}`} aria-hidden="true"><Icon name="pool" size={18} /></span>}
+            badge={<>
+              <span className={`pt-type pt-${pool.type}`}>{t(`pooltype.${pool.type}` as MessageKey)}</span>
+              <span className={`st-badge ${pool.enabled ? 'st-ok' : 'st-neutral'}`}>{pool.enabled ? L('사용', 'Enabled') : L('중지됨', 'Disabled')}</span>
+            </>} />
+          <PageActions>
+            <button type="button" className="btn" onClick={() => setDlg('edit')}><Icon name="gear" size={16} />{L('편집', 'Edit')}</button>
+          </PageActions>
+        </>
+      )}
+      {pool && (
+        <section className="vd-head pv-essentials">
           <dl className="vd-strip">
             <div><dt>{L('데스크톱', 'Desktops')}</dt><dd className="vd-num">{pool.desktops}</dd></div>
             <div><dt>{L('배정', 'Assigned')}</dt><dd className="vd-num">{pool.assigned}</dd></div>

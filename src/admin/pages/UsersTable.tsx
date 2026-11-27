@@ -8,6 +8,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
+import { PageActions } from '../../components/PageHead';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import { relativeTime } from '../../portal/DesktopCard';
@@ -115,10 +116,15 @@ export function UsersTablePage() {
 
   return (
     <>
+      <PageActions>
+        {dirOn && <button type="button" className="btn" disabled={busy} onClick={sync}><Icon name="refresh" size={16} />{L('디렉터리 동기화', 'Sync directory')}</button>}
+        <button type="button" className="btn" onClick={() => setImporting(true)}><Icon name="download" size={16} />{L('가져오기', 'Import')}</button>
+        <button type="button" className="btn primary" onClick={() => setEditing('new')}><Icon name="plus" size={16} />{L('사용자 추가', 'Add user')}</button>
+      </PageActions>
       <div className="vt-bar">
         <div className="vt-row">
-          <input className="vt-name" type="search" placeholder={L('계정 · 이름 · 메일', 'Account · name · mail')} aria-label={L('계정 검색', 'Search accounts')} value={draft}
-            onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && setQ(draft)} />
+          <input className="vt-name vt-search" type="search" placeholder={L('계정 · 이름 · 메일 검색', 'Search account · name · mail')} aria-label={L('계정 검색', 'Search accounts')} value={draft}
+            onChange={(e) => { setDraft(e.target.value); setQ(e.target.value); }} />
           <select value={dep} onChange={(e) => setDep(e.target.value)} aria-label={L('부서', 'Department')}>
             <option value="">{L('부서 전체', 'All departments')}</option>
             {depList.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
@@ -137,21 +143,7 @@ export function UsersTablePage() {
             <option value="">{L('역할 전체', 'All roles')}</option>
             {usedRoles.map((r) => <option key={r} value={r}>{roleLabel(t, r, roleList)}</option>)}
           </select>
-          <button type="button" className="btn primary" onClick={() => setQ(draft)}><Icon name="search" size={16} />{L('검색', 'Search')}</button>
-          <button type="button" className="btn" onClick={reload}><Icon name="refresh" size={16} />{L('새로 고침', 'Refresh')}</button>
-          <span className="vt-create vt-btns">
-            {dirOn && <button type="button" className="btn" disabled={busy} onClick={sync}>{L('디렉터리 동기화', 'Sync directory')}</button>}
-            <button type="button" className="btn" onClick={() => setImporting(true)}><Icon name="list" size={16} />{L('가져오기', 'Import')}</button>
-            <button type="button" className="btn primary" onClick={() => setEditing('new')}><Icon name="plus" size={16} />{L('사용자 추가', 'Add user')}</button>
-          </span>
-        </div>
-        <div className="vt-row">
-          <span className={`vt-count${chosen.length ? ' on' : ''}`}>{chosen.length ? L(`${chosen.length}명 선택`, `${chosen.length} selected`) : L('선택 없음', 'None selected')}</span>
-          <button type="button" className="btn small-btn" disabled={busy || !others.length} onClick={() => setEnabled(others, true)}>{L('사용', 'Enable')}</button>
-          <button type="button" className="btn small-btn" disabled={busy || !others.length} onClick={() => setEnabled(others, false)}>{L('중지', 'Disable')}</button>
-          <button type="button" className="btn small-btn" disabled={busy || !chosen.length || !depList.length} onClick={() => setDepFor(true)}>{L('부서 지정', 'Set department')}</button>
-          <button type="button" className="btn small-btn danger" disabled={busy || !others.length} onClick={() => remove(others)}>{L('삭제', 'Delete')}</button>
-          {chosen.length > 0 && <button type="button" className="btn-ghost small-btn" onClick={() => setPicked(new Set())}>{L('선택 해제', 'Clear')}</button>}
+          <button type="button" className="btn vt-icon-btn" onClick={reload} title={L('새로 고침', 'Refresh')} aria-label={L('새로 고침', 'Refresh')}><Icon name="refresh" size={16} /></button>
           <HowTo>
             <ul>
               <li>{L('내 계정은 일괄 중지 · 삭제에서 빠집니다.', 'Your own account is left out of bulk disable and delete.')}</li>
@@ -161,6 +153,14 @@ export function UsersTablePage() {
             </ul>
           </HowTo>
         </div>
+        {chosen.length > 0 && <div className="vt-row vt-selbar" role="region" aria-label={L('선택한 사용자', 'Selected users')}>
+          <span className="vt-count on">{L(`${chosen.length}명 선택`, `${chosen.length} selected`)}</span>
+          <button type="button" className="btn small-btn" disabled={busy || !others.length} onClick={() => setEnabled(others, true)}>{L('사용', 'Enable')}</button>
+          <button type="button" className="btn small-btn" disabled={busy || !others.length} onClick={() => setEnabled(others, false)}>{L('중지', 'Disable')}</button>
+          <button type="button" className="btn small-btn" disabled={busy || !chosen.length || !depList.length} onClick={() => setDepFor(true)}>{L('부서 지정', 'Set department')}</button>
+          <button type="button" className="btn small-btn danger" disabled={busy || !others.length} onClick={() => remove(others)}>{L('삭제', 'Delete')}</button>
+          <button type="button" className="btn-ghost small-btn" onClick={() => setPicked(new Set())}>{L('선택 해제', 'Clear')}</button>
+        </div>}
       </div>
       {notice && <div className={`alert small ${notice.kind === 'error' ? 'error' : 'info'}`} role={notice.kind === 'error' ? 'alert' : 'status'}>{notice.text}</div>}
 
@@ -204,17 +204,15 @@ export function UsersTablePage() {
                         <td className="nowrap small">{relativeTime(u.last_login ?? null, lang) ?? <span className="muted">{t('portal.never')}</span>}</td>
                         <td className="nowrap small"><ExpiryCell account={u} /></td>
                         <td className="vt-center">
-                          <button type="button" role="switch" aria-checked={on} className={`ut-switch${on ? ' on' : ''}`} disabled={busy || self}
-                            title={self ? L('내 계정은 여기서 끌 수 없습니다', 'Not your own account') : on ? L('사용 중 · 눌러서 중지', 'Enabled · click to disable') : L('중지됨 · 눌러서 사용', 'Disabled · click to enable')}
-                            aria-label={on ? L(`${u.username} 중지`, `Disable ${u.username}`) : L(`${u.username} 사용`, `Enable ${u.username}`)}
-                            onClick={() => setEnabled([u], !on)}><span /></button>
+                          <span className={`st-badge ${on ? 'st-ok' : 'st-neutral'}`}>{on ? L('사용', 'Enabled') : L('중지', 'Disabled')}</span>
                         </td>
                         <td className="vt-actions">
                           <button type="button" className="vt-link" onClick={() => setEditing(u)}>{L('편집', 'Edit')}</button>
-                          {!ext && <button type="button" className="vt-link" onClick={() => setPwFor(u)}>{L('비밀번호 재설정', 'Reset password')}</button>}
                           <Drop className="vt-more" label={<>{L('더보기', 'More')}<Caret /></>}>
                             {(close) => (
                               <>
+                                {!ext && <button type="button" role="menuitem" onClick={() => { close(); setPwFor(u); }}>{L('비밀번호 재설정', 'Reset password')}</button>}
+                                <button type="button" role="menuitem" disabled={busy || self} onClick={() => { close(); setEnabled([u], !on); }}>{on ? L('중지', 'Disable') : L('사용', 'Enable')}</button>
                                 <Link role="menuitem" to={`/admin/users/access/${encodeURIComponent(u.username)}`} onClick={close}>{L('유효 권한 보기', 'Effective access')}</Link>
                                 <button type="button" role="menuitem" disabled={!u.totp_enabled} onClick={() => {
                                   close();
