@@ -73,7 +73,10 @@ export function LoginPage() {
 
   return (
     <div className="login-page">
-      <div className="login-top"><LangSwitch /></div>
+      <div className="login-top">
+        <a className="login-top-link" href={support} target="_blank" rel="noopener noreferrer"><Icon name="support" size={16} />{t('sup.remote')}</a>
+        <LangSwitch />
+      </div>
 
       <main className="login-card">
         <div className="login-brand">
@@ -149,7 +152,6 @@ export function LoginPage() {
       </main>
 
       <footer className="login-foot">
-        <a className="login-support" href={support} target="_blank" rel="noopener noreferrer"><Icon name="support" size={15} />{t('sup.remote')}</a>
         <OpenSourceNote />
         <CompanyNotice />
       </footer>
