@@ -4,7 +4,7 @@ import { useFeatures } from '../features';
 import { useAuth } from '../auth/AuthContext';
 import { useFeedbackUrl, useSupportUrl } from '../branding';
 import { useI18n } from '../i18n';
-import { useTheme, type ThemePref } from '../theme';
+import { COLOR_THEMES, useColorTheme, useTheme, type ThemePref } from '../theme';
 import { BACKGROUNDS, useBackdrop } from '../backdrop';
 import { AboutDialog } from './AboutDialog';
 import { BrandLockup } from './Brand';
@@ -34,6 +34,7 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
   const support = useSupportUrl();
   const feedback = useFeedbackUrl();
   const { pref, mode: theme, setPref } = useTheme();
+  const { color, setColor } = useColorTheme();
   const backdrop = useBackdrop();
 
   useEffect(() => {
@@ -139,6 +140,17 @@ export function TopBar({ mode, onMenu }: { mode: 'workspace' | 'console'; onMenu
                 {(['system', 'light', 'dark'] as ThemePref[]).map((p) => (
                   <button key={p} type="button" className={pref === p ? 'on' : ''} aria-pressed={pref === p} onClick={() => setPref(p)}>
                     {t(`theme.${p}` as 'theme.system')}
+                  </button>
+                ))}
+              </div>
+              <div className="menu-label">{pick({ ko: '색상 테마', en: 'Colour theme' })}</div>
+              <div className="color-row" role="radiogroup" aria-label={pick({ ko: '색상 테마', en: 'Colour theme' })}>
+                {COLOR_THEMES.map((c) => (
+                  <button key={c.id} type="button" role="radio" aria-checked={color === c.id} className={color === c.id ? 'on' : ''}
+                    title={pick({ ko: c.ko, en: c.en })} aria-label={pick({ ko: c.ko, en: c.en })} onClick={() => setColor(c.id)}>
+                    <span className="color-sw" style={{ background: c.swatch }}>
+                      <span className="color-bar" style={{ background: c.bar }} />
+                    </span>
                   </button>
                 ))}
               </div>

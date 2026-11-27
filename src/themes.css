@@ -1,0 +1,74 @@
+/* Colour themes (user menu > 색상, src/theme.ts): html[data-accent] picks the accent and the
+   console's top bar, each in a light and a dark version. !important: a theme the viewer picked
+   wins over the white label's primary colour (set inline by branding.tsx); 'default' (no
+   attribute) keeps the site's colour and the navy bar. Button text on every light accent has at
+   least 4.5:1 contrast. */
+
+/* the console top bar in tokens (defaults: the navy bar) */
+:root { --bar-bg: var(--head); --bar-text: var(--head-text); --bar-muted: var(--head-muted); --bar-line: rgba(255, 255, 255, .16);
+  --bar-hover: rgba(255, 255, 255, .08); --bar-vi: #2FD4C4; }
+.app-console .topbar { background: var(--bar-bg); color: var(--bar-text); border-bottom-color: var(--bar-line);
+  --head-text: var(--bar-text); --head-muted: var(--bar-muted); }
+.app-console .tb-brand, .app-console .tb-brand .brand-product { color: var(--bar-text); }
+.app-console .tb-brand .brand-vi { color: var(--bar-vi); }
+.app-console .tb-context { border-left-color: var(--bar-line); }
+.app-console .tb-link { border-color: var(--bar-line); color: var(--bar-text); }
+.app-console .tb-link:hover, .app-console .tb-icon:hover, .app-console .tb-user-btn:hover { background: var(--bar-hover); color: var(--bar-text); }
+.app-console .tb-icon { color: var(--bar-muted); }
+
+/* blue */
+:root[data-accent="blue"] { --accent: #5B9BFF !important; --accent-hover: #7DB0FF !important; --accent-soft: #16284A !important;
+  --accent-ring: rgba(91, 155, 255, 0.35) !important; --on-accent: #0B1530 !important; --bar-vi: #5B9BFF; }
+:root[data-theme="light"][data-accent="blue"] { --accent: #1F6FEB !important; --accent-hover: #1A5CC8 !important; --accent-soft: #E8F1FE !important;
+  --accent-ring: rgba(31, 111, 235, 0.25) !important; --on-accent: #FFFFFF !important; --bar-bg: #FFFFFF; --bar-text: #101828; --bar-muted: #475467; --bar-line: #E4E8EF; --bar-hover: rgba(15, 24, 44, .06); --bar-vi: #1F6FEB; }
+
+/* mint */
+:root[data-accent="mint"] { --accent: #2DD4BF !important; --accent-hover: #5EEAD4 !important; --accent-soft: #11352F !important;
+  --accent-ring: rgba(45, 212, 191, 0.35) !important; --on-accent: #062A26 !important; --bar-vi: #2DD4BF; }
+:root[data-theme="light"][data-accent="mint"] { --accent: #0E9384 !important; --accent-hover: #0B7A6E !important; --accent-soft: #E3F7F3 !important;
+  --accent-ring: rgba(14, 147, 132, 0.25) !important; --on-accent: #FFFFFF !important; --bar-bg: #FFFFFF; --bar-text: #101828; --bar-muted: #475467; --bar-line: #E4E8EF; --bar-hover: rgba(15, 24, 44, .06); --bar-vi: #0E9384; }
+
+/* indigo */
+:root[data-accent="indigo"] { --accent: #818CF8 !important; --accent-hover: #A5B4FC !important; --accent-soft: #23214F !important;
+  --accent-ring: rgba(129, 140, 248, 0.35) !important; --on-accent: #14123A !important; --bar-vi: #818CF8; }
+:root[data-theme="light"][data-accent="indigo"] { --accent: #4F46E5 !important; --accent-hover: #4338CA !important; --accent-soft: #EEEEFC !important;
+  --accent-ring: rgba(79, 70, 229, 0.25) !important; --on-accent: #FFFFFF !important; --bar-bg: #4F46E5; --bar-text: #FFFFFF; --bar-muted: rgba(255, 255, 255, .78); --bar-line: rgba(255, 255, 255, .22); --bar-hover: rgba(255, 255, 255, .14); --bar-vi: #C7D2FE; }
+
+/* violet */
+:root[data-accent="violet"] { --accent: #A78BFA !important; --accent-hover: #C4B5FD !important; --accent-soft: #2A1F4D !important;
+  --accent-ring: rgba(167, 139, 250, 0.35) !important; --on-accent: #1A0F33 !important; --bar-vi: #A78BFA; }
+:root[data-theme="light"][data-accent="violet"] { --accent: #7C3AED !important; --accent-hover: #6D28D9 !important; --accent-soft: #F3EDFE !important;
+  --accent-ring: rgba(124, 58, 237, 0.25) !important; --on-accent: #FFFFFF !important; --bar-bg: #FFFFFF; --bar-text: #101828; --bar-muted: #475467; --bar-line: #E4E8EF; --bar-hover: rgba(15, 24, 44, .06); --bar-vi: #7C3AED; }
+
+/* rose */
+:root[data-accent="rose"] { --accent: #FB7FA6 !important; --accent-hover: #FDA4C1 !important; --accent-soft: #3E1626 !important;
+  --accent-ring: rgba(251, 127, 166, 0.35) !important; --on-accent: #2A0A16 !important; --bar-vi: #FB7FA6; }
+:root[data-theme="light"][data-accent="rose"] { --accent: #C8235E !important; --accent-hover: #A81D4F !important; --accent-soft: #FDECF2 !important;
+  --accent-ring: rgba(200, 35, 94, 0.25) !important; --on-accent: #FFFFFF !important; --bar-bg: #FFFFFF; --bar-text: #101828; --bar-muted: #475467; --bar-line: #E4E8EF; --bar-hover: rgba(15, 24, 44, .06); --bar-vi: #C8235E; }
+
+/* orange */
+:root[data-accent="orange"] { --accent: #FB923C !important; --accent-hover: #FDBA74 !important; --accent-soft: #3A2212 !important;
+  --accent-ring: rgba(251, 146, 60, 0.35) !important; --on-accent: #2B1404 !important; --bar-vi: #FB923C; }
+:root[data-theme="light"][data-accent="orange"] { --accent: #C2410C !important; --accent-hover: #9A3412 !important; --accent-soft: #FFF1E8 !important;
+  --accent-ring: rgba(194, 65, 12, 0.25) !important; --on-accent: #FFFFFF !important; --bar-bg: #FFFFFF; --bar-text: #101828; --bar-muted: #475467; --bar-line: #E4E8EF; --bar-hover: rgba(15, 24, 44, .06); --bar-vi: #C2410C; }
+
+/* green */
+:root[data-accent="green"] { --accent: #4ADE80 !important; --accent-hover: #86EFAC !important; --accent-soft: #123220 !important;
+  --accent-ring: rgba(74, 222, 128, 0.35) !important; --on-accent: #052E16 !important; --bar-vi: #4ADE80; }
+:root[data-theme="light"][data-accent="green"] { --accent: #15803D !important; --accent-hover: #166534 !important; --accent-soft: #E8F6EC !important;
+  --accent-ring: rgba(21, 128, 61, 0.25) !important; --on-accent: #FFFFFF !important; --bar-bg: #FFFFFF; --bar-text: #101828; --bar-muted: #475467; --bar-line: #E4E8EF; --bar-hover: rgba(15, 24, 44, .06); --bar-vi: #15803D; }
+
+/* graphite */
+:root[data-accent="graphite"] { --accent: #CBD5E1 !important; --accent-hover: #E2E8F0 !important; --accent-soft: #243149 !important;
+  --accent-ring: rgba(203, 213, 225, 0.35) !important; --on-accent: #0F172A !important; --bar-vi: #CBD5E1; }
+:root[data-theme="light"][data-accent="graphite"] { --accent: #334155 !important; --accent-hover: #1E293B !important; --accent-soft: #EEF1F5 !important;
+  --accent-ring: rgba(51, 65, 85, 0.25) !important; --on-accent: #FFFFFF !important; --bar-bg: #FFFFFF; --bar-text: #101828; --bar-muted: #475467; --bar-line: #E4E8EF; --bar-hover: rgba(15, 24, 44, .06); --bar-vi: #334155; }
+
+/* the picker in the user menu: a swatch each, the top half shows the theme's bar */
+.color-row { display: grid; grid-template-columns: repeat(9, 1fr); gap: .3rem; padding: .3rem .6rem .5rem; }
+.color-row button { padding: 2px; border: 2px solid transparent; border-radius: 8px; background: none; cursor: pointer; line-height: 0; }
+.color-row button.on { border-color: var(--accent); }
+.color-row button:focus-visible { outline: 2px solid var(--accent-ring); outline-offset: 1px; }
+.color-sw { position: relative; display: block; width: 100%; aspect-ratio: 1; border-radius: 5px; overflow: hidden; }
+.color-bar { position: absolute; left: 0; right: 0; top: 0; height: 34%; border-bottom: 1px solid rgba(15, 24, 44, .12); }
+.tb-menu { min-width: 260px; }

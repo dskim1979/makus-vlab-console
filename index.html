@@ -12,6 +12,8 @@
         if (p === "system") p = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
         else if (p !== "light" && p !== "dark") p = "light";   // light by default: the bright MOAVI Desk look
         document.documentElement.dataset.theme = p;
+        var c = localStorage.getItem("moavi-color");   // the colour theme (src/theme.ts)
+        if (c && /^(?:blue|mint|indigo|violet|rose|orange|green|graphite)$/.test(c)) document.documentElement.dataset.accent = c;
         var b = localStorage.getItem("moavi-backdrop");
         if (b && /^(?:[1-6]|moavi)$/.test(b)) document.documentElement.style.setProperty("--backdrop", 'url("/backgrounds/' + b + '.jpg")');
       } catch (e) {}
