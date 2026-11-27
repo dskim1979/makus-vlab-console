@@ -101,6 +101,7 @@ export function ReclaimPage() {
               <li>{L('오래된 스냅숏: 기준 기간보다 오래된 스냅숏. 초기화 기준 스냅숏은 나오지 않습니다. PVE는 크기를 알려 주지 않습니다.',
                 'Old snapshot: older than the window. Base snapshots are never listed. PVE does not report their size.')}</li>
               <li>{L('유휴 카드: 거의 안 쓰는 대여 카드(가속 자원 > 대여의 회수 규칙).', 'Idle card: a loaned card hardly used (the reclaim rule of card loans).')}</li>
+              <li>{L('확인이 필요한 풀 밖 VM은 합계에 넣지 않습니다. 서비스 서버라면 제외하세요.', 'VMs in no pool to check are not in the totals. Keep (제외) service servers.')}</li>
               <li>{L('합계는 VM마다 한 번만 셉니다. "더 둘 수 있는 데스크톱"은 돌려받은 vCPU와 메모리에 데스크톱 표준 사양(중앙값)이 몇 대 들어가는지입니다.',
                 'Totals count a VM once. "More desktops" is how many of the typical (median) desktop fit in the freed vCPU and memory.')}</li>
               <li>{L('적용은 항목 하나씩, 기존 기능으로 실행되고 작업 기록(감사)에 남습니다. 삭제는 이름을 다시 입력해야 합니다.',
@@ -181,7 +182,7 @@ type Lx = (ko: string, en: string) => string;
 function Tiles({ d, L }: { d: ReclaimReport; L: Lx }) {
   const t = d.totals;
   const tiles = [
-    { label: 'vCPU', value: t.vcpu, sub: L(`${t.items}건 기준`, `from ${t.items} items`) },
+    { label: 'vCPU', value: t.vcpu, sub: t.review ? L(`확인 필요 ${t.review}건은 뺌`, `${t.review} to check not counted`) : L(`${t.items}건 기준`, `from ${t.items} items`) },
     { label: L('메모리', 'Memory'), value: `${t.ram_gb} GB`, sub: '' },
     { label: L('디스크', 'Disk'), value: `${t.disk_gb} GB`, sub: t.snapshots ? L(`스냅숏 ${t.snapshots}개 별도`, `+ ${t.snapshots} snapshots`) : '' },
     { label: L('가속 카드', 'Cards'), value: t.cards, sub: t.seats ? L(`배정 데스크톱 ${t.seats}대`, `${t.seats} desktops to reassign`) : '' },
