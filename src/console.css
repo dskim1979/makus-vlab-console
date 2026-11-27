@@ -247,3 +247,55 @@ input[type=checkbox], input[type=radio] { width: 16px; height: 16px; }
 .dw-run { padding-bottom: 1rem; }
 .dw-run .form-actions { position: static; margin: 0; padding: 0; border: 0; background: none; }
 @media (max-width: 760px) { .dw-access { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- clean pass: colour on text, dots, lines and the main button only; fills stay white or gray ----------
+   (pastel fills on every badge, chip, menu and banner made the console look washed out) */
+/* status: a dot and a coloured word, no tinted pill */
+.st-badge { background: transparent !important; padding: 0; height: auto; font-weight: 600; }
+.vt-st { background: transparent !important; padding: 0; height: auto; line-height: 1.4; display: inline-flex; align-items: center; gap: .35rem; }
+.vt-st[class*="vt-st-"]::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.vt-st:not([class*="vt-st-"]) { padding: 0 .45rem; border: 1px solid var(--border-strong); border-radius: 4px; color: var(--muted); }
+.vt-st-running { color: var(--ok); }
+/* kinds and tags: gray outline, the hue only in a dot */
+.chip, .badge, .pill, .tag { background: transparent; border: 1px solid var(--border-strong); color: var(--text-2); }
+.chip-accent, .chip-on { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); background: transparent; }
+.chip-warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, var(--border)); background: transparent; }
+.chip-off, .chip-danger { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); background: transparent; }
+.chip-base, .chip-ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 45%, var(--border)); background: transparent; }
+.chip-info { color: var(--info); border-color: color-mix(in srgb, var(--info) 45%, var(--border)); background: transparent; }
+.pt-type[class*="pt-"], .ut-src, .th-kind { background: transparent !important; color: var(--text-2) !important; border: 1px solid var(--border-strong); line-height: 18px; }
+.pt-type[class*="pt-"]::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: .35rem; border-radius: 50%; background: var(--c, var(--subtle)); vertical-align: 1px; }
+.ut-src-ad::before, .ut-src-ext::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: .35rem; border-radius: 50%; vertical-align: 1px; }
+.ut-src-ad::before { background: var(--tile-blue); } .ut-src-ext::before { background: var(--tile-violet); }
+.ut-avatar { background: var(--surface-3); color: var(--text-2); }
+.th-ver { background: transparent; border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border)); }
+/* navigation: gray selection with an accent line, accent text */
+.nav-item.active { background: var(--surface-3); color: var(--text); }
+.nav-item.active svg { color: var(--accent); }
+.sidebar-sub a.active { background: transparent; color: var(--accent); font-weight: 650; }
+.hub-nav a.on { background: var(--surface-3); color: var(--text); box-shadow: inset 2px 0 0 var(--accent); }
+.tb-menu .theme-row button.on { background: var(--surface-3); }
+.seg button.on, .segmented button.on, .cv-range button.on { color: var(--accent); }
+/* picked rows and the selection bar */
+.vt-table tbody tr.vt-picked td { background: var(--row-hover); }
+.vt-selbar { background: var(--surface); border-color: var(--border); box-shadow: inset 3px 0 0 var(--accent); }
+/* cards picked in forms: an accent border, no fill */
+.choice.on, .pick.on, .mode-card.on { background: var(--surface); }
+.gs-steps li.next { background: var(--surface); }
+.gs-steps li { background: var(--surface); }
+/* notices and the attention line: white with a coloured edge and a coloured label */
+.notice-bar, .notice-bar.notice-warning, .notice-bar.notice-critical { background: var(--surface); color: var(--text); box-shadow: inset 3px 0 0 currentColor; }
+.notice-bar.notice-info { color: var(--info); }
+.notice-bar.notice-warning { color: var(--warn); }
+.notice-bar.notice-critical { color: var(--danger); }
+.notice-bar .notice-text { color: var(--text); }
+.notice-kind { background: transparent !important; border: 1px solid currentColor; }
+.attn { background: var(--surface); border-color: var(--border); box-shadow: inset 3px 0 0 var(--warn); }
+.attn-ok { box-shadow: inset 3px 0 0 var(--ok); }
+.alert { background: var(--surface); color: var(--text); border-color: var(--border); box-shadow: inset 3px 0 0 var(--warn); }
+.alert.error { background: var(--surface); color: var(--danger); box-shadow: inset 3px 0 0 var(--danger); }
+.alert.info { background: var(--surface); color: var(--text); box-shadow: inset 3px 0 0 var(--info); }
+.callout { background: var(--surface); border-color: var(--border); box-shadow: inset 3px 0 0 var(--accent); }
+/* charts: thin area fills */
+.cv-area { fill: color-mix(in srgb, var(--hue) 7%, transparent); }
+.rs-chip { background: transparent !important; border: 1px solid currentColor; font-weight: 600; }

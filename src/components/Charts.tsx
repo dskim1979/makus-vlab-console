@@ -68,7 +68,7 @@ export function TimeSeries({ series, height = 200, unit = '', max, area = false,
           <defs>
             {series.map((s, i) => (
               <linearGradient key={i} id={`${gid}-${i}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0" stopColor={s.color} stopOpacity=".28" /><stop offset="1" stopColor={s.color} stopOpacity="0" />
+                <stop offset="0" stopColor={s.color} stopOpacity=".12" /><stop offset="1" stopColor={s.color} stopOpacity="0" />
               </linearGradient>
             ))}
           </defs>
@@ -136,7 +136,7 @@ export function Sparkline({ points, color, max }: { points: number[]; color: str
   const d = points.map((v, i) => `${i ? 'L' : 'M'}${((i / (points.length - 1)) * w).toFixed(1)},${(h - (Math.min(v, top) / top) * (h - 2) - 1).toFixed(1)}`).join('');
   return (
     <svg className="spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">
-      <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={color} stopOpacity=".3" /><stop offset="1" stopColor={color} stopOpacity="0" /></linearGradient></defs>
+      <defs><linearGradient id={gid} x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={color} stopOpacity=".12" /><stop offset="1" stopColor={color} stopOpacity="0" /></linearGradient></defs>
       <path d={`${d}L${w},${h}L0,${h}Z`} fill={`url(#${gid})`} />
       <path d={d} fill="none" stroke={color} strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
     </svg>

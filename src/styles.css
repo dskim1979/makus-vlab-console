@@ -85,7 +85,7 @@
   --subtle: #5D6B82;
   --accent: #0B7373;
   --accent-hover: #095E5E;
-  --accent-soft: #E1F2F2;
+  --accent-soft: #EEF6F6;
   --accent-ring: rgba(11, 115, 115, .25);
   --on-accent: #FFFFFF;
   --accent-2: #2A78D6;
@@ -117,7 +117,7 @@
     --subtle: #5D6B82;
     --accent: #0B7373;
     --accent-hover: #095E5E;
-    --accent-soft: #E1F2F2;
+    --accent-soft: #EEF6F6;
     --accent-ring: rgba(11, 115, 115, .25);
     --on-accent: #FFFFFF;
     --accent-2: #2A78D6;
@@ -659,7 +659,7 @@ fieldset.choices legend { font-size: var(--fs-sm); font-weight: 550; margin-bott
   --subtle: #5D6B82;
   --accent: #0B7373;
   --accent-hover: #095E5E;
-  --accent-soft: #E1F2F2;
+  --accent-soft: #EEF6F6;
   --accent-ring: rgba(11, 115, 115, .25);
   --on-accent: #FFFFFF;
   --accent-2: #2A78D6;
