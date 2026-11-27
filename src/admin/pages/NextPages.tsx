@@ -98,7 +98,7 @@ export function GoldenImagesPage() {
                   </dl>
                   {g.notes && <p className="muted small lab-desc">{g.notes}</p>}
                   {(envOf(g.id)?.highlights.length ?? 0) > 0 && (
-                    <Link className="chip-row env-highlights" to="/admin/vms/environments" title={L('환경 카탈로그에서 보기', 'Open in the environment catalogue')}>
+                    <Link className="chip-row env-highlights" to="/admin/images/templates/environments" title={L('환경 카탈로그에서 보기', 'Open in the environment catalogue')}>
                       {envOf(g.id)!.highlights.map((h) => <span key={h} className="chip chip-accent">{h}</span>)}
                     </Link>
                   )}

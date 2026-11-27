@@ -13,7 +13,7 @@ export function StatTiles({ s }: { s: Summary }) {
   const tiles: { icon: IconName; label: string; value: number; sub: string; to: string }[] = [
     { icon: 'cluster', label: t('sum.clusters'), value: s.clusters.total, sub: fill(t('sum.connectedOf'), s.clusters.connected), to: '/admin/cluster/connections' },
     { icon: 'pool', label: t('sum.pools'), value: s.pools.total, sub: '', to: '/admin/pools/list' },
-    { icon: 'vm', label: t('sum.desktops'), value: s.desktops.total, sub: fill(t('sum.assignedOf'), s.desktops.assigned), to: '/admin/pools/status' },
+    { icon: 'vm', label: t('sum.desktops'), value: s.desktops.total, sub: fill(t('sum.assignedOf'), s.desktops.assigned), to: '/admin/pools/vms/status' },
     { icon: 'globe', label: t('sum.inSession'), value: s.desktops.in_session, sub: fill(t('sum.sessionsToday'), s.sessions_today), to: '/admin/ops/sessions' },
     { icon: 'users', label: t('sum.users'), value: s.users.total, sub: fill(t('sum.enabledOf'), s.users.enabled), to: '/admin/users/list' },
   ];

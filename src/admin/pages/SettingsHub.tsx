@@ -39,10 +39,10 @@ export function SettingsHub({ tab }: { tab?: string }) {
   const { on } = useFeatures();
   const tabs = TABS.filter((x) => x.id !== 'pair' || on('ha'));
   const current = tabs.find((x) => x.id === tab)?.id;
-  if (tab && !current) return <Navigate to="/admin/ops/settings" replace />;
+  if (tab && !current) return <Navigate to="/admin/settings/platform" replace />;
   const id = current ?? 'general';
   const link = (x: { id: string; key: MessageKey }) => (
-    <NavLink key={x.id} to={x.id === 'general' ? '/admin/ops/settings' : `/admin/ops/settings/${x.id}`} end
+    <NavLink key={x.id} to={x.id === 'general' ? '/admin/settings/platform' : `/admin/settings/platform/${x.id}`} end
       className={({ isActive }) => (isActive || (x.id === 'general' && !tab) ? 'on' : '')}>
       {t(x.key)}
     </NavLink>

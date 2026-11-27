@@ -374,7 +374,7 @@ function NodeDetail({ cluster, node: n, reload, onBack }: { cluster: Cluster; no
                     <tr key={g.vmid}>
                       <td className="vd-num">{g.vmid}</td><td>{g.name}</td><td className="small">{g.type === 'qemu' ? 'VM' : 'LXC'}</td>
                       <td><span className={`vt-st ${g.status === 'running' ? 'vt-st-running' : ''}`}>{g.status === 'running' ? L('실행 중', 'Running') : g.status === 'stopped' ? L('꺼짐', 'Stopped') : g.status}</span></td>
-                      <td className="vt-actions">{g.desktop_id && <Link className="vt-link" to={`/admin/vms/desktops/list?vm=${encodeURIComponent(g.desktop_id)}`}>{L('관리', 'Manage')}</Link>}</td>
+                      <td className="vt-actions">{g.desktop_id && <Link className="vt-link" to={`/admin/pools/vms/list?vm=${encodeURIComponent(g.desktop_id)}`}>{L('관리', 'Manage')}</Link>}</td>
                     </tr>
                   ))}</tbody>
                 </table>

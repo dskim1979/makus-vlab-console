@@ -22,7 +22,7 @@ const RANGES: { id: InfraRange; key: MessageKey }[] = [
 const REFRESH_MS = 30_000;
 
 export function InfraBoard({ s, onRefresh }: { s: Summary; onRefresh: () => void }) {
-  const { t } = useI18n();
+  const { t, pick: tr } = useI18n();
   const { list, current, pick } = useCluster();
   const [range, setRange] = useState<InfraRange>('24h');
   const [auto, setAuto] = useState(true);
@@ -55,7 +55,7 @@ export function InfraBoard({ s, onRefresh }: { s: Summary; onRefresh: () => void
           </div>
           <label className="check-inline small"><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} />{t('inf.auto')}</label>
           <button type="button" className="btn" onClick={refresh} aria-label={t('common.refresh')} title={t('common.refresh')}><Icon name="refresh" size={16} /></button>
-          <Link to="/admin/pools/list" className="btn primary"><Icon name="plus" size={16} />{t('dash.qPool')}</Link>
+          <Link to="/admin/pools/deploy" className="btn primary"><Icon name="plus" size={16} />{tr({ ko: '데스크톱 배포', en: 'Deploy desktops' })}</Link>
         </div>
       </header>
       {!list.length ? <Strip s={s} /> : (
@@ -105,7 +105,7 @@ function Strip({ s, d }: { s: Summary; d?: Infra }) {
       <KCell label={t('inf.sessionsNow')} to="/admin/ops/sessions" value={String(nowSessions)}
         sub={t('sum.sessionsToday').replace('{n}', String(s.sessions_today))}
         spark={d?.sessions.map((p) => p.sessions)} color={SERIES[0]} />
-      <KCell label={t('sum.desktops')} to="/admin/pools/status" value={String(s.desktops.total)}
+      <KCell label={t('sum.desktops')} to="/admin/pools/vms/status" value={String(s.desktops.total)}
         sub={`${t('sum.assignedOf').replace('{n}', String(s.desktops.assigned))} · ${t('dash.pools').replace('{n}', String(s.pools.total))}`} />
       <KCell label={t('sum.users')} to="/admin/users/list" value={String(s.users.total)} sub={t('sum.enabledOf').replace('{n}', String(s.users.enabled))} />
       {d && (

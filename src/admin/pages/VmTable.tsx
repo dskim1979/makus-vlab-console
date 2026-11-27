@@ -200,7 +200,7 @@ function VmList({ onOpen }: { onOpen: (id: string) => void }) {
   return (
     <>
       <PageActions>
-        <button type="button" className="btn primary" onClick={() => navigate('/admin/vms/create')}><Icon name="plus" size={16} />{L('VM 만들기', 'Create VM')}</button>
+        <button type="button" className="btn primary" onClick={() => navigate('/admin/images/build/create')}><Icon name="plus" size={16} />{L('VM 만들기', 'Create VM')}</button>
       </PageActions>
       <div className="vt-bar">
         <div className="vt-row">

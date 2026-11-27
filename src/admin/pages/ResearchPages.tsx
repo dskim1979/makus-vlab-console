@@ -201,7 +201,7 @@ function QueueSettingsDialog({ initial, onClose, onSaved }: { initial: GpuSettin
       </div>
       <label className="check"><input type="checkbox" checked={s.mail} onChange={(e) => setS({ ...s, mail: e.target.checked })} /><span>{L('작업이 끝나면 요청한 사용자에게 메일 (계정의 메일 주소, 플랫폼 설정의 SMTP)', 'Mail the owner when a job ends, when they asked (account address, platform SMTP)')}</span></label>
       <label><span>{L('웹훅 채널 ID (쉼표로)', 'Webhook channel ids (comma separated)')}</span><input id="qs-ch" value={channels} placeholder="ch_slack, ch_teams" onChange={(e) => setChannels(e.target.value)} />
-        <small className="muted">{L('운영 > 경보 > 알림 채널의 ID. 사용자가 "웹훅 알림"을 고른 작업만 보냅니다.', 'Ids from 운영 > 경보 > channels. Only jobs whose owner asked for it.')}</small></label>
+        <small className="muted">{L('모니터링 > 경보 > 알림 채널의 ID. 사용자가 "웹훅 알림"을 고른 작업만 보냅니다.', 'Ids from 모니터링 > 경보 > channels. Only jobs whose owner asked for it.')}</small></label>
       <h3>{L('사용자 개인 알림 (메일)', 'Notices to each user (mail)')}</h3>
       <p className="muted small">{L('사용자는 내 계정 > 알림에서 끌 수 있습니다.', 'Users can turn these off in 내 계정 > 알림.')}</p>
       <div className="form-row">
@@ -218,7 +218,7 @@ function QueueSettingsDialog({ initial, onClose, onSaved }: { initial: GpuSettin
       <label className="check"><input id="qs-hook" type="checkbox" {...flag('notice_webhook')} /><span>{L('위 알림을 웹훅 채널에도 보내기', 'Post these notices to the webhook channels too')}</span></label>
       <h3>{L('관리자 경보', 'Alerts to administrators')}</h3>
       <label><span>{L('GPU 작업이 이만큼 기다리면 경보 (시간)', 'Alert when a GPU job waits this long (h)')}</span><input id="qs-late" type="number" min={0} max={168} value={s.queue_alert_hours} onChange={(e) => num('queue_alert_hours', e.target.value)} />
-        <small className="muted">{L('작업마다 한 번, 운영 > 경보의 채널과 경보 메일 수신자에게. 0 = 끔', 'Once per job, to the alert channels and alert mail recipients. 0 = off')}</small></label>
+        <small className="muted">{L('작업마다 한 번, 모니터링 > 경보의 채널과 경보 메일 수신자에게. 0 = 끔', 'Once per job, to the alert channels and alert mail recipients. 0 = off')}</small></label>
     </Dialog>
   );
 }

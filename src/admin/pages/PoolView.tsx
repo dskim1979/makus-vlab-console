@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { adminApi } from '../../api/admin';
 import { directoryApi, type DomainJoin } from '../../api/directory';
 import { nextApi, type Grant, type GrantType } from '../../api/next';
@@ -27,7 +27,8 @@ import { useAdminConsole } from './VmManage';
 // the recent connections and audit entries below; policy, storage, domain join and GPU under 설정.
 
 type Notice = { kind: 'info' | 'error'; text: string };
-type View = 'desktops' | 'settings';
+type View = 'desktops' | 'access' | 'policy' | 'logs';
+const VIEWS: View[] = ['desktops', 'access', 'policy', 'logs'];
 
 export function PoolDetailPage({ poolId }: { poolId: string }) {
   const { t, pick } = useI18n();
@@ -42,7 +43,10 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
     adminApi.directory().then((d) => !!d.ldap_enabled).catch(() => false),
   ]).then(([a, b]) => a || b));
   const sessions = useLoad(useCallback(() => adminApi.sessions({ pool_id: poolId, limit: 200 }).catch(() => []), [poolId]), [poolId]);
-  const [view, setView] = useState<View>('desktops');
+  const [params, setParams] = useSearchParams();
+  const asked = params.get('tab') as View | null;
+  const view: View = asked && VIEWS.includes(asked) ? asked : 'desktops';
+  const setView = (v: View) => setParams((p) => { const n = new URLSearchParams(p); if (v === 'desktops') n.delete('tab'); else n.set('tab', v); return n; }, { replace: true });
   const [notice, setNotice] = useState<Notice | null>(null);
   const [joinRows, setJoinRows] = useState<Record<string, DomainJoin>>({});
   const [dlg, setDlg] = useState<null | 'clone' | 'add' | 'edit' | GrantType>(null);
@@ -120,13 +124,14 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
       )}
 
       <nav className="page-tabs vd-tabs" role="tablist">
-        {([['desktops', L('데스크톱 · 권한', 'Desktops · access')], ['settings', L('설정', 'Settings')]] as [View, string][]).map(([id, label]) => (
+        {([['desktops', L(`데스크톱 ${list.length}`, `Desktops ${list.length}`)], ['access', L('권한', 'Access') + (grants.state === 'ok' ? ` ${grants.data.grants.length}` : '')],
+          ['policy', L('정책', 'Policy')], ['logs', L('기록', 'Logs')]] as [View, string][]).map(([id, label]) => (
           <a key={id} href="#" role="tab" aria-selected={view === id} className={view === id ? 'on' : ''} onClick={(e) => { e.preventDefault(); setView(id); }}>{label}</a>
         ))}
       </nav>
       {notice && <div className={`alert small ${notice.kind === 'error' ? 'error' : 'info'}`} role="status">{notice.text}</div>}
 
-      {view === 'settings' && pool && (
+      {view === 'policy' && pool && (
         <div className="vd-body">
           <PoolPolicyPanel pool={pool} onChanged={pools.reload} />
           <PoolNetIsoPanel pool={pool} />
@@ -148,30 +153,34 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
                 </>
               )}
             </Drop>
-            <span className="pv-sep" aria-hidden="true" />
-            <button type="button" className="btn" disabled={grants.state !== 'ok'} onClick={() => setDlg('user')}><Icon name="users" size={16} />{L('사용자 추가', 'Add users')}</button>
-            <button type="button" className="btn" disabled={grants.state !== 'ok'} onClick={() => setDlg('department')}>{L('부서 추가', 'Add department')}</button>
-            {dirOn.state === 'ok' && dirOn.data && <button type="button" className="btn" disabled={grants.state !== 'ok'} onClick={() => setDlg('group')}>{L('그룹 추가', 'Add group')}</button>}
             <span className="vt-create vt-btns">
               {resettable && <button type="button" className="btn" onClick={resetAll}>{t('reset.pool')}</button>}
               {missing > 0 && <button type="button" className="btn danger" onClick={prune}>{t('desk.prune').replace('{n}', String(missing))}</button>}
             </span>
           </div>
 
-          <div className="pv-split">
-            <Desktops pool={pool} list={list} loaded={desks} usage={usage} joinRows={joinRows} sessions={sessions.state === 'ok' ? sessions.data : []}
-              maxSessions={grants.state === 'ok' ? grants.data.max_sessions : null} users={users.state === 'ok' ? users.data : []}
-              onConsole={(d) => adminConsole.start({ id: d.id, name: d.name })}
-              onAct={run} />
-            <Grants pool={pool} loaded={grants} onRemove={(g, label) => {
-              if (grants.state !== 'ok' || !window.confirm(L(`'${label}'의 이용 권한을 뺄까요?`, `Remove access of '${label}'?`))) return;
-              void saveGrants(grants.data.grants.filter((x) => !(x.subject_type === g.subject_type && x.subject_id === g.subject_id)), L(`'${label}'을(를) 뺐습니다.`, `Removed '${label}'.`));
-            }} />
-          </div>
-
-          <Logs pool={pool} sessions={sessions} />
+          <Desktops pool={pool} list={list} loaded={desks} usage={usage} joinRows={joinRows} sessions={sessions.state === 'ok' ? sessions.data : []}
+            maxSessions={grants.state === 'ok' ? grants.data.max_sessions : null} users={users.state === 'ok' ? users.data : []}
+            onConsole={(d) => adminConsole.start({ id: d.id, name: d.name })}
+            onAct={run} />
         </>
       )}
+
+      {view === 'access' && pool && (
+        <>
+          <div className="vt-row pv-toolbar">
+            <button type="button" className="btn primary" disabled={grants.state !== 'ok'} onClick={() => setDlg('user')}><Icon name="users" size={16} />{L('사용자 추가', 'Add users')}</button>
+            <button type="button" className="btn" disabled={grants.state !== 'ok'} onClick={() => setDlg('department')}>{L('부서 추가', 'Add department')}</button>
+            {dirOn.state === 'ok' && dirOn.data && <button type="button" className="btn" disabled={grants.state !== 'ok'} onClick={() => setDlg('group')}>{L('그룹 추가', 'Add group')}</button>}
+          </div>
+          <Grants pool={pool} loaded={grants} onRemove={(g, label) => {
+            if (grants.state !== 'ok' || !window.confirm(L(`'${label}'의 이용 권한을 뺄까요?`, `Remove access of '${label}'?`))) return;
+            void saveGrants(grants.data.grants.filter((x) => !(x.subject_type === g.subject_type && x.subject_id === g.subject_id)), L(`'${label}'을(를) 뺐습니다.`, `Removed '${label}'.`));
+          }} />
+        </>
+      )}
+
+      {view === 'logs' && pool && <Logs pool={pool} sessions={sessions} />}
       <JoinStates poolId={poolId} tick={desks.state} onRows={setJoinRows} />
 
       {pool && dlg === 'edit' && <PoolEditDialog pool={pool} onClose={() => setDlg(null)} onSaved={() => { setDlg(null); setNotice({ kind: 'info', text: t('pool.saved') }); reload(); }} />}
@@ -243,7 +252,7 @@ function Desktops({ pool, list, loaded, usage, joinRows, sessions, maxSessions, 
                     <tr key={d.id}>
                       <td className="nowrap">
                         <span className="vt-vm-id">{d.vmid}</span> {gone ? <span>{d.name}</span>
-                          : <Link className="strong" to={`/admin/vms/desktops/list?vm=${encodeURIComponent(d.id)}`}>{d.name}</Link>}
+                          : <Link className="strong" to={`/admin/pools/vms/list?vm=${encodeURIComponent(d.id)}`}>{d.name}</Link>}
                         {d.has_base && <span className="vt-st vd-tag" title={t('reset.hasBase')}>{L('기준', 'Base')}</span>}
                         {joinRows[d.id] && <> <JoinChip j={joinRows[d.id]} /></>}
                       </td>
@@ -254,7 +263,7 @@ function Desktops({ pool, list, loaded, usage, joinRows, sessions, maxSessions, 
                       <td className="nowrap">{d.assigned_user ?? <span className="muted">-</span>}</td>
                       <td className="vt-actions">
                         <button type="button" className="vt-link" disabled={!on} title={t('vm.screenHint')} onClick={() => onConsole(d)}>{L('접속', 'Connect')}</button>
-                        {!gone && <Link className="vt-link" to={`/admin/vms/desktops/list?vm=${encodeURIComponent(d.id)}`}>{L('관리', 'Manage')}</Link>}
+                        {!gone && <Link className="vt-link" to={`/admin/pools/vms/list?vm=${encodeURIComponent(d.id)}`}>{L('관리', 'Manage')}</Link>}
                         <Drop className="vt-link" disabled={gone} label={<>{L('배정', 'Assign')}<Caret /></>}>
                           {(close) => <AssignBox d={d} users={users} onDone={(user) => {
                             close();

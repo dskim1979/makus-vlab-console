@@ -107,7 +107,7 @@ function Catalog() {
               ))}
             </div>
             {notice && <div className={`alert small ${notice.kind === 'error' ? 'error' : 'info'}`} role="status">{notice.text}</div>}
-            {list.length === 0 ? <div className="empty"><p>{L('골든 이미지가 없습니다. 가상머신 > 골든 이미지 관리에서 먼저 등록하세요.', 'No golden images yet: add one under Virtual machines > Golden images.')}</p></div>
+            {list.length === 0 ? <div className="empty"><p>{L('골든 이미지가 없습니다. 이미지 > 템플릿에서 먼저 등록하세요.', 'No golden images yet: add one under Images > Templates.')}</p></div>
               : shown.length === 0 ? <div className="empty"><p>{L('조건에 맞는 환경이 없습니다.', 'No environment matches.')}</p></div> : (
               <div className="lab-grid">
                 {shown.map((e) => (

@@ -112,7 +112,8 @@ export function PoolTablePage() {
   return (
     <>
       <PageActions>
-        <button type="button" className="btn primary" onClick={() => setCreating(true)}><Icon name="plus" size={16} />{L('풀 만들기', 'New pool')}</button>
+        <button type="button" className="btn" onClick={() => setCreating(true)}>{L('빈 풀 만들기', 'Empty pool')}</button>
+        <Link className="btn primary" to="/admin/pools/deploy"><Icon name="plus" size={16} />{L('데스크톱 배포', 'Deploy desktops')}</Link>
       </PageActions>
       <div className="vt-bar">
         <div className="vt-row">
@@ -219,7 +220,7 @@ export function PoolTablePage() {
                                         <td>{x.node}</td>
                                         <td>{x.assigned_user ?? <span className="muted">-</span>}</td>
                                         <td className="vt-actions">{x.state !== 'missing'
-                                          ? <Link className="vt-link" to={`/admin/vms/desktops/list?vm=${encodeURIComponent(x.id)}`}>{L('관리', 'Manage')}</Link>
+                                          ? <Link className="vt-link" to={`/admin/pools/vms/list?vm=${encodeURIComponent(x.id)}`}>{L('관리', 'Manage')}</Link>
                                           : <Link className="vt-link" to={`/admin/pools/list/${p.id}`}>{L('정리하러 가기', 'Clean up')}</Link>}</td>
                                       </tr>
                                     ))}

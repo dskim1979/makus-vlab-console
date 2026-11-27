@@ -147,7 +147,7 @@ function DatasetDialog({ ds, pools, onClose, onDone }: { ds: AdminDataset | null
           'Lets the engine measure it and the portal browse it. Mount it read-only.')}</span></label>
       <h3 className="dialog-sub">{L('어디에 · 누구에게', 'Where and for whom')}</h3>
       <div className="check-row">
-        {withStorage.length === 0 && <span className="muted small">{L('공유 저장소를 켠 풀이 없습니다. 데스크톱 풀 > 정책 > 공유 저장소에서 먼저 켜세요.', 'No pool has shared storage yet - turn it on under the pool\'s policy first.')}</span>}
+        {withStorage.length === 0 && <span className="muted small">{L('공유 저장소를 켠 풀이 없습니다. 데스크톱 > 풀 > 정책 > 공유 저장소에서 먼저 켜세요.', 'No pool has shared storage yet - turn it on under the pool\'s policy first.')}</span>}
         {withStorage.map((p) => (
           <label key={p.id} className="check-inline"><input type="checkbox" checked={v.pool_ids.includes(p.id)}
             onChange={(e) => set('pool_ids', e.target.checked ? [...v.pool_ids, p.id] : v.pool_ids.filter((x) => x !== p.id))} />{p.name}</label>

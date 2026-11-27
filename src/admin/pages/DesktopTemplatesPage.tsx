@@ -83,8 +83,8 @@ function DesktopTemplates({ cluster }: { cluster: Cluster }) {
                       <td><BuildState b={b} /></td>
                       <td className="desktpl-progress">{b.status === 'running' ? <Meter value={b.progress} label={`${b.progress}%`} /> : <span className="muted small">{b.status === 'completed' ? '100%' : `${b.progress}%`}</span>}</td>
                       <td className="actions nowrap">
-                        {b.result.golden_id && <Link className="btn-ghost small-btn" to="/admin/vms/golden">{L('골든 이미지 →', 'Golden image →')}</Link>}
-                        {b.result.template_vmid && <Link className="btn-ghost small-btn" to="/admin/vms/templates">{L('템플릿 →', 'Template →')}</Link>}
+                        {b.result.golden_id && <Link className="btn-ghost small-btn" to="/admin/images/templates/templates">{L('골든 이미지 →', 'Golden image →')}</Link>}
+                        {b.result.template_vmid && <Link className="btn-ghost small-btn" to="/admin/images/templates/templates">{L('템플릿 →', 'Template →')}</Link>}
                         <button type="button" className="btn-ghost small-btn" onClick={() => setLogOf(b.id)}>{L('기록', 'Log')}</button>
                         {(b.status === 'running' || b.status === 'queued') && (
                           <button type="button" className="btn-ghost small-btn danger" onClick={async () => {

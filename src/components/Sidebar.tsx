@@ -36,8 +36,8 @@ export function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () =>
           const list = mods.filter((m) => m.group === g.id);
           if (list.length === 0) return null;
           return (
-            <div key={g.id} className="sidebar-block">
-              <div className="sidebar-section">{pick(g.label)}</div>
+            <div key={g.id} className={`sidebar-block sb-${g.id}`}>
+              {pick(g.label) && <div className="sidebar-section">{pick(g.label)}</div>}
               {list.map((m) => (
                 <div key={m.id} className="sidebar-group">
                   <NavLink to={`/admin/${m.id}/${m.visiblePages[0].id}`} title={pick(m.label)}

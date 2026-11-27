@@ -170,7 +170,7 @@ function IsoLibrary({ cluster }: { cluster: Cluster }) {
             }} />
             <button type="button" className="btn" disabled={!s} onClick={() => setFetching(true)}><Icon name="download" size={16} />{L('URL로 받기', 'Download from URL')}</button>
             <button type="button" className="btn" onClick={() => { storage.reload(); isos.reload(); }}><Icon name="refresh" size={16} />{L('새로 고침', 'Refresh')}</button>
-            <Link className="btn-ghost" to={`/admin/vms/create?c=${encodeURIComponent(cluster.id)}`}>{L('VM 만들기 →', 'Make a VM →')}</Link>
+            <Link className="btn-ghost" to={`/admin/images/build/create?c=${encodeURIComponent(cluster.id)}`}>{L('VM 만들기 →', 'Make a VM →')}</Link>
           </div>
           <NoticeBar notice={notice} />
           {transfers.length > 0 && (
@@ -464,7 +464,7 @@ function VmWizard({ cluster }: { cluster: Cluster }) {
                     'Without the driver ISO the VM uses a slower SATA disk and an e1000e card.')}</p>
                 )}
                 {isoList.length === 0 && isos.state === 'ok' && (
-                  <div className="alert small">{L(`노드 ${node}에서 쓸 수 있는 ISO가 없습니다.`, `Node ${node} sees no ISOs.`)} <Link to={`/admin/vms/isos?c=${encodeURIComponent(cid)}`}>{L('ISO 올리기 →', 'Upload one →')}</Link></div>
+                  <div className="alert small">{L(`노드 ${node}에서 쓸 수 있는 ISO가 없습니다.`, `Node ${node} sees no ISOs.`)} <Link to={`/admin/images/build/isos?c=${encodeURIComponent(cid)}`}>{L('ISO 올리기 →', 'Upload one →')}</Link></div>
                 )}
               </div>
             )}
@@ -642,9 +642,9 @@ function AfterCreate({ cluster, vm, onAnother }: { cluster: Cluster; vm: Created
           <span className="muted small">{L('템플릿은 빠른 연결 복제용, 골든 이미지는 버전 배포용입니다.',
             'Template: fast linked clones. Golden image: versions you deploy.')}</span>
           <span className="build-actions">
-            {templated ? <Link className="btn small-btn" to={`/admin/vms/templates?c=${encodeURIComponent(cluster.id)}`}>{L('템플릿 관리로 →', 'Go to Templates →')}</Link>
+            {templated ? <Link className="btn small-btn" to={`/admin/images/templates/templates?c=${encodeURIComponent(cluster.id)}`}>{L('템플릿 관리로 →', 'Go to Templates →')}</Link>
               : <button type="button" className="btn small-btn" disabled={busy || done} onClick={toTemplate}>{L('템플릿으로 변환', 'Convert to template')}</button>}
-            {golden ? <Link className="btn small-btn" to="/admin/vms/golden">{L('골든 이미지 관리로 →', 'Go to Golden images →')}</Link>
+            {golden ? <Link className="btn small-btn" to="/admin/images/templates/templates">{L('골든 이미지 관리로 →', 'Go to Golden images →')}</Link>
               : <button type="button" className="btn small-btn" disabled={busy || done} onClick={toGolden}>{L('골든 이미지로 등록', 'Register as golden image')}</button>}
           </span>
         </li>

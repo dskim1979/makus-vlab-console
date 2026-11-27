@@ -267,7 +267,7 @@ function DesksOf({ username }: { username: string }) {
       <LoadState value={a} retry={a.reload}>
         {(x) => x.desktops.length === 0 ? <p className="vt-menu-note">{L('없음', 'None')}</p> : (
           <>{x.desktops.map((d) => (
-            <Link key={d.id} role="menuitem" to={`/admin/vms/desktops/list?vm=${encodeURIComponent(d.id)}`}>
+            <Link key={d.id} role="menuitem" to={`/admin/pools/vms/list?vm=${encodeURIComponent(d.id)}`}>
               <span className="strong">{d.name}</span><span className="muted small">{d.pool} · {d.vmid}</span>
             </Link>
           ))}</>

@@ -75,7 +75,7 @@ export function AdDirectoryPage() {
   if (sources && sources.length === 0) {
     return <div className="empty"><p>{L('연결된 디렉터리가 없습니다.', 'No directory yet.')}</p>
       <details className="small"><summary>{L('자세히', 'Details')}</summary>
-        {L('설치 .env 에 VLAB_DIRECTORY=1 을 넣어 내장 디렉터리를 켜거나, 운영 > 플랫폼 설정 > 도메인 에 기관 AD 를 설정합니다.',
+        {L('설치 .env 에 VLAB_DIRECTORY=1 을 넣어 내장 디렉터리를 켜거나, 설정 > 플랫폼 설정 > 도메인 에 기관 AD 를 설정합니다.',
           'Set VLAB_DIRECTORY=1 in the install .env, or set up your AD under Operations > Platform settings > Domain.')}</details></div>;
   }
   return (
