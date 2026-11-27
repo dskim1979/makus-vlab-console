@@ -20,6 +20,7 @@ const sdnBadge = (s: Segment['sdn'], L: Lx) => (s === 'applied'
   : <span className={`vt-st ${s === 'deleted' ? 'vt-st-missing' : 'vt-st-provisioning'}`}>{s === 'missing' ? L('반영 전', 'Not yet') : s === 'deleted' ? L('삭제 대기', 'Removing') : L('변경 대기', 'Pending')}</span>);
 
 function ZoneDialog({ cid, zone, locked, onClose, onSaved }: { cid: string; zone: NetZone | null; locked: boolean; onClose: () => void; onSaved: () => void }) {
+  const [sure, setSure] = useState(false);
   const { L } = useL();
   const [z, setZ] = useState<NetZone>(zone ?? { zone: 'moavi', type: 'vlan', bridge: 'vmbr0', peers: '', mtu: 0, existing: false });
   const [busy, setBusy] = useState(false);
@@ -28,13 +29,20 @@ function ZoneDialog({ cid, zone, locked, onClose, onSaved }: { cid: string; zone
     setBusy(true); setError(null);
     try { await netsegApi.setZone(cid, { ...z, existing: !!z.existing }); onSaved(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
+  const remove = async () => {
+    if (!sure) { setSure(true); return; }
+    setBusy(true); setError(null);
+    try { await netsegApi.removeZone(cid); onSaved(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
+  };
   const types: [ZoneType, string, string][] = [
     ['vlan', 'VLAN', L('스위치에 VLAN(트렁크)이 있을 때. 가장 일반적입니다.', 'When the switch carries VLANs (trunk). The usual choice.')],
     ['vxlan', 'VXLAN', L('스위치 설정 없이 노드끼리 터널로 묶습니다.', 'Tunnels between the nodes, no switch change.')],
     ['simple', L('단일 노드', 'Simple'), L('노드 한 대 안에서만. 시험용, DHCP 내장.', 'Inside one node only. For trials, DHCP built in.')],
   ];
   return (
-    <Dialog open title={L('SDN 영역 설정', 'SDN zone')} onClose={onClose} onSubmit={save} submitLabel={L('저장', 'Save')} busy={busy} error={error} wide>
+    <Dialog open title={L('SDN 영역 설정', 'SDN zone')} onClose={onClose} onSubmit={save} submitLabel={L('저장', 'Save')} busy={busy} error={error} wide
+      extra={zone && !locked ? <button type="button" className={`btn${sure ? ' danger' : ''}`} onClick={remove} disabled={busy}>
+        {sure ? L('영역 삭제 — 확인', 'Delete zone - confirm') : L('영역 삭제', 'Delete zone')}</button> : undefined}>
       {locked && <div className="alert small info">{L('세그먼트가 있는 동안은 영역 이름과 종류를 바꿀 수 없습니다.', 'The zone name and type cannot change while it has segments.')}</div>}
       <label className="check"><input type="checkbox" checked={!!z.existing} disabled={locked} onChange={(e) => setZ({ ...z, existing: e.target.checked })} />
         <span>{L('Proxmox에 이미 있는 영역 사용', 'Use a zone already in Proxmox')}</span></label>
@@ -174,6 +182,10 @@ function SdnBar({ cid, v, reload }: { cid: string; v: ClusterNetSeg; reload: () 
     setBusy(true); setMsg(null);
     try {
       const r = await netsegApi.applySdn(cid);
+      if (r.node_problem) {
+        setMsg({ ok: false, text: L('Proxmox 설정은 적용됐지만 일부 노드에 영역이 만들어지지 않았습니다. 아래 안내를 확인하세요.', 'Applied in Proxmox, but some nodes did not build the zone - see below.') });
+        setConfirm(false); reload(); return;
+      }
       setMsg({ ok: true, text: r.applied ? L(`Proxmox에 반영했습니다: ${r.changed.join(', ') || '보류 중이던 변경'}`, `Applied in Proxmox: ${r.changed.join(', ') || 'pending changes'}`) : L('바꿀 것이 없습니다.', 'Nothing to change.') });
       setConfirm(false); reload();
     } catch (e) { setMsg({ ok: false, text: (e as Error).message }); } finally { setBusy(false); }
@@ -246,9 +258,19 @@ function NetSegBody({ c }: { c: Cluster }) {
                       {v.zone.existing ? ` · ${L('기존 영역', 'existing zone')}` : ''}
                       {v.zone.type === 'vlan' && v.zone.bridge ? ` · ${L('브리지', 'bridge')} ${v.zone.bridge}` : ''}
                       {v.zone.type === 'vxlan' && v.zone.peers ? ` · ${v.zone.peers}` : ''}</dd>
+                    {v.sdn.nodes && Object.keys(v.sdn.nodes).length > 0 && (<>
+                      <dt>{L('노드', 'Nodes')}</dt>
+                      <dd className="ns-nodes">{Object.entries(v.sdn.nodes).map(([n, st]) => (
+                        <span key={n} className={`vt-st ${st === 'available' ? 'vt-st-running' : st === 'error' ? 'vt-st-error' : 'vt-st-provisioning'}`}>
+                          {n} {st === 'available' ? L('정상', 'ok') : st === 'error' ? L('오류', 'error') : st === 'missing' ? L('없음', 'missing') : L('대기', 'pending')}</span>
+                      ))}</dd>
+                    </>)}
                   </dl>
                 : <div className="empty"><p>{L('먼저 SDN 영역을 정하세요. 세그먼트(망)는 이 영역 안에 만들어집니다.', 'Set the SDN zone first: segments are made inside it.')}</p>
                     <button type="button" className="btn primary" onClick={() => setZoneOpen(true)}>{L('SDN 영역 설정', 'Set the SDN zone')}</button></div>}
+              {v.sdn.node_problem && <div className="callout warn"><Icon name="info" size={18} />
+                <p>{L(`노드 ${Object.entries(v.sdn.nodes ?? {}).filter(([, s]) => s !== 'available').map(([n]) => n).join(', ')}에 이 영역이 만들어지지 않았습니다. 그 노드의 /etc/network/interfaces 끝에 'source /etc/network/interfaces.d/sdn' 줄이 있는지(단일 노드 영역이면 dnsmasq 설치도) 확인한 뒤 SDN 적용을 다시 누르세요. 그 노드의 데스크톱은 옮기지 않습니다.`,
+                  `The zone was not built on node(s) ${Object.entries(v.sdn.nodes ?? {}).filter(([, s]) => s !== 'available').map(([n]) => n).join(', ')}. Check that node's /etc/network/interfaces ends with 'source /etc/network/interfaces.d/sdn' (and dnsmasq for a simple zone), then Apply SDN again. Desktops on that node are not moved.`)}</p></div>}
               <SdnBar cid={c.id} v={v} reload={reload} />
               {error && <div className="alert error small" role="alert">{error}</div>}
               {v.segments.length > 0 && (

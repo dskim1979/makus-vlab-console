@@ -19,7 +19,8 @@ export type ClusterNetSeg = {
   zone: NetZone | null;
   segments: Segment[];
   sdn: { available: boolean; problem: string; zones: { zone: string; type: string; pending: string }[];
-    pending_ours: string[]; pending_other: string[] };
+    pending_ours: string[]; pending_other: string[];
+    nodes?: Record<string, string>; node_problem?: string };   // the zone on each node: available / error / pending / missing
 };
 export type IpEntry = { ip: string; mac: string; vmid: number | null; name: string; desktop_id: string; sources: string[]; problem: string };
 export type SegmentIpam = {
@@ -33,7 +34,7 @@ export type PoolNetSeg = {
   segment: (SegmentInput & { id: string; vnet: string }) | null; problem: string; checked_at: number | null;
   desktops: { id: string; name: string; vmid: number; state: SegState; bridge: string; orig_bridge: string; running: boolean; error: string }[];
 };
-export type SdnResult = { changed: string[]; applied: boolean; problem: string };
+export type SdnResult = { changed: string[]; applied: boolean; problem: string; nodes?: Record<string, string>; node_problem?: string };
 
 async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
   const { status, data } = await request<T & { error?: string }>(method, path, body);
@@ -49,6 +50,7 @@ const C = (cid: string) => `/api/vlab/admin/clusters/${enc(cid)}/netseg`;
 const realApi = {
   cluster: (cid: string) => call<ClusterNetSeg>('GET', C(cid)),
   setZone: (cid: string, z: Partial<NetZone>) => call<{ zone: NetZone }>('PUT', `${C(cid)}/zone`, z),
+  removeZone: (cid: string) => call<{ deleted: string; removed_from_sdn: boolean }>('DELETE', `${C(cid)}/zone`),
   add: (cid: string, s: SegmentInput) => call<Segment>('POST', `${C(cid)}/segments`, s),
   update: (cid: string, id: string, s: SegmentInput) => call<Segment>('PUT', `${C(cid)}/segments/${enc(id)}`, s),
   remove: (cid: string, id: string) => call<{ deleted: string }>('DELETE', `${C(cid)}/segments/${enc(id)}`),
@@ -111,7 +113,8 @@ function view(cid: string): ClusterNetSeg {
   const pending = list.filter((s) => s.sdn !== 'applied').map((s) => `vnet ${s.vnet} (${s.sdn === 'missing' ? 'new' : s.sdn})`);
   return { zone: zones[cid] ?? null, segments: list,
     sdn: { available: true, problem: '', zones: [{ zone: 'ops', type: 'vlan', pending: '' }, ...(zones[cid] && !zones[cid].existing ? [{ zone: zones[cid].zone, type: zones[cid].type, pending: '' }] : [])],
-      pending_ours: pending, pending_other: [] } };
+      pending_ours: pending, pending_other: [],
+      nodes: zones[cid] ? { pve1: 'available', pve2: 'available', pve3: 'available' } : {}, node_problem: '' } };
 }
 function poolView(pid: string): PoolNetSeg | null {
   const pool = mockVmStore.pools.find((p) => p.id === pid);
@@ -149,6 +152,13 @@ const mockApi: NetSegApi = {
     if (!z.existing && z.type === 'vxlan' && !z.peers) return fail(400, "peers: the nodes' addresses, comma separated");
     zones[cid] = { zone: z.zone || 'moavi', type: (z.type ?? 'vlan') as ZoneType, bridge: z.bridge ?? '', peers: z.peers ?? '', mtu: z.mtu ?? 0, existing: !!z.existing };
     return delay({ zone: zones[cid] });
+  },
+  removeZone: (cid) => {
+    if (!zones[cid]) return fail(404, 'no zone set');
+    if ((segs[cid] ?? []).length) return fail(409, 'delete the segments first');
+    const z = zones[cid].zone;
+    delete zones[cid];
+    return delay({ deleted: z, removed_from_sdn: true });
   },
   add: (cid, s) => {
     if (!zones[cid]) return fail(409, 'set the zone first');
