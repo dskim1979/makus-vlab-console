@@ -19,12 +19,13 @@ import { useFeatures } from '../../features';
 import { directoryApi } from '../../api/directory';
 import { nextApi } from '../../api/next';
 import { SubjectListEditor } from './PoolGrants';
+import { NetIsoStep, netIsoSummary } from './PoolNetIso';
 
 // 데스크톱 풀 > (풀) > 정책: how the pool's desktops are reached and kept - a summary on the
 // pool page and a wizard in six steps plus review. The engine applies it (pegaprox/vlab/policy.py; the
 // shared storage step has a setting of its own, pegaprox/vlab/nas.py, saved with the policy).
 
-const STEPS = ['conn', 'clip', 'usb', 'power', 'account', 'storage', 'review'] as const;
+const STEPS = ['conn', 'clip', 'usb', 'power', 'account', 'net', 'storage', 'review'] as const;
 type Step = typeof STEPS[number];
 const CLIPS: Clipboard[] = ['both', 'to_desktop', 'from_desktop', 'off'];
 
@@ -78,6 +79,7 @@ function Summary({ p, storage }: { p: PoolPolicy; storage: PoolStorage | null })
   if (p.web_ide?.length) chips.push(`${L('웹 IDE', 'Web IDE')}: ${p.web_ide.map((k) => (k === 'jupyter' ? 'JupyterLab' : 'VS Code')).join(' · ')}`);
   if (storage?.enabled) chips.push(`${L('공유 저장소', 'Shared storage')}: ${storage.kind.toUpperCase()} ${storage.server}`);
   if (p.auto_domain_join === true) chips.push(L('자동 도메인 조인', 'Auto domain join'));
+  if (p.net_isolation) chips.push(L('네트워크 격리', 'Network isolation'));
   return <div className="policy-chips">{chips.map((c) => <span key={c} className="chip">{c}</span>)}</div>;
 }
 
@@ -228,7 +230,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
         {STEPS.map((s, k) => (
           <li key={s} className={k < i ? 'done' : k === i ? 'on' : ''}>
             <button type="button" onClick={() => setStep(s)} aria-current={k === i ? 'step' : undefined}>
-              <span className="stepper-n">{k < i ? '✓' : k + 1}</span>{s === 'storage' ? L('공유 저장소', 'Shared storage') : t(`pol.s.${s}` as MessageKey)}
+              <span className="stepper-n">{k < i ? '✓' : k + 1}</span>{s === 'storage' ? L('공유 저장소', 'Shared storage') : s === 'net' ? L('네트워크 격리', 'Network isolation') : t(`pol.s.${s}` as MessageKey)}
             </button>
           </li>
         ))}
@@ -422,6 +424,8 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
         </div>
       )}
 
+      {step === 'net' && <NetIsoStep pool={pool} p={p} set={set} />}
+
       {step === 'storage' && <StorageStep s={st} set={setStorage} hasPassword={storage.has_password} />}
 
       {step === 'review' && (
@@ -444,6 +448,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
             <dt>{t('pol.s.account')}</dt><dd>{p.allow_power ? t('pol.allowPower') : `${t('pol.s.power')}: ${t('pol.offShort')}`}
               {p.max_session_hours ? ` · ${t('pol.maxSession')} ${p.max_session_hours}${t('pol.hours')}` : ''}
               {` · ${L('화면 미리보기', 'Screen preview')} ${p.screen_thumbnail !== false ? t('pol.on') : t('pol.offShort')}`}</dd>
+            <dt>{L('네트워크 격리', 'Network isolation')}</dt><dd>{netIsoSummary(p, L)}</dd>
             <dt>{L('공유 저장소', 'Shared storage')}</dt><dd>{storageSummary({ ...st, has_password: storage.has_password }, L)}
               {st.enabled ? ` · ${st.kind === 'smb' || st.create_by === 'user' ? L('폴더는 사용자 본인이 만듦', 'folders made by the user') : L('폴더는 엔진이 만듦', 'folders made by the engine')}` : ''}</dd>
           </dl>

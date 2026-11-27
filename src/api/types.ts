@@ -177,7 +177,11 @@ export type PoolPolicy = {
   auto_domain_join?: boolean | null;
   // 포털 '파일': 내 데스크톱 MOAVI 폴더로 올리기·받기 (게스트 에이전트)
   desktop_files?: 'off' | 'up' | 'down' | 'both'; desktop_files_max_mb?: number; desktop_files_day_mb?: number;
+  // 네트워크 격리: inbound only through the MOAVI gateway, in the Proxmox firewall (netiso.ts)
+  net_isolation?: boolean; net_peers?: boolean; net_allow_in?: NetRule[];
+  net_egress?: 'any' | 'list'; net_allow_out?: NetRule[];
 };
+export type NetRule = { cidr: string; proto: 'any' | 'tcp' | 'udp' | 'icmp'; port: string; note: string };
 export type PoolPolicyAnswer = { policy: PoolPolicy; defaults: PoolPolicy; reset_allowed: boolean };
 
 // --- accelerators (가속 자원, docs/vlab-design.md 10-0) ---------------------------

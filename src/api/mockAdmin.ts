@@ -168,6 +168,7 @@ const POLICY_DEFAULTS: PoolPolicy = {
   client_drives: false, client_printers: true, rdp_route: 'record', rdp_tune: true, auto_domain_join: null, start_on_connect: true, idle_shutdown_min: 0, reset_on_logout: false, allow_power: true, screen_thumbnail: true, max_session_hours: 0,
   defer_when_busy: true, busy_gpu_pct: 10, busy_cpu_pct: 50, defer_max_hours: 12, web_ide: [], web_ide_idle_min: 240,
   desktop_files: 'off', desktop_files_max_mb: 500, desktop_files_day_mb: 0,
+  net_isolation: false, net_peers: false, net_allow_in: [], net_egress: 'any', net_allow_out: [],
 };
 const cloneSources = new Map<number, Set<string>>();   // template -> pools cloned from it
 
@@ -807,7 +808,9 @@ export const mockAdminApi: AdminApi = {
   }))),
   createPool: (p) => {
     if (!p.name.trim()) return fail(400, 'name is required');
-    return delay(addPool(p.name.trim(), p.type));
+    const pool = addPool(p.name.trim(), p.type);
+    pool.settings = { policy: { ...POLICY_DEFAULTS, net_isolation: true } };   // new pools start isolated, as the engine
+    return delay(pool);
   },
   updatePool: (id, u) => {
     const p = pools.find((x) => x.id === id);
@@ -1027,4 +1030,4 @@ const auditLog = [
 }));
 
 // 가상머신 > 데스크톱(VM) 관리 in mock mode (api/vmManage.ts) works on these same desktops and guests
-export const mockVmStore = { desks, guests, templates, withBase };
+export const mockVmStore = { desks, guests, templates, withBase, pools };
