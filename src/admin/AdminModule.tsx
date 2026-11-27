@@ -20,7 +20,7 @@ import { TemplateHubPage } from './pages/TemplateHub';
 import { VmDesktopsPage } from './pages/VmPages';
 import { IsoLibraryPage, VmCreatePage } from './pages/BuildPages';
 import { ClusterHaPage, TasksPage } from './pages/OpsPages';
-import { PoolDetailPage } from './pages/PoolDetailPage';
+import { PoolDetailPage } from './pages/PoolView';
 import { PoolTablePage } from './pages/PoolTable';
 import { SessionsPage } from './pages/SessionsPage';
 import { SettingsHub } from './pages/SettingsHub';
