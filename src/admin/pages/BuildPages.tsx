@@ -292,6 +292,7 @@ type Form = {
   node: string; name: string; vmid: string; ostype: OsKind; iso: string; virtio_iso: string;
   cores: number; sockets: number; memory_gb: number; cpu: string;
   storage: string; disk_gb: number; bridge: string; vlan: string; vga: 'qxl' | 'std' | 'virtio'; agent: boolean;
+  auto_drivers: boolean;
 };
 const OS_DEFAULTS: Record<OsKind, Pick<Form, 'cores' | 'memory_gb' | 'disk_gb' | 'name'>> = {
   win11: { cores: 4, memory_gb: 8, disk_gb: 80, name: 'win11-base' },
@@ -331,12 +332,15 @@ function VmWizard({ cluster }: { cluster: Cluster }) {
   const { nodes, storage } = useNodesAndStorage(cid);
   const [step, setStep] = useState<Step>('base');
   const [f, setF] = useState<Form>({ node: '', name: OS_DEFAULTS.win11.name, vmid: '', ostype: 'win11', iso: '', virtio_iso: '',
-    cores: 4, sockets: 1, memory_gb: 8, cpu: 'host', storage: '', disk_gb: 80, bridge: '', vlan: '', vga: 'qxl', agent: true });
+    cores: 4, sockets: 1, memory_gb: 8, cpu: 'host', storage: '', disk_gb: 80, bridge: '', vlan: '', vga: 'qxl', agent: true,
+    auto_drivers: true });
   const [touchedName, setTouchedName] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<(Created & { node: string; name: string }) | null>(null);
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((x) => ({ ...x, [k]: v }));
+  const [virtioDl, setVirtioDl] = useState<'idle' | 'busy'>('idle');
+  const [virtioErr, setVirtioErr] = useState<string | null>(null);
 
   const nodeList = nodes.state === 'ok' ? nodes.data.filter((n) => n.online) : [];
   const node = f.node || nodeList[0]?.node || '';
@@ -359,6 +363,22 @@ function VmWizard({ cluster }: { cluster: Cluster }) {
     };
   }, [f, node, diskStores, netList, isoList]);
   const win = isWin(form.ostype);
+  // virtio-win from the Internet into the node's ISO storage; the list refreshes until it is there
+  async function getVirtio() {
+    setVirtioDl('busy'); setVirtioErr(null);
+    try {
+      const r = await buildApi.virtioIso(cid, node);
+      if (r.task) {
+        for (;;) {
+          await new Promise((ok) => setTimeout(ok, 4000));
+          const t = await buildApi.task(cid, node, r.task);
+          if (!t.running) { if (!t.ok) throw new Error(t.last || t.exitstatus || 'download failed'); break; }
+        }
+      }
+      set('virtio_iso', r.volid);
+      isos.reload();
+    } catch (e) { setVirtioErr(errText(e)); } finally { setVirtioDl('idle'); }
+  }
   const pickedStore = diskStores.find((s) => s.storage === form.storage);
   const bridge = netList.find((n) => n.iface === form.bridge);
 
@@ -382,6 +402,10 @@ function VmWizard({ cluster }: { cluster: Cluster }) {
     setBusy(true); setError(null);
     try {
       const body = vmBody({ ...form, vmid: form.vmid || (vmid.state === 'ok' ? String(vmid.data) : '') });
+      if (win && form.virtio_iso && form.auto_drivers) {
+        const store = isoList.find((i) => i.volid === form.virtio_iso)?.storage;
+        body.drivers_cd = (await buildApi.driversCd(cid, node, form.ostype === 'win10' ? 'w10' : 'w11', store)).volid;
+      }
       const r = await buildApi.createVm(cid, node, body);
       setCreated({ ...r, node, name: body.name });
     } catch (e) { setError(errText(e)); } finally { setBusy(false); }
@@ -455,14 +479,27 @@ function VmWizard({ cluster }: { cluster: Cluster }) {
                     </select></label>
                 )}
                 {win && form.virtio_iso && (
+                  <label className="check">
+                    <input id="vm-auto-drivers" type="checkbox" checked={form.auto_drivers} onChange={(e) => set('auto_drivers', e.target.checked)} />
+                    <span><span className="strong">{L('드라이버 · 게스트 에이전트 자동 설치', 'Install drivers and the guest agent automatically')}</span><br />
+                      <span className="muted small">{L('설치 중 디스크·네트워크 드라이버가 자동으로 잡히고, 첫 로그온 때 게스트 에이전트가 설치됩니다.',
+                        'Setup finds the disk and network drivers by itself; the guest agent installs at the first logon.')}</span></span>
+                  </label>
+                )}
+                {win && form.virtio_iso && !form.auto_drivers && (
                   <div className="callout"><Icon name="info" size={16} /><p>{L(
                     'Windows 설치 화면에서 디스크가 보이지 않으면 "드라이버 로드" → 두 번째 CD의 vioscsi\\w11(또는 w10)\\amd64 를 고르세요. 네트워크는 NetKVM 폴더입니다.',
                     'If Windows Setup shows no disk, choose "Load driver" → vioscsi\\w11 (or w10)\\amd64 on the second CD. The network driver is in NetKVM.')}</p></div>
                 )}
                 {win && !form.virtio_iso && (
-                  <p className="muted small">{L('드라이버 ISO가 없으면 느린 SATA 디스크와 e1000e 네트워크를 씁니다.',
-                    'Without the driver ISO the VM uses a slower SATA disk and an e1000e card.')}</p>
+                  <div className="callout"><Icon name="info" size={16} /><p>{L('드라이버 ISO가 없으면 느린 SATA 디스크와 e1000e 네트워크를 씁니다.',
+                    'Without the driver ISO the VM uses a slower SATA disk and an e1000e card.')}{' '}
+                    {!isoList.some((i) => /virtio-win/i.test(i.name)) && (
+                      <button type="button" className="btn small-btn" disabled={virtioDl !== 'idle'} onClick={() => void getVirtio()}>
+                        <Icon name="download" size={14} />{virtioDl === 'busy' ? L('받는 중… (약 700 MB)', 'Downloading… (about 700 MB)') : L('virtio ISO 받기', 'Get the virtio ISO')}</button>
+                    )}</p></div>
                 )}
+                {virtioErr && <div className="alert error small">{virtioErr}</div>}
                 {isoList.length === 0 && isos.state === 'ok' && (
                   <div className="alert small">{L(`노드 ${node}에서 쓸 수 있는 ISO가 없습니다.`, `Node ${node} sees no ISOs.`)} <Link to={`/admin/vms/isos?c=${encodeURIComponent(cid)}`}>{L('ISO 올리기 →', 'Upload one →')}</Link></div>
                 )}
@@ -520,7 +557,7 @@ function VmWizard({ cluster }: { cluster: Cluster }) {
                 <dl className="review-list">
                   <dt>{L('이름', 'Name')}</dt><dd>{form.name} · VMID {form.vmid || (vmid.state === 'ok' ? vmid.data : '-')} · {node}</dd>
                   <dt>OS</dt><dd>{osCards.find((o) => o.id === form.ostype)?.title}{form.ostype === 'win11' && <span className="muted small"> · UEFI (OVMF) · EFI {L('디스크', 'disk')} · TPM 2.0 · q35</span>}</dd>
-                  <dt>ISO</dt><dd>{isoList.find((i) => i.volid === form.iso)?.name ?? '-'}{win && form.virtio_iso && <><br /><span className="muted small">+ {isoList.find((i) => i.volid === form.virtio_iso)?.name}</span></>}</dd>
+                  <dt>ISO</dt><dd>{isoList.find((i) => i.volid === form.iso)?.name ?? '-'}{win && form.virtio_iso && <><br /><span className="muted small">+ {isoList.find((i) => i.volid === form.virtio_iso)?.name}{form.auto_drivers ? L(' · 드라이버 · 에이전트 자동 설치', ' · drivers and agent installed automatically') : ''}</span></>}</dd>
                   <dt>CPU · {L('메모리', 'Memory')}</dt><dd>{form.cores} {L('코어', 'cores')} ({form.cpu}) · {form.memory_gb} GB</dd>
                   <dt>{L('디스크', 'Disk')}</dt><dd>{form.storage} · {form.disk_gb} GB · {win && !form.virtio_iso ? 'SATA' : 'VirtIO SCSI'}</dd>
                   <dt>{L('네트워크', 'Network')}</dt><dd>{form.bridge}{form.vlan ? ` · VLAN ${form.vlan}` : ''} · {win && !form.virtio_iso ? 'e1000e' : 'VirtIO'}</dd>
@@ -632,7 +669,7 @@ function AfterCreate({ cluster, vm, onAnother }: { cluster: Cluster; vm: Created
           <span className="muted small">{L('게스트 에이전트와 필요한 프로그램을 넣고 VM을 끕니다.',
             'Add the guest agent and your software, then shut the VM down.')}</span>
           <HowTo><ul>
-            <li>{L('Windows: 두 번째 CD의 virtio-win-guest-tools.exe 를 실행합니다(드라이버 · 에이전트 · SPICE 도구).', 'Windows: run virtio-win-guest-tools.exe from the second CD (drivers, agent, SPICE tools).')}</li>
+            <li>{L('Windows: 자동 설치를 켰다면 첫 로그온 때 저절로 설치됩니다. 아니면 두 번째 CD의 virtio-win-guest-tools.exe 를 실행합니다(드라이버 · 에이전트 · SPICE 도구).', 'Windows: with the automatic install on it installs at the first logon; otherwise run virtio-win-guest-tools.exe from the second CD (drivers, agent, SPICE tools).')}</li>
             <li>{L('Linux: apt/dnf install qemu-guest-agent, systemctl enable --now qemu-guest-agent', 'Linux: apt/dnf install qemu-guest-agent, systemctl enable --now qemu-guest-agent')}</li>
             <li>{L('Windows는 끄기 전에 sysprep으로 일반화합니다.', 'Generalise Windows with sysprep before the shutdown.')}</li>
           </ul></HowTo>

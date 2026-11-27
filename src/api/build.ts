@@ -10,7 +10,7 @@ export type ChecksumAlgo = 'md5' | 'sha1' | 'sha224' | 'sha256' | 'sha384' | 'sh
 export type DownloadInput = { url: string; filename: string; checksum?: string };
 export type OsKind = 'win11' | 'win10' | 'l26' | 'other';
 export type NewVm = {
-  vmid?: number; name: string; ostype: OsKind; iso: string; virtio_iso?: string;
+  vmid?: number; name: string; ostype: OsKind; iso: string; virtio_iso?: string; drivers_cd?: string;
   sockets?: number; cores: number; cpu?: string; memory: number;
   storage: string; disk_size: number; disk_type?: 'scsi' | 'virtio' | 'sata'; scsihw?: string;
   disk_discard?: boolean; disk_ssd?: boolean; disk_iothread?: boolean;
@@ -76,6 +76,11 @@ const realBuildApi = {
   networks: async (cid: string, node: string) => (await call<{ networks: Network[] }>('GET', `${N(cid, node)}/networks`)).networks,
   nextId: async (cid: string) => (await call<{ vmid: number }>('GET', `${C(cid)}/nextid`)).vmid,
   createVm: async (cid: string, node: string, vm: NewVm) => call<Created>('POST', `${N(cid, node)}/vms`, vm),
+  // the drivers CD (virtio drivers during Windows setup, guest tools and agent at first logon) and the virtio-win ISO
+  driversCd: async (cid: string, node: string, drivers: 'w11' | 'w10', storage?: string) =>
+    call<{ volid: string }>('POST', `${N(cid, node)}/drivers-cd`, { drivers, storage }),
+  virtioIso: async (cid: string, node: string, storage?: string) =>
+    call<{ volid: string; task?: string; have?: boolean }>('POST', `${N(cid, node)}/virtio-iso`, { storage }),
   console: async (cid: string, vmid: number) => call<ConsoleAnswer>('POST', `${C(cid)}/vms/${vmid}/console`),
   makeTemplate: async (cid: string, vmid: number) => call<{ success: boolean; task?: string }>('POST', `${C(cid)}/vms/${vmid}/template`),
 };
@@ -200,8 +205,19 @@ const mockBuildApi: BuildApi = {
     mockVms.set(vmid, { name: vm.name, node, status: 'stopped', template: false });
     inDrive.add(vm.iso);
     if (vm.virtio_iso) inDrive.add(vm.virtio_iso);
+    if (vm.drivers_cd) inDrive.add(vm.drivers_cd);
     nextVmid.v = Math.max(nextVmid.v, vmid + 1);
     return delay({ success: true, vmid, task: mockTask(node, 'qmcreate', 2) }, 400);
+  },
+  driversCd: (_cid, _node, drivers, storage) => delay({ volid: `${storage || 'local'}:iso/moavi-drivers-${drivers}.iso` }, 500),
+  virtioIso: (_cid, node, storage) => {
+    const st = storage || 'local';
+    const list = (mockIsos[key(node, st)] ??= []);
+    const volid = `${st}:iso/virtio-win-stable.iso`;
+    if (list.some((i) => i.volid === volid)) return delay({ volid, have: true });
+    return delay({ volid, task: mockTask(node, 'download', 8, () => {
+      list.push({ volid, name: 'virtio-win-stable.iso', storage: st, size: 0.71 * GB, ctime: ago(0) });
+    }) });
   },
   console: (_cid, vmid) => {
     const v = mockVms.get(vmid);
