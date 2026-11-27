@@ -3,7 +3,7 @@
 // (version) / pending / failed / skipped; 다시 설치 runs the install now.
 import { ApiError, isMock, request } from './client';
 
-export type LogonInstallState = 'installed' | 'pending' | 'failed' | 'skipped' | 'none';
+export type LogonInstallState = 'installed' | 'pending' | 'failed' | 'skipped' | 'unsupported' | 'none';
 export type LogonInstall = {
   desktop_id: string; name: string; state: LogonInstallState; version: string; code: string; detail: string;
   at: string; current: boolean;

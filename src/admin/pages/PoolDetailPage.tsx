@@ -204,6 +204,9 @@ export function LogonChip({ l, onReinstall }: { l: LogonInstall; onReinstall: ()
   if (l.state === 'installed') {
     return <><span className={l.current ? 'vt-st vd-tag' : 'vt-st'} title={l.at}>{L('자동 로그인', 'Auto sign-in')} {l.version}</span> {again}</>;
   }
+  if (l.state === 'unsupported') {
+    return <span className="vt-st" title={l.detail}>{L('자동 로그인 안 됨: LSA 보호', 'No auto sign-in: LSA protection')}</span>;
+  }
   if (l.state === 'failed') {
     return <><span className="vt-st vt-st-error" title={l.detail}>{L('자동 로그인 설치 실패', 'Auto sign-in install failed')}</span> {again}</>;
   }
