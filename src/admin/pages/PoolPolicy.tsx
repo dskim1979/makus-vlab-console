@@ -72,6 +72,7 @@ function Summary({ p, storage }: { p: PoolPolicy; storage: PoolStorage | null })
   if (p.web_ide?.length) chips.push(`${L('웹 IDE', 'Web IDE')}: ${p.web_ide.map((k) => (k === 'jupyter' ? 'JupyterLab' : 'VS Code')).join(' · ')}`);
   if (storage?.enabled) chips.push(`${L('공유 저장소', 'Shared storage')}: ${storage.kind.toUpperCase()} ${storage.server}`);
   if (p.auto_domain_join === true) chips.push(L('자동 도메인 조인', 'Auto domain join'));
+  if (p.desktop_sso) chips.push(L('Windows 자동 로그인', 'Windows auto sign-in'));
   return <div className="policy-chips">{chips.map((c) => <span key={c} className="chip">{c}</span>)}</div>;
 }
 
@@ -263,6 +264,10 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
           <label className="check"><input type="checkbox" checked={p.start_on_connect} onChange={(e) => set('start_on_connect', e.target.checked)} />
             <span>{t('pol.startOnConnect')}</span></label>
           <AutoJoinSwitch value={p.auto_domain_join ?? null} onChange={(v) => set('auto_domain_join', v)} />
+          <label className="check"><input type="checkbox" checked={!!p.desktop_sso} onChange={(e) => set('desktop_sso', e.target.checked)} />
+            <span className="strong">{L('Windows 자동 로그인', 'Windows auto sign-in')}</span></label>
+          <small className="muted hint-indent">{L('포털 로그인으로 바로 바탕 화면. 모듈은 자동 설치됩니다.',
+            'Portal sign-in goes straight to the desktop. The module installs by itself.')}</small>
           <label>
             <span>{t('pol.idle')}</span>
             <span className="with-unit">

@@ -14,6 +14,7 @@ import { PoolStoragePanel } from './PoolStorage';
 import { PoolGrantsPanel } from './PoolGrants';
 import { PoolDomainJoinPanel } from './BundledDirectory';
 import { directoryApi, joinCodeText, type DomainJoin } from '../../api/directory';
+import { logonApi, type LogonInstall } from '../../api/logonSso';
 import { useL } from './OpsPages';
 import type { MessageKey } from '../../i18n/messages';
 import { useAdminConsole, VmManageDialog, type ManagedDesktop } from './VmManage';
@@ -26,6 +27,8 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
   const users = useLoad(adminApi.users);
   const [adding, setAdding] = useState(false);
   const [joinRows, setJoinRows] = useState<Record<string, DomainJoin>>({});
+  const [logonRows, setLogonRows] = useState<Record<string, LogonInstall>>({});
+  const [logonTick, setLogonTick] = useState(0);
   const [cloning, setCloning] = useState(false);
   const [editing, setEditing] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'info' | 'error'; text: string } | null>(null);
@@ -139,6 +142,7 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
       <p className="muted small">{t('desk.assignNote')}</p>
 
       <JoinStates poolId={poolId} tick={desktops.state} onRows={setJoinRows} />
+      <LogonStates poolId={poolId} tick={[desktops.state, logonTick]} onRows={setLogonRows} />
       <LoadState value={desktops} retry={desktops.reload}>
         {(list) => list.length === 0 ? (
           <div className="empty"><p>{t('desk.empty')}</p></div>
@@ -152,7 +156,8 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
             </thead>
             <tbody>
               {list.map((d) => (
-                <DesktopRow key={d.id} d={d} join={joinRows[d.id]} users={users.state === 'ok' ? users.data : []}
+                <DesktopRow key={d.id} d={d} join={joinRows[d.id]} logon={logonRows[d.id]} users={users.state === 'ok' ? users.data : []}
+                  onReinstall={() => act(async () => { await logonApi.reinstall(d.id); setLogonTick((x) => x + 1); })}
                   onAssign={(u) => act(() => adminApi.assign(d.id, u))}
                   onReset={() => resetOne(d)} onBase={() => retakeBase(d)}
                   onManage={() => setManaging({ id: d.id, name: d.name })} onScreen={() => adminConsole.start({ id: d.id, name: d.name })}
@@ -184,8 +189,9 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
   );
 }
 
-function DesktopRow({ d, join, users, onAssign, onReset, onBase, onRemove, onManage, onScreen }: {
-  d: AdminDesktop; join?: DomainJoin; users: AssignableUser[]; onAssign: (u: string | null) => void;
+function DesktopRow({ d, join, logon, users, onAssign, onReset, onBase, onRemove, onManage, onScreen, onReinstall }: {
+  d: AdminDesktop; join?: DomainJoin; logon?: LogonInstall; users: AssignableUser[]; onAssign: (u: string | null) => void;
+  onReinstall: () => void;
   onReset: () => void; onBase: () => void; onRemove: () => void; onManage: () => void; onScreen: () => void;
 }) {
   const { t } = useI18n();
@@ -196,6 +202,7 @@ function DesktopRow({ d, join, users, onAssign, onReset, onBase, onRemove, onMan
         <span className="strong">{d.name}</span>
         {d.has_base && <span className="chip chip-base" title={t('reset.hasBase')}>{t('reset.hasBase')}</span>}
         {join && <JoinChip j={join} />}
+        {logon && <LogonChip l={logon} onReinstall={onReinstall} />}
       </td>
       <td className="num">{d.vmid}</td>
       <td>{d.node}</td>
@@ -403,6 +410,36 @@ function JoinStates({ poolId, tick, onRows }: { poolId: string; tick: unknown; o
     return () => { live = false; if (timer) clearTimeout(timer); };
   }, [on, poolId, tick, n]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
+}
+
+// the Windows auto sign-in module of each desktop while the pool has desktop_sso on; asked again
+// every 30 s while one is waiting (the engine installs by itself)
+function LogonStates({ poolId, tick, onRows }: { poolId: string; tick: unknown; onRows: (r: Record<string, LogonInstall>) => void }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    let live = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    logonApi.pool(poolId).then((p) => {
+      if (!live) return;
+      onRows(p.desktop_sso ? Object.fromEntries(p.desktops.filter((r) => r.state !== 'skipped').map((r) => [r.desktop_id, r])) : {});
+      if (p.desktop_sso && p.desktops.some((r) => r.state === 'pending' || r.state === 'none')) timer = setTimeout(() => setN((x) => x + 1), 30000);
+    }).catch(() => onRows({}));
+    return () => { live = false; if (timer) clearTimeout(timer); };
+  }, [poolId, JSON.stringify(tick), n]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
+function LogonChip({ l, onReinstall }: { l: LogonInstall; onReinstall: () => void }) {
+  const { L } = useL();
+  const again = <button type="button" className="btn-ghost" onClick={onReinstall}>{L('다시 설치', 'Reinstall')}</button>;
+  if (l.state === 'installed') {
+    return <span className="assign"><span className={l.current ? 'chip chip-ok' : 'chip'} title={l.at}>
+      {L('자동 로그인', 'Auto sign-in')} {l.version}</span>{again}</span>;
+  }
+  if (l.state === 'failed') {
+    return <span className="assign"><span className="chip chip-warn" title={l.detail}>{L('자동 로그인 설치 실패', 'Auto sign-in install failed')}</span>{again}</span>;
+  }
+  return <span className="chip" title={l.detail}>{L('자동 로그인 설치 대기', 'Auto sign-in: waiting')}</span>;
 }
 
 function JoinChip({ j }: { j: DomainJoin }) {
