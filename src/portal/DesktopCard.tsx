@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Desktop, PowerAction } from '../api/types';
-import { Icon } from '../components/Icon';
+import { Icon, type IconName } from '../components/Icon';
 import { useI18n } from '../i18n';
 import type { MessageKey } from '../i18n/messages';
 import { storageCodeText } from '../api/storage';
@@ -137,6 +137,42 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
   const autoStart = d.policy?.start_on_connect !== false;
   const folder = d.storage ? d.storage.folders.home ?? d.storage.folders.scratch ?? d.storage.folders.project : undefined;
 
+  // 접속: one click opens the remembered way (else the first below); the arrow lists the others.
+  // Windows: the secure gateway's browser RDP, then the .rdp, then the in-browser console. Linux: RDP when it
+  // has xrdp, else the console; the gateway's SSH terminal and SPICE after.
+  type Way = 'wg-rdp' | 'rdp' | 'vnc' | 'spice' | 'wg-ssh';
+  const ways: { key: Way; label: string; icon: IconName }[] = [
+    ...(warpgate && family !== 'linux' ? [{ key: 'wg-rdp' as Way, label: t('portal.wayWebRdp'), icon: 'shield' as IconName }] : []),
+    ...(d.protocols.includes('rdp') ? [{ key: 'rdp' as Way, label: t('portal.wayRdp'), icon: 'vm' as IconName }] : []),
+    ...(d.protocols.includes('vnc') ? [{ key: 'vnc' as Way, label: t('portal.wayConsole'), icon: 'globe' as IconName }] : []),
+    ...(warpgate && family === 'linux' ? [{ key: 'wg-ssh' as Way, label: t('portal.connectWarpgateSsh'), icon: 'code' as IconName }] : []),
+    ...(d.protocols.includes('spice') ? [{ key: 'spice' as Way, label: t('portal.connectSpice'), icon: 'download' as IconName }] : []),
+  ];
+  const [way, setWay] = useState<Way | undefined>(() => {
+    try { return (localStorage.getItem(`vlab.way.${d.id}`) as Way | null) ?? undefined; } catch { return undefined; }
+  });
+  const main = ways.find((w) => w.key === way) ?? ways[0];
+  const [wayMenu, setWayMenu] = useState(false);
+  const wayRef = useRef<HTMLDivElement>(null);
+  function go(w: Way, remember: boolean) {
+    if (remember) {
+      setWay(w);
+      try { localStorage.setItem(`vlab.way.${d.id}`, w); } catch { /* per-browser convenience only */ }
+    }
+    setWayMenu(false);
+    // a stopped desktop: the console starts it by itself; for the others start it first (the card says so)
+    if (!running && w !== 'vnc') { onPower('start'); return; }
+    onConnect(w);
+  }
+  const canGo = (w: Way) => !busy && (running || (d.state === 'stopped' && autoStart && (w === 'vnc' || canPower)));
+
+  useEffect(() => {
+    if (!wayMenu) return;
+    const close = (e: MouseEvent) => { if (!wayRef.current?.contains(e.target as Node)) setWayMenu(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [wayMenu]);
+
   useEffect(() => {
     if (!menu) return;
     const close = (e: MouseEvent) => { if (!menuRef.current?.contains(e.target as Node)) setMenu(false); };
@@ -161,30 +197,6 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
             onClick={() => setMenu((m) => !m)}><Icon name="more" size={18} /></button>
           {menu && (
             <div className="menu" role="menu">
-              {d.protocols.includes('spice') && (
-                <button type="button" role="menuitem" disabled={busy || !running}
-                  onClick={() => { setMenu(false); onConnect('spice'); }}>
-                  <Icon name="download" size={16} />{t('portal.connectSpice')}
-                </button>
-              )}
-              {d.protocols.includes('rdp') && (
-                <button type="button" role="menuitem" disabled={busy || !running}
-                  onClick={() => { setMenu(false); onConnect('rdp'); }}>
-                  <Icon name="download" size={16} />{t('portal.connectRdp')}
-                </button>
-              )}
-              {warpgate && (
-                <button type="button" role="menuitem" disabled={busy || !running}
-                  onClick={() => { setMenu(false); onConnect('wg-rdp'); }}>
-                  <Icon name="globe" size={16} />{t('portal.connectWarpgate')}
-                </button>
-              )}
-              {warpgate && family === 'linux' && (
-                <button type="button" role="menuitem" disabled={busy || !running}
-                  onClick={() => { setMenu(false); onConnect('wg-ssh'); }}>
-                  <Icon name="globe" size={16} />{t('portal.connectWarpgateSsh')}
-                </button>
-              )}
               {filesOn && (
                 <button type="button" role="menuitem" disabled={busy || !running} onClick={() => { setMenu(false); setFiles(true); }}>
                   <Icon name="box" size={16} />{pick({ ko: '파일', en: 'Files' })}
@@ -252,15 +264,30 @@ export function DesktopCard({ d, busy, fav, onFav, onConnect, onPower, error, hi
           <button type="button" className="btn" disabled={busy} onClick={() => onPower('start')}>
             <Icon name="play" size={15} />{t('power.start')}
           </button>
-        ) : d.protocols.includes('vnc') ? (
-          <button type="button" className="btn primary" disabled={busy || !(running || (d.state === 'stopped' && autoStart))} onClick={() => onConnect('vnc')}>
-            {t('portal.connect')}
-          </button>
-        ) : (
-          <button type="button" className="btn primary" disabled={busy || !running} onClick={() => onConnect('spice')}>
-            {t('portal.connectSpice')}
-          </button>
-        )}
+        ) : main ? (
+          <div className="split-btn" ref={wayRef}>
+            <button type="button" className="btn primary split-main" disabled={!canGo(main.key)}
+              title={main.label} onClick={() => go(main.key, false)}>
+              <Icon name={main.icon} size={15} />{t('portal.connect')}
+            </button>
+            {ways.length > 1 && (
+              <button type="button" className="btn primary split-arrow" aria-label={t('portal.wayPick')} aria-expanded={wayMenu}
+                disabled={busy} onClick={() => setWayMenu((m) => !m)}>
+                <span className="split-chev"><Icon name="chevron" size={14} /></span>
+              </button>
+            )}
+            {wayMenu && (
+              <div className="menu menu-up" role="menu">
+                {ways.map((w) => (
+                  <button key={w.key} type="button" role="menuitem" disabled={!canGo(w.key)} onClick={() => go(w.key, true)}>
+                    <Icon name={w.icon} size={16} />{w.label}
+                    {w.key === main.key && <span className="menu-check">{t('portal.wayDefault')}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
       </footer>
       {files && <DesktopFiles desktopId={d.id} name={d.name} onClose={() => setFiles(false)} />}
     </article>
