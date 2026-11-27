@@ -367,7 +367,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
               <small className="muted">{L('이 사람·부서·그룹은 이 풀에서도 장치 연결 경로로 접속합니다. 사용자 화면에는 표시되지 않습니다.',
                 'These people, departments and groups connect over the devices route in this pool. Nothing tells the user.')}</small>
               <SubjectListEditor list={p.device_route_for ?? []} onChange={(l) => set('device_route_for', l.map((g) => ({ ...g, include_children: !!g.include_children })))}
-                deps={deps.state === 'ok' ? deps.data : []} empty={L('없음 — 모두 녹화 경로로 접속합니다.', 'Nobody - everyone takes the recorded route.')} />
+                deps={deps.state === 'ok' ? deps.data : []} empty={L('없음 — 모두 보안 게이트웨이 경로로 접속합니다.', 'Nobody - everyone takes the security gateway route.')} />
             </>
           )}
           <label className="check"><input type="checkbox" checked={!!p.client_drives} onChange={(e) => set('client_drives', e.target.checked)} />
