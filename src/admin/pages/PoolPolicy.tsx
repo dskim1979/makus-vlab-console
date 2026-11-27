@@ -17,6 +17,8 @@ import type { StorageDraft } from './PoolStorage';
 import { useL } from './OpsPages';
 import { useFeatures } from '../../features';
 import { directoryApi } from '../../api/directory';
+import { nextApi } from '../../api/next';
+import { SubjectListEditor } from './PoolGrants';
 
 // 데스크톱 풀 > (풀) > 정책: how the pool's desktops are reached and kept - a summary on the
 // pool page and a wizard in six steps plus review. The engine applies it (pegaprox/vlab/policy.py; the
@@ -198,6 +200,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
   const [error, setError] = useState<string | null>(null);
   useEffect(() => { setP(initial); }, [initial]);
   const set = <K extends keyof PoolPolicy>(k: K, v: PoolPolicy[K]) => setP((o) => ({ ...o, [k]: v }));
+  const deps = useLoad(nextApi.departments);
   const i = STEPS.indexOf(step);
   const last = i === STEPS.length - 1;
 
@@ -358,6 +361,15 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
           </div>
           {(p.rdp_route ?? 'record') === 'devices' && <small className="muted">{L('USB는 위 "USB 장치 연결 허용"을 따릅니다. 브라우저 RDP는 그대로 보안 게이트웨이로 녹화됩니다.',
             'USB follows "Allow USB redirection" above. Browser RDP stays recorded through the security gateway.')}</small>}
+          {(p.rdp_route ?? 'record') !== 'devices' && (
+            <>
+              <span className="field-label">{L('장치 연결 허용 대상', 'Device route for')}</span>
+              <small className="muted">{L('이 사람·부서·그룹은 이 풀에서도 장치 연결 경로로 접속합니다. 사용자 화면에는 표시되지 않습니다.',
+                'These people, departments and groups connect over the devices route in this pool. Nothing tells the user.')}</small>
+              <SubjectListEditor list={p.device_route_for ?? []} onChange={(l) => set('device_route_for', l.map((g) => ({ ...g, include_children: !!g.include_children })))}
+                deps={deps.state === 'ok' ? deps.data : []} empty={L('없음 — 모두 녹화 경로로 접속합니다.', 'Nobody - everyone takes the recorded route.')} />
+            </>
+          )}
           <label className="check"><input type="checkbox" checked={!!p.client_drives} onChange={(e) => set('client_drives', e.target.checked)} />
             <span className="strong">{L('내 PC 드라이브 연결 허용', 'Allow the PC\'s drives')}</span></label>
           <small className="muted hint-indent">{L('켜면 PC의 드라이브 · USB 메모리로 파일을 옮길 수 있습니다.',

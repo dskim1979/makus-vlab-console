@@ -68,7 +68,7 @@ function SshAccessBody() {
         <span className="stat-icon tone-blue"><Icon name="shield" size={18} /></span>
         <div>
           <h2 className="section-title">{L('SSH 키 · 내 도구로 접속', 'SSH keys · connect with your tools (Warpgate)')}</h2>
-          <p className="muted small" style={{ margin: 0 }}>{L('내 SSH 도구로 보안 게이트웨이를 거쳐 데스크톱에 접속합니다.', 'Reach your desktops with your own SSH tools, through Warpgate.')}</p>
+          <p className="muted small" style={{ margin: 0 }}>{L('내 SSH 도구로 데스크톱에 접속합니다.', 'Reach your desktops with your own SSH tools.')}</p>
         </div>
       </div>
 
@@ -123,7 +123,7 @@ function SshAccessBody() {
               <li><b>PuTTY</b> — {L('Host·Port 와 User 값, SSH › Auth 에 개인키(.ppk)', 'Host, Port and the User value; SSH › Auth = your private key (.ppk)')}</li>
               <li><b>WinSCP</b> — {L('SFTP, PuTTY 와 같은 값', 'SFTP, the same values as PuTTY')}</li>
               <li>{L('공개키만 등록합니다. 개인키는 PC 밖으로 보내지 마세요.', 'Register only the public key; the private key stays on your PC.')}</li>
-              <li>{L('파일 전송은 풀 정책을 따르고 보안 게이트웨이가 기록합니다.', 'File transfers follow the pool policy and are recorded by Warpgate.')}</li>
+              <li>{L('파일 전송은 풀 정책을 따릅니다.', 'File transfers follow the pool policy.')}</li>
             </ul>
           </details>
         </div>

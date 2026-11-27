@@ -31,7 +31,7 @@ export function ExternalDesktops() {
     try { window.open((await nextApi.myExternalWeb(id)).url, '_blank', 'noopener'); }
     catch (e) {
       const code = (e as { code?: string }).code;
-      setError(code === 'WG_DOWN' || code === 'WG_OFF' ? L('보안 게이트웨이에 연결할 수 없습니다.', 'The security gateway is not reachable.') : (e as Error).message);
+      setError(code === 'WG_DOWN' || code === 'WG_OFF' ? L('지금은 연결할 수 없습니다. 잠시 뒤에 다시 해 보세요.', 'Cannot connect right now. Try again shortly.') : (e as Error).message);
     }
   }
 
@@ -48,7 +48,7 @@ export function ExternalDesktops() {
             <div className="ext-actions">
             <button type="button" className="btn connect" onClick={() => rdp(e.id)}><Icon name="download" size={16} />{L('RDP 파일 받기', 'Get RDP file')}</button>
             {wg.state === 'ok' && wg.data.enabled && (
-              <button type="button" className="btn-ghost" onClick={() => web(e.id)} title={L('보안 게이트웨이로 브라우저에서 엽니다', 'Opens in the browser through the security gateway')}><Icon name="globe" size={16} />{L('브라우저', 'Browser')}</button>
+              <button type="button" className="btn-ghost" onClick={() => web(e.id)} title={L('브라우저에서 엽니다', 'Opens in the browser')}><Icon name="globe" size={16} />{L('브라우저', 'Browser')}</button>
             )}
             </div>
           </article>
