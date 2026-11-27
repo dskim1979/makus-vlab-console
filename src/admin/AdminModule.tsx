@@ -16,11 +16,12 @@ import { BackupPage } from './pages/BackupPage';
 import { ClusterNodesPage, ClusterOverviewPage, ClusterStoragePage } from './pages/ClusterPages';
 import { ClustersPage } from './pages/ClustersPage';
 import { DesktopStatusPage } from './pages/DesktopStatusPage';
-import { TemplatesPage, VmDesktopsPage } from './pages/VmPages';
+import { TemplateHubPage } from './pages/TemplateHub';
+import { VmDesktopsPage } from './pages/VmPages';
 import { IsoLibraryPage, VmCreatePage } from './pages/BuildPages';
 import { ClusterHaPage, TasksPage } from './pages/OpsPages';
-import { PoolDetailPage } from './pages/PoolDetailPage';
-import { PoolsPage } from './pages/PoolsPage';
+import { PoolDetailPage } from './pages/PoolView';
+import { PoolTablePage } from './pages/PoolTable';
 import { SessionsPage } from './pages/SessionsPage';
 import { SettingsHub } from './pages/SettingsHub';
 import { SummaryPage } from './pages/SummaryPage';
@@ -28,7 +29,7 @@ import { ReportPage } from './pages/ReportPage';
 import { UsagePage } from './pages/UsagePage';
 import { RolesPage } from './pages/RolesPage';
 import { AdDirectoryPage } from './pages/AdDirectoryPage';
-import { UsersPage } from './pages/UsersPage';
+import { UsersTablePage as UsersPage } from './pages/UsersTable';
 import { AccelChecksPage } from './pages/AccelChecksPage';
 import { EnvCatalogPage } from './pages/EnvCatalogPage';
 import { DesktopTemplatesPage } from './pages/DesktopTemplatesPage';
@@ -38,7 +39,7 @@ import { BoardsPage, BuildFarmPage, CardUsagePage, DepartmentsPage, ExternalDesk
 
 // Pages that exist so far; every other menu entry shows its planned phase.
 function pageBody(key: string, subId?: string) {
-  if (key === 'pools/list') return subId ? <PoolDetailPage poolId={subId} /> : <PoolsPage />;
+  if (key === 'pools/list') return subId ? <PoolDetailPage poolId={subId} /> : <PoolTablePage />;
   if (key === 'pools/status') return <DesktopStatusPage />;
   if (key === 'ops/sessions') return <SessionsPage />;
   if (key === 'ops/summary') return <SummaryPage />;
@@ -57,7 +58,7 @@ function pageBody(key: string, subId?: string) {
   if (key === 'accel/leases') return <LeasesPage />;
   if (key === 'vms/desktops') return <VmDesktopsPage />;
   if (key === 'vms/desktpl') return <DesktopTemplatesPage />;
-  if (key === 'vms/templates') return <TemplatesPage />;
+  if (key === 'vms/templates') return <TemplateHubPage />;
   if (key === 'vms/create') return <VmCreatePage />;
   if (key === 'vms/isos') return <IsoLibraryPage />;
   if (key === 'cluster/overview') return <ClusterOverviewPage />;

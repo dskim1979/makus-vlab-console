@@ -1,4 +1,5 @@
 import { useCallback, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { adminApi } from '../../api/admin';
 import type { AuditQuery } from '../../api/types';
 import { Icon } from '../../components/Icon';
@@ -11,8 +12,10 @@ const PAGE = 50;
 // 운영 > 작업 기록(감사): the engine's audit log, vLAB's own entries by default.
 export function AuditPage() {
   const { t, lang } = useI18n();
-  const [draft, setDraft] = useState<AuditQuery>({ vlab_only: true });
-  const [query, setQuery] = useState<AuditQuery>({ vlab_only: true, offset: 0, limit: PAGE });
+  const [params] = useSearchParams();
+  const q0 = params.get('q') || undefined;   // e.g. a pool page's 전체 보기
+  const [draft, setDraft] = useState<AuditQuery>({ vlab_only: true, q: q0 });
+  const [query, setQuery] = useState<AuditQuery>({ vlab_only: true, offset: 0, limit: PAGE, q: q0 });
   const log = useLoad(useCallback(() => adminApi.audit(query), [query]), [query]);
 
   const fmt = (iso: string) => new Date(iso).toLocaleString(lang === 'ko' ? 'ko-KR' : 'en-US',

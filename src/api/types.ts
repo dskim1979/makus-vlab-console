@@ -143,10 +143,16 @@ export type PoolUpdate = {
 };
 
 // --- pool policy (데스크톱 풀 > 풀 > 정책) ------------------------------------------
+export type UsbMode = 'deny' | 'allow';
+export const USB_CLASSES = ['storage', 'printer', 'smartcard', 'camera', 'audio', 'imaging', 'serial', 'wireless'] as const;
+export type UsbClass = typeof USB_CLASSES[number];
+export type UsbDevice = { name: string; vid: string; pid: string };
 export type PoolPolicy = {
   protocols: ('vnc' | 'spice' | 'rdp')[]; spice_fullscreen: boolean;
   clipboard: Clipboard;
   usb_redirect: boolean; usb_autoshare: boolean;
+  // USB 정책: deny = all but the checked kinds and devices, allow = only those (pegaprox/vlab/policy.py)
+  usb_mode?: UsbMode; usb_classes?: UsbClass[]; usb_devices?: UsbDevice[];
   // RDP / browser RDP: the user's own PC drives and printers in the desktop
   client_drives: boolean; client_printers: boolean;
   // the .rdp's way: 'record' = 보안 게이트웨이 (recorded, no devices), 'devices' = its device route (rdpgw)
@@ -280,6 +286,7 @@ export type Template = {
   disks?: { key: string; storage: string; volume: string; plugin: string }[] | null;
   linked_clone?: boolean | null;
   pools?: number;
+  ostype?: string;   // with ?details=1 (engine claude/vm-table)
 };
 
 export type CloneResult = {

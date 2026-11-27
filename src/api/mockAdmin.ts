@@ -164,7 +164,7 @@ const mockBackups: VmBackup[] = [0, 1, 2].flatMap((k) => [300, 301, 400].map((v)
   ctime: Date.now() / 1000 - (k + 1) * 86400, size: (v >= 400 ? 92 : 21) * 1024 ** 3, notes: 'vlab-pool nightly', storage: 'pbs-lab' })));
 
 const POLICY_DEFAULTS: PoolPolicy = {
-  protocols: ['vnc', 'spice', 'rdp'], spice_fullscreen: false, clipboard: 'both', usb_redirect: true, usb_autoshare: false,
+  protocols: ['vnc', 'spice', 'rdp'], spice_fullscreen: false, clipboard: 'both', usb_redirect: true, usb_autoshare: false, usb_mode: 'deny', usb_classes: [], usb_devices: [],
   client_drives: false, client_printers: true, rdp_route: 'record', rdp_tune: true, auto_domain_join: null, start_on_connect: true, idle_shutdown_min: 0, reset_on_logout: false, allow_power: true, screen_thumbnail: true, max_session_hours: 0,
   defer_when_busy: true, busy_gpu_pct: 10, busy_cpu_pct: 50, defer_max_hours: 12, web_ide: [], web_ide_idle_min: 240,
   desktop_files: 'off', desktop_files_max_mb: 500, desktop_files_day_mb: 0,
@@ -723,7 +723,7 @@ export const mockAdminApi: AdminApi = {
       const disk = ceph ? { storage: 'ceph-vm', volume: `base-${x.vmid}-disk-0`, plugin: 'rbd' }
         : { storage: 'san-lvm', volume: `vm-${x.vmid}-disk-0`, plugin: 'lvm' };
       return { ...x, spec: { ...x.spec, disk_gb: ceph ? 200 : 64 }, disks: [{ key: 'scsi0', ...disk }],
-        linked_clone: ceph, pools: cloneSources.get(x.vmid)?.size ?? 0 };
+        linked_clone: ceph, pools: cloneSources.get(x.vmid)?.size ?? 0, ostype: /win/i.test(x.name) ? 'win11' : 'l26' };
     }));
   },
   powerDesktop: (id, action) => {
