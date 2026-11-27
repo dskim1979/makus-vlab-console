@@ -26,23 +26,42 @@ const TABS: { id: string; key: MessageKey }[] = [
   { id: 'notices', key: 'hub.notices' }, { id: 'pair', key: 'hub.pair' }, { id: 'support', key: 'hub.support' },
 ];
 
+// one list of categories on the left (Azure / Citrix settings style) instead of a row of tabs
+const GROUPS: { label: { ko: string; en: string }; ids: string[] }[] = [
+  { label: { ko: '플랫폼', en: 'Platform' }, ids: ['general', 'features', 'pair', 'support'] },
+  { label: { ko: '계정 · 로그인', en: 'Accounts and sign-in' }, ids: ['accounts', 'directory'] },
+  { label: { ko: '화면 · 접속', en: 'Look and access' }, ids: ['branding', 'notices', 'client', 'warpgate'] },
+  { label: { ko: '연동', en: 'Integrations' }, ids: ['mcp'] },
+];
+
 export function SettingsHub({ tab }: { tab?: string }) {
-  const { t } = useI18n();
+  const { t, pick } = useI18n();
   const { on } = useFeatures();
   const tabs = TABS.filter((x) => x.id !== 'pair' || on('ha'));
   const current = tabs.find((x) => x.id === tab)?.id;
-  if (tab && !current) return <Navigate to="/admin/ops/settings" replace />;
+  if (tab && !current) return <Navigate to="/admin/settings/platform" replace />;
   const id = current ?? 'general';
+  const link = (x: { id: string; key: MessageKey }) => (
+    <NavLink key={x.id} to={x.id === 'general' ? '/admin/settings/platform' : `/admin/settings/platform/${x.id}`} end
+      className={({ isActive }) => (isActive || (x.id === 'general' && !tab) ? 'on' : '')}>
+      {t(x.key)}
+    </NavLink>
+  );
   return (
-    <>
-      <nav className="page-tabs" aria-label={t('hub.tabs')}>
-        {tabs.map((x) => (
-          <NavLink key={x.id} to={x.id === 'general' ? '/admin/ops/settings' : `/admin/ops/settings/${x.id}`} end
-            className={({ isActive }) => (isActive || (x.id === 'general' && !tab) ? 'on' : '')}>
-            {t(x.key)}
-          </NavLink>
-        ))}
+    <div className="hub">
+      <nav className="hub-nav" aria-label={t('hub.tabs')}>
+        {GROUPS.map((g) => {
+          const list = tabs.filter((x) => g.ids.includes(x.id));
+          return list.length ? (
+            <div key={g.label.en} className="hub-group">
+              <div className="hub-group-label">{pick(g.label)}</div>
+              {list.map(link)}
+            </div>
+          ) : null;
+        })}
+        {tabs.filter((x) => !GROUPS.some((g) => g.ids.includes(x.id))).map(link)}
       </nav>
+      <div className="hub-body">
       {id === 'general' && <SettingsPage />}
       {id === 'features' && <FeaturesPage />}
       {id === 'accounts' && <AccountSettingsPage />}
@@ -54,6 +73,7 @@ export function SettingsHub({ tab }: { tab?: string }) {
       {id === 'notices' && <NoticesPage />}
       {id === 'pair' && <ServerPairPage />}
       {id === 'support' && <SupportPage />}
-    </>
+      </div>
+    </div>
   );
 }

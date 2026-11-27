@@ -22,8 +22,23 @@ export type AdminPage = {
 
 export type Tone = 'blue' | 'violet' | 'teal' | 'orange' | 'green' | 'navy' | 'slate' | 'pink';
 
+export type NavGroup = 'desk' | 'people' | 'research' | 'infra' | 'settings';
+
+/** Sidebar headings (Horizon / Citrix style: inventory, people, resources, infrastructure). */
+export const NAV_GROUPS: { id: NavGroup; label: Localized }[] = [
+  { id: 'desk', label: { ko: '데스크톱 서비스', en: 'Desktop service' } },
+  { id: 'people', label: { ko: '사용자 · 접근', en: 'Users and access' } },
+  { id: 'research', label: { ko: '연구 자원', en: 'Research resources' } },
+  { id: 'infra', label: { ko: '운영', en: 'Operations' } },
+  { id: 'settings', label: { ko: '', en: '' } },   // 설정: last, no heading
+];
+
+/** Where 플랫폼 설정 lives (its sections are /<tab> under it). */
+export const SETTINGS_PATH = '/admin/settings/platform';
+
 export type AdminModule = {
   id: string;
+  group: NavGroup;
   icon: IconName;
   tone: Tone; // the module's colour: home tile, sidebar icon, page header
   label: Localized;
@@ -36,32 +51,34 @@ const T = (id: string, ko: string, en: string, render: string, feature?: Feature
 
 export const MODULES: AdminModule[] = [
   {
-    id: 'vms', icon: 'vm', tone: 'blue',
-    label: { ko: '가상머신', en: 'Virtual machines' },
-    summary: { ko: '데스크톱 VM(만들기 · ISO · 상태), 이미지(템플릿 · 기본 제공 · 환경 카탈로그)', en: 'Desktop VMs (make, ISO, status), images (templates, starters, environments)' },
-    pages: [
-      { id: 'desktops', label: { ko: '데스크톱(VM)', en: 'Desktop VMs' }, phase: 1, tabs: [
-        T('list', '목록', 'List', 'vms/desktops'), T('create', 'VM 만들기', 'Make a VM', 'vms/create'),
-        T('isos', 'ISO · 이미지', 'ISO library', 'vms/isos'), T('status', '풀별 상태', 'By pool', 'pools/status')] },
-      { id: 'images', label: { ko: '이미지', en: 'Images' }, phase: 1, tabs: [
-        T('templates', '템플릿', 'Templates', 'vms/templates'),
-        T('desktpl', '기본 제공', 'Starters', 'vms/desktpl'),
-        T('environments', '환경 카탈로그', 'Environments', 'vms/environments', ['gpuai', 'fpga'])] },
-    ],
-  },
-  {
-    id: 'pools', icon: 'pool', tone: 'violet',
-    label: { ko: '데스크톱 풀', en: 'Desktop pools' },
-    summary: { ko: '풀(정책 · 권한 · 공유 저장소), 접속 설정(USB · 외부 데스크톱)', en: 'Pools (policy, access, shared storage), access settings (USB, external desktops)' },
+    id: 'pools', group: 'desk', icon: 'pool', tone: 'violet',
+    label: { ko: '데스크톱', en: 'Desktops' },
+    summary: { ko: '풀(배포 · 정책 · 권한), 모든 VM, 풀별 상태, 접속 설정(USB · 외부 데스크톱)', en: 'Pools (deploy, policy, access), all VMs, state by pool, access settings (USB, external desktops)' },
     pages: [
       { id: 'list', label: { ko: '풀', en: 'Pools' }, phase: 1, render: 'pools/list' },
+      { id: 'deploy', label: { ko: '데스크톱 배포', en: 'Deploy desktops' }, phase: 1, hidden: true, render: 'pools/deploy' },
+      { id: 'vms', label: { ko: '모든 VM', en: 'All VMs' }, phase: 1, tabs: [
+        T('list', '목록', 'List', 'vms/desktops'), T('status', '풀별 상태', 'By pool', 'pools/status')] },
       { id: 'access', label: { ko: '접속 설정', en: 'Access settings' }, phase: 1, feature: ['external'], tabs: [
         T('usb', 'USB 장치', 'USB devices', 'pools/usb'),
         T('external', '외부 데스크톱', 'External desktops', 'pools/external')] },
     ],
   },
   {
-    id: 'users', icon: 'users', tone: 'teal',
+    id: 'images', group: 'desk', icon: 'box', tone: 'blue',
+    label: { ko: '이미지', en: 'Images' },
+    summary: { ko: '템플릿 · 기본 제공 · 환경 카탈로그, 이미지 만들기(ISO로 VM 만들기 · ISO 라이브러리)', en: 'Templates, starters, environments; build an image (VM from ISO, ISO library)' },
+    pages: [
+      { id: 'templates', label: { ko: '템플릿', en: 'Templates' }, phase: 1, tabs: [
+        T('templates', '템플릿', 'Templates', 'vms/templates'),
+        T('desktpl', '기본 제공', 'Starters', 'vms/desktpl'),
+        T('environments', '환경 카탈로그', 'Environments', 'vms/environments', ['gpuai', 'fpga'])] },
+      { id: 'build', label: { ko: '이미지 만들기', en: 'Build an image' }, phase: 1, tabs: [
+        T('create', 'ISO로 VM 만들기', 'VM from an ISO', 'vms/create'), T('isos', 'ISO 라이브러리', 'ISO library', 'vms/isos')] },
+    ],
+  },
+  {
+    id: 'users', group: 'people', icon: 'users', tone: 'teal',
     label: { ko: '사용자', en: 'Users' },
     summary: { ko: '사용자(가입 심사 · 부서), 권한(역할 · 유효 권한)', en: 'Users (sign-up review, departments), access (roles, effective access)' },
     pages: [
@@ -75,7 +92,7 @@ export const MODULES: AdminModule[] = [
     ],
   },
   {
-    id: 'labs', icon: 'lab', tone: 'orange',
+    id: 'labs', group: 'desk', icon: 'lab', tone: 'orange',
     label: { ko: 'LAB', en: 'Labs' },
     summary: { ko: 'LAB(실습실 · 단말 에이전트), 일정 · 예약(예약 · 시간표 · 일정형 풀)', en: 'Labs (rooms, terminal agents), schedules and bookings' },
     pages: [
@@ -87,7 +104,7 @@ export const MODULES: AdminModule[] = [
     ],
   },
   {
-    id: 'accel', icon: 'gpu', tone: 'green', vlabOnly: true,
+    id: 'accel', group: 'research', icon: 'gpu', tone: 'green', vlabOnly: true,
     label: { ko: '가속 자원', en: 'Accelerators' },
     summary: { ko: '카드(재고 · vGPU · MIG · 매핑 · 점검), 대여, GPU 작업(큐 · 할당량 · 웹 IDE), 보드 LAB · 빌드 팜 · 라이선스', en: 'Cards (inventory, vGPU, MIG, mappings, checks), loans, GPU jobs (queue, quotas, web IDE), board lab, build farm, licences' },
     pages: [
@@ -108,7 +125,7 @@ export const MODULES: AdminModule[] = [
     ],
   },
   {
-    id: 'data', icon: 'layers', tone: 'pink',
+    id: 'data', group: 'research', icon: 'layers', tone: 'pink',
     label: { ko: '연구 데이터', en: 'Research data' },
     summary: { ko: '데이터셋(반출 승인 · 규칙), 용량 · 반출 보고서', en: 'Datasets (export approvals, rules), capacity and export report' },
     pages: [
@@ -120,30 +137,37 @@ export const MODULES: AdminModule[] = [
     ],
   },
   {
-    id: 'cluster', icon: 'cluster', tone: 'navy',
-    label: { ko: '클러스터', en: 'Cluster' },
-    summary: { ko: '클러스터(개요 · 노드 · 스토리지 · 고가용성), 클러스터 연결', en: 'Cluster (overview, nodes, storage, HA), connections' },
-    pages: [
-      { id: 'overview', label: { ko: '클러스터', en: 'Cluster' }, phase: 1, tabs: [
-        T('overview', '개요', 'Overview', 'cluster/overview'), T('nodes', '노드', 'Nodes', 'cluster/nodes'),
-        T('storage', '스토리지', 'Storage', 'cluster/storage'), T('ha', '고가용성(HA)', 'High availability', 'cluster/ha', ['ha'])] },
-      { id: 'connections', label: { ko: '클러스터 연결', en: 'Cluster connections' }, phase: 1, render: 'cluster/connections' },
-    ],
-  },
-  {
-    id: 'ops', icon: 'ops', tone: 'slate',
-    label: { ko: '운영', en: 'Operations' },
-    summary: { ko: '요약(작업 진행), 기록(접속 · 감사), 보고서, 경보, 백업, 플랫폼 설정', en: 'Summary (tasks), logs (sessions, audit), reports, alerts, backup, platform settings' },
+    id: 'ops', group: 'infra', icon: 'ops', tone: 'slate',
+    label: { ko: '모니터링', en: 'Monitoring' },
+    summary: { ko: '요약(작업 진행), 기록(접속 · 감사), 경보, 보고서', en: 'Summary (tasks), logs (sessions, audit), alerts, reports' },
     pages: [
       { id: 'summary', label: { ko: '요약', en: 'Summary' }, phase: 1, tabs: [
         T('summary', '시스템 요약', 'System summary', 'ops/summary'), T('tasks', '작업 진행', 'Tasks', 'ops/tasks')] },
       { id: 'logs', label: { ko: '기록', en: 'Logs' }, phase: 1, tabs: [
         T('sessions', '접속 기록', 'Sessions', 'ops/sessions'), T('audit', '작업 기록(감사)', 'Audit log', 'ops/audit')] },
+      { id: 'alerts', label: { ko: '경보', en: 'Alerts' }, phase: 1, render: 'ops/alerts' },
       { id: 'reports', label: { ko: '보고서', en: 'Reports' }, phase: 1, tabs: [
         T('usage', '사용률', 'Usage', 'ops/reports'), T('pdf', '운영 보고서 (PDF)', 'Operations report (PDF)', 'ops/report')] },
-      { id: 'alerts', label: { ko: '경보', en: 'Alerts' }, phase: 1, render: 'ops/alerts' },
+    ],
+  },
+  {
+    id: 'cluster', group: 'infra', icon: 'cluster', tone: 'navy',
+    label: { ko: '인프라', en: 'Infrastructure' },
+    summary: { ko: '클러스터(개요 · 노드 · 스토리지 · 고가용성), 클러스터 연결, 백업', en: 'Cluster (overview, nodes, storage, HA), connections, backup' },
+    pages: [
+      { id: 'overview', label: { ko: '클러스터', en: 'Cluster' }, phase: 1, tabs: [
+        T('overview', '개요', 'Overview', 'cluster/overview'), T('nodes', '노드', 'Nodes', 'cluster/nodes'),
+        T('storage', '스토리지', 'Storage', 'cluster/storage'), T('ha', '고가용성(HA)', 'High availability', 'cluster/ha', ['ha'])] },
+      { id: 'connections', label: { ko: '클러스터 연결', en: 'Cluster connections' }, phase: 1, render: 'cluster/connections' },
       { id: 'backup', label: { ko: '백업 (PBS)', en: 'Backup (PBS)' }, phase: 1, render: 'ops/backup' },
-      { id: 'settings', label: { ko: '플랫폼 설정', en: 'Platform settings' }, phase: 1, render: 'ops/settings' },
+    ],
+  },
+  {
+    id: 'settings', group: 'settings', icon: 'gear', tone: 'slate',
+    label: { ko: '설정', en: 'Settings' },
+    summary: { ko: '플랫폼 설정(일반 · 기능 · 계정 · 도메인 · 화이트라벨 · 클라이언트 · 게이트웨이 · 공지 · 연동)', en: 'Platform settings (general, features, accounts, domain, look, client, gateway, notices, integrations)' },
+    pages: [
+      { id: 'platform', label: { ko: '플랫폼 설정', en: 'Platform settings' }, phase: 1, render: 'ops/settings' },
     ],
   },
 ];
@@ -160,6 +184,20 @@ export function pageVisible(p: AdminPage, on: FeatureCheck): boolean {
 
 export function visibleModules(on: FeatureCheck): (AdminModule & { visiblePages: AdminPage[] })[] {
   return MODULES.map((m) => ({ ...m, visiblePages: m.pages.filter((p) => pageVisible(p, on)) })).filter((m) => m.visiblePages.length > 0);
+}
+
+// Pages that were split up when the menu was regrouped (가상머신 -> 데스크톱 · 이미지): old
+// "module/page[/tab]" -> new address. Pages that moved whole are found by their render key below.
+const LEGACY: Record<string, string> = {
+  'vms/desktops': '/admin/pools/vms/list', 'vms/desktops/list': '/admin/pools/vms/list', 'vms/desktops/status': '/admin/pools/vms/status',
+  'vms/desktops/create': '/admin/images/build/create', 'vms/desktops/isos': '/admin/images/build/isos',
+  'vms/images': '/admin/images/templates', 'vms/images/templates': '/admin/images/templates/templates',
+  'vms/images/desktpl': '/admin/images/templates/desktpl', 'vms/images/environments': '/admin/images/templates/environments',
+};
+
+export function legacyPath(moduleId?: string, pageId?: string, subId?: string): string | null {
+  if (!moduleId || !pageId) return null;
+  return LEGACY[`${moduleId}/${pageId}/${subId ?? ''}`] ?? LEGACY[`${moduleId}/${pageId}`] ?? null;
 }
 
 /** Where an old "module/page" address lives now: [module, page, tab]. */

@@ -379,7 +379,7 @@ export const messages = {
   'tpl.pools': { ko: "사용 풀", en: "Pools" },
   'tpl.clone': { ko: "풀에 클론", en: "Clone into a pool" },
   'tpl.empty': { ko: "이 클러스터에 템플릿이 없습니다. Proxmox에서 VM을 템플릿으로 바꾸면 여기에 나타납니다.", en: "No templates on this cluster. Convert a VM to a template in Proxmox and it shows here." },
-  'tpl.noPools': { ko: "이 클러스터에 풀이 없습니다. 데스크톱 풀 > 풀 관리에서 먼저 만드세요.", en: "No pool on this cluster yet. Create one under Desktop pools > Pools." },
+  'tpl.noPools': { ko: "이 클러스터에 풀이 없습니다. 데스크톱 > 풀에서 먼저 만드세요.", en: "No pool on this cluster yet. Create one under Desktops > Pools." },
   'tpl.note': { ko: "링크 클론은 템플릿 디스크가 LVM-thin·ZFS·Ceph RBD에 있거나, 파일 스토리지의 qcow2일 때만 됩니다.", en: "Linked clones need the template disks on LVM-thin, ZFS or Ceph RBD, or as qcow2 on file storage." },
   'clone.pool': { ko: "넣을 풀", en: "Into pool" },
   'ac.gpus': { ko: "GPU", en: "GPUs" },

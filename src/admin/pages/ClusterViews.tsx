@@ -127,8 +127,8 @@ function Overview({ cluster }: { cluster: Cluster }) {
               <LoadState value={rrd} retry={rrd.reload}>
                 {(r) => r.points.length < 2 ? <p className="muted small">{L('아직 기록이 없습니다.', 'No history yet.')}</p> : (
                   <div className="cv-charts">
-                    <LineChart title={L('CPU 사용률', 'CPU use')} points={r.points.map((p) => [p.t, p.cpu])} tf={tf} hue="var(--tile-teal)" />
-                    <LineChart title={L('메모리 사용률', 'Memory use')} points={r.points.map((p) => [p.t, p.mem])} tf={tf} hue="var(--tile-violet)" />
+                    <LineChart title={L('CPU 사용률', 'CPU use')} points={r.points.map((p) => [p.t, p.cpu])} tf={tf} hue="var(--chart-1)" />
+                    <LineChart title={L('메모리 사용률', 'Memory use')} points={r.points.map((p) => [p.t, p.mem])} tf={tf} hue="var(--chart-2)" />
                     {r.nodes_missing.length > 0 && <p className="muted small">{L(`응답 없는 노드는 빠짐: ${r.nodes_missing.join(', ')}`, `Left out (no answer): ${r.nodes_missing.join(', ')}`)}</p>}
                   </div>
                 )}
@@ -374,7 +374,7 @@ function NodeDetail({ cluster, node: n, reload, onBack }: { cluster: Cluster; no
                     <tr key={g.vmid}>
                       <td className="vd-num">{g.vmid}</td><td>{g.name}</td><td className="small">{g.type === 'qemu' ? 'VM' : 'LXC'}</td>
                       <td><span className={`vt-st ${g.status === 'running' ? 'vt-st-running' : ''}`}>{g.status === 'running' ? L('실행 중', 'Running') : g.status === 'stopped' ? L('꺼짐', 'Stopped') : g.status}</span></td>
-                      <td className="vt-actions">{g.desktop_id && <Link className="vt-link" to={`/admin/vms/desktops/list?vm=${encodeURIComponent(g.desktop_id)}`}>{L('관리', 'Manage')}</Link>}</td>
+                      <td className="vt-actions">{g.desktop_id && <Link className="vt-link" to={`/admin/pools/vms/list?vm=${encodeURIComponent(g.desktop_id)}`}>{L('관리', 'Manage')}</Link>}</td>
                     </tr>
                   ))}</tbody>
                 </table>

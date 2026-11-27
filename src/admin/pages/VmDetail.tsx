@@ -465,7 +465,7 @@ function Tasks({ v, clusterId }: { v: VmInfo; clusterId?: string }) {
           );
         }}
       </LoadState>
-      <HowTo><p>{L('이 VM의 Proxmox 작업 중 최근 것만 보입니다. 전체는 운영 › 작업에서 봅니다.', "Only this VM's recent Proxmox tasks. All of them are in Operations › Tasks.")}</p></HowTo>
+      <HowTo><p>{L('이 VM의 Proxmox 작업 중 최근 것만 보입니다. 전체는 모니터링 › 작업 진행에서 봅니다.', "Only this VM's recent Proxmox tasks. All of them are in Monitoring › Tasks.")}</p></HowTo>
     </section>
   );
 }

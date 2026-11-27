@@ -299,7 +299,7 @@ function SeatSettingsDialog({ server, current, features, onClose, onDone }: {
           {chosen !== null && (channels.state === 'ok' ? (channels.data.length ? <div className="check-row">{channels.data.map((c) => (
             <label key={c.id} className="check-inline"><input type="checkbox" checked={chosen.includes(c.id)}
               onChange={(e) => setChosen(e.target.checked ? [...chosen, c.id] : chosen.filter((x) => x !== c.id))} />{c.name}</label>))}</div>
-            : <p className="muted small">{L('알림 채널이 없습니다 (운영 > 경보).', 'No alert channels (Operations > Alerts).')}</p>) : <p className="muted small">…</p>)}
+            : <p className="muted small">{L('알림 채널이 없습니다 (모니터링 > 경보).', 'No alert channels (Monitoring > Alerts).')}</p>) : <p className="muted small">…</p>)}
         </fieldset>
       </>}
     </Dialog>
