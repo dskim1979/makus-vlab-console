@@ -178,6 +178,11 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 15
 .form-row-even { grid-template-columns: 1fr 1fr; }
 .form-row-wide { grid-template-columns: 3fr 1fr; }
 .form-row-three { grid-template-columns: 1fr 1fr 1fr; }
+/* 네트워크 격리: an address with its button, and a rule row (address, protocol, port, note, add) */
+.ni-gw { display: flex; gap: .5rem; align-items: center; }
+.ni-gw input { flex: 1; min-width: 0; }
+.ni-add { display: grid; grid-template-columns: 2fr 1fr 1fr 2fr auto; gap: .5rem; align-items: center; }
+@media (max-width: 700px) { .ni-add { grid-template-columns: 1fr 1fr; } }
 .form-actions { display: flex; justify-content: flex-end; gap: .5rem; }
 .field-label { font-size: .85rem; font-weight: 550; color: var(--text-2); }
 .check-bottom { align-self: end; padding-bottom: .2rem; }
