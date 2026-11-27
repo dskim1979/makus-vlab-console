@@ -9,9 +9,9 @@ const KEY = 'moavi-theme';
 export function readPref(): ThemePref {
   try {
     const v = localStorage.getItem(KEY);
-    return v === 'light' || v === 'dark' || v === 'system' ? v : 'system';
+    return v === 'light' || v === 'dark' || v === 'system' ? v : 'light';   // light by default
   } catch {
-    return 'system';
+    return 'light';
   }
 }
 
