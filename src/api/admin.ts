@@ -164,6 +164,8 @@ const realAdminApi = {
   },
   clone: async (poolId: string, c: { template_vmid: number; count: number; name_prefix: string; full: boolean; start_vmid?: number }) =>
     call<CloneResult>('POST', `/api/vlab/admin/pools/${enc(poolId)}/clone`, c),
+  pruneDesktops: async (poolId: string) =>
+    (await call<{ removed: number[] }>('POST', `/api/vlab/admin/pools/${enc(poolId)}/desktops/prune`)).removed,
   removeDesktop: async (desktopId: string) => { await call('DELETE', `/api/vlab/admin/desktops/${enc(desktopId)}`); },
   assign: async (desktopId: string, username: string | null) => {
     await call('PUT', `/api/vlab/admin/desktops/${enc(desktopId)}/assign`, { username });

@@ -859,6 +859,7 @@ export const mockAdminApi: AdminApi = {
     cloneSources.get(tpl.vmid)!.add(id);
     return delay({ created, failed: null });
   },
+  pruneDesktops: () => delay([]),
   removeDesktop: (id) => { desks.splice(desks.findIndex((d) => d.id === id), 1); return delay(undefined); },
   assign: (id, username) => {
     const d = desks.find((x) => x.id === id);

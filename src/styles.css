@@ -214,6 +214,7 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 15
 .state-stopped, .pill.st-stopped { background: var(--surface-3); color: var(--muted); }
 .state-provisioning, .pill.st-provisioning { background: var(--warn-soft); color: var(--warn); }
 .state-error, .pill.st-error { background: var(--danger-soft); color: var(--danger); }
+.state-missing, .pill.st-missing { background: var(--surface-3); color: var(--danger); text-decoration: line-through; }
 .status { display: inline-flex; align-items: center; gap: .4rem; font-size: .84rem; font-weight: 550; color: var(--muted); }
 .status.st-ready { color: var(--ok); }
 .status.st-in_use { color: var(--accent); }

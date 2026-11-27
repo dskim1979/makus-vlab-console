@@ -90,6 +90,19 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
   }
 
   const resettable = pool?.type === 'reset' || pool?.type === 'classroom';
+  const missing = desktops.state === 'ok' ? desktops.data.filter((d) => d.state === 'missing').length : 0;
+
+  async function prune() {
+    if (!pool || !confirm(t('desk.pruneConfirm').replace('{n}', String(missing)))) return;
+    try {
+      const removed = await adminApi.pruneDesktops(pool.id);
+      setNotice({ kind: 'info', text: t('desk.pruned').replace('{n}', String(removed.length)) });
+    } catch (e) {
+      setNotice({ kind: 'error', text: (e as Error).message });
+    }
+    desktops.reload();
+    pools.reload();
+  }
 
   return (
     <>
@@ -114,6 +127,7 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
         <button type="button" className="btn primary" disabled={!pool} onClick={() => setCloning(true)}>{t('clone.open')}</button>
         <button type="button" className="btn" disabled={!pool} onClick={() => setAdding(true)}>{t('desk.addVm')}</button>
         {resettable && <button type="button" className="btn" onClick={resetAll}>{t('reset.pool')}</button>}
+        {missing > 0 && <button type="button" className="btn danger" onClick={prune}>{t('desk.prune').replace('{n}', String(missing))}</button>}
         <button type="button" className="btn" onClick={desktops.reload}>{t('common.refresh')}</button>
       </div>
       {notice && <div className={`alert ${notice.kind === 'error' ? 'error' : 'info'}`} role="status">{notice.text}</div>}
