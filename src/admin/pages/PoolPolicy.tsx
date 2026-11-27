@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { adminApi } from '../../api/admin';
-import type { Clipboard, Pool, PoolPolicy } from '../../api/types';
+import type { Clipboard, Pool, PoolPolicy, UsbClass, UsbDevice, UsbMode } from '../../api/types';
+import { USB_CLASSES } from '../../api/types';
+import type { IconName } from '../../components/Icon';
 import { SHARED_SCREEN_TYPES } from '../../api/types';
 import { Dialog } from '../../components/Dialog';
 import { HowTo } from '../../components/HowTo';
@@ -60,6 +62,8 @@ function Summary({ p, storage }: { p: PoolPolicy; storage: PoolStorage | null })
     `${t('pol.s.clip')}: ${t(`pol.clip.${p.clipboard}` as MessageKey)}`,
     `USB: ${p.usb_redirect ? t('pol.on') : t('pol.offShort')}`,
   ];
+  const usbRules = (p.usb_classes?.length ?? 0) + (p.usb_devices?.length ?? 0);
+  if (p.usb_redirect && usbRules) chips.push(`${(p.usb_mode ?? 'deny') === 'allow' ? L('USB 허용 목록', 'USB allow list') : L('USB 차단 목록', 'USB block list')} ${usbRules}`);
   if (p.rdp_route === 'devices') chips.push(L('RDP: 장치 연결', 'RDP: devices'));
   if (p.client_drives) chips.push(L('내 PC 드라이브 연결', 'PC drives'));
   if (p.start_on_connect) chips.push(t('pol.startOnConnect'));
@@ -73,6 +77,111 @@ function Summary({ p, storage }: { p: PoolPolicy; storage: PoolStorage | null })
   if (storage?.enabled) chips.push(`${L('공유 저장소', 'Shared storage')}: ${storage.kind.toUpperCase()} ${storage.server}`);
   if (p.auto_domain_join === true) chips.push(L('자동 도메인 조인', 'Auto domain join'));
   return <div className="policy-chips">{chips.map((c) => <span key={c} className="chip">{c}</span>)}</div>;
+}
+
+// --- USB 정책 -----------------------------------------------------------------------------------
+// which devices go over when USB is on: a block list (all but the checked) or an allow list (only those),
+// by kind and by VID/PID. The engine turns it into the .vv's usb-filter and the .rdp's device lines.
+
+const USB_KIND: Record<UsbClass, { icon: IconName; tone: string; ko: string; en: string }> = {
+  storage: { icon: 'box', tone: 'blue', ko: '저장 장치', en: 'Storage' },
+  printer: { icon: 'download', tone: 'violet', ko: '프린터', en: 'Printers' },
+  smartcard: { icon: 'shield', tone: 'teal', ko: '스마트카드', en: 'Smart cards' },
+  camera: { icon: 'spark', tone: 'pink', ko: '카메라', en: 'Cameras' },
+  audio: { icon: 'support', tone: 'amber', ko: '오디오 · 마이크', en: 'Audio, microphone' },
+  imaging: { icon: 'layers', tone: 'green', ko: '스캐너', en: 'Scanners' },
+  serial: { icon: 'link', tone: 'slate', ko: '직렬 · 통신', en: 'Serial, modems' },
+  wireless: { icon: 'globe', tone: 'sky', ko: '무선 · 블루투스', en: 'Wireless, Bluetooth' },
+};
+
+function usbSummary(p: PoolPolicy, L: (ko: string, en: string) => string): string {
+  const kinds = (p.usb_classes ?? []).map((c) => L(USB_KIND[c].ko, USB_KIND[c].en));
+  const devices = (p.usb_devices ?? []).map((d) => d.name || `${d.vid}:${d.pid}`);
+  const list = [...kinds, ...devices];
+  if ((p.usb_mode ?? 'deny') === 'allow') return `${L('허용 목록', 'Allow list')}: ${list.join(', ') || L('없음 — 아무것도 전달 안 함', 'none - nothing goes over')}`;
+  return list.length ? `${L('차단', 'Blocked')}: ${list.join(', ')}` : L('모두 허용', 'Everything allowed');
+}
+
+const HEX4 = /^[0-9a-fA-F]{4}$/;
+
+function UsbPolicy({ p, set }: { p: PoolPolicy; set: <K extends keyof PoolPolicy>(k: K, v: PoolPolicy[K]) => void }) {
+  const { L } = useL();
+  const mode: UsbMode = p.usb_mode ?? 'deny';
+  const classes = p.usb_classes ?? [];
+  const devices = p.usb_devices ?? [];
+  const [draft, setDraft] = useState<UsbDevice>({ name: '', vid: '', pid: '' });
+  const draftOk = HEX4.test(draft.vid) && HEX4.test(draft.pid);
+  const dup = devices.some((d) => d.vid.toLowerCase() === draft.vid.toLowerCase() && d.pid.toLowerCase() === draft.pid.toLowerCase());
+  function toggle(c: UsbClass) {
+    set('usb_classes', classes.includes(c) ? classes.filter((x) => x !== c) : USB_CLASSES.filter((x) => x === c || classes.includes(x)));
+  }
+  function add() {
+    if (!draftOk || dup || devices.length >= 50) return;
+    set('usb_devices', [...devices, { name: draft.name.trim().slice(0, 40), vid: draft.vid.toLowerCase(), pid: draft.pid.toLowerCase() }]);
+    setDraft({ name: '', vid: '', pid: '' });
+  }
+  return (
+    <div className="usb-policy">
+      <div className="usb-policy-head">
+        <span className="field-label">{L('USB 정책', 'USB policy')}</span>
+        <select value={mode} onChange={(e) => set('usb_mode', e.target.value as UsbMode)} aria-label={L('정책 방식', 'Policy mode')}>
+          <option value="deny">{L('차단 목록', 'Block list')}</option>
+          <option value="allow">{L('허용 목록', 'Allow list')}</option>
+        </select>
+        <small className="muted">{mode === 'deny'
+          ? L('고른 종류와 장치만 막고 나머지는 전달합니다.', 'The checked kinds and devices stay on the PC; the rest go over.')
+          : L('고른 종류와 장치만 전달합니다.', 'Only the checked kinds and devices go over.')}</small>
+      </div>
+      <div className="usb-kinds">
+        {USB_CLASSES.map((c) => {
+          const k = USB_KIND[c];
+          const on = classes.includes(c);
+          return (
+            <label key={c} className={`usb-kind${on ? ' on' : ''} ${mode}`}>
+              <span className={`usb-kind-icon tone-${k.tone}`}><Icon name={k.icon} size={16} /></span>
+              <span className="usb-kind-name">{L(k.ko, k.en)}</span>
+              <span className="switch">
+                <input type="checkbox" role="switch" checked={on} onChange={() => toggle(c)} aria-label={L(k.ko, k.en)} />
+                <span className="switch-track" aria-hidden="true" />
+              </span>
+            </label>
+          );
+        })}
+      </div>
+      <span className="field-label">{L('특정 장치 (VID · PID)', 'Specific devices (VID, PID)')}</span>
+      {devices.length > 0 && (
+        <ul className="usb-devices">
+          {devices.map((d) => (
+            <li key={`${d.vid}:${d.pid}`}>
+              <span className="strong">{d.name || L('이름 없음', 'Unnamed')}</span>
+              <code className="code">{d.vid}:{d.pid}</code>
+              <button type="button" className="btn-ghost" onClick={() => set('usb_devices', devices.filter((x) => x !== d))}>{L('빼기', 'Remove')}</button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="usb-device-add">
+        <input value={draft.name} maxLength={40} placeholder={L('이름 (예: 보안 USB)', 'Name (e.g. secure USB)')}
+          onChange={(e) => setDraft({ ...draft, name: e.target.value })} aria-label={L('장치 이름', 'Device name')} />
+        <input value={draft.vid} maxLength={4} placeholder="VID" className="mono"
+          onChange={(e) => setDraft({ ...draft, vid: e.target.value.trim() })} aria-label="VID" />
+        <input value={draft.pid} maxLength={4} placeholder="PID" className="mono"
+          onChange={(e) => setDraft({ ...draft, pid: e.target.value.trim() })} aria-label="PID" />
+        <button type="button" className="btn" disabled={!draftOk || dup || devices.length >= 50} onClick={add}>{L('추가', 'Add')}</button>
+      </div>
+      {(draft.vid || draft.pid) && !draftOk && <small className="error-text">{L('VID · PID는 16진수 4자리입니다 (예: 046d).', 'VID and PID are 4 hex digits (e.g. 046d).')}</small>}
+      {dup && <small className="error-text">{L('이미 있는 장치입니다.', 'Already in the list.')}</small>}
+      <HowTo>
+        <ul>
+          <li>{L('SPICE는 종류와 장치 규칙을 그대로 지킵니다.', 'SPICE follows the kinds and devices exactly.')}</li>
+          <li>{L('RDP(장치 연결 경로)는 허용 목록이면 정확히 지킵니다. 차단 목록에서는 스마트카드 · 카메라 · 마이크 · 프린터 · 저장 장치만 막을 수 있습니다.',
+            'RDP (devices route) is exact with an allow list. A block list can hold back smart cards, cameras, the microphone, printers and storage only.')}</li>
+          <li>{L('VID · PID는 Windows 장치 관리자 › 속성 › 하드웨어 ID에서 볼 수 있습니다.', 'VID and PID are in Windows Device Manager > Properties > Hardware Ids.')}</li>
+          <li>{L('녹화 경로(보안 게이트웨이)는 USB를 전달하지 않습니다.', 'The recorded route (security gateway) carries no USB.')}</li>
+        </ul>
+      </HowTo>
+    </div>
+  );
 }
 
 function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }: {
@@ -235,6 +344,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
           <small className="muted hint-indent">{t('pol.usbRedirectHint')}</small>
           <label className="check"><input type="checkbox" checked={p.usb_autoshare} disabled={!p.usb_redirect}
             onChange={(e) => set('usb_autoshare', e.target.checked)} /><span>{t('pol.usbAuto')}</span></label>
+          {p.usb_redirect && <UsbPolicy p={p} set={set} />}
           {on('fpga') && <div className="callout"><Icon name="info" size={18} /><p>{t('pol.usbNote')}</p></div>}
           <span className="field-label">{L('RDP 파일 (Windows 원격 데스크톱 · 전용 앱)', 'RDP file (Remote Desktop app, MOAVI Desk client)')}</span>
           <div className="mode-cards mode-cards-2" role="radiogroup" aria-label={L('RDP 파일 경로', 'RDP file route')}>
@@ -309,6 +419,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
             <dt>{L('웹 IDE', 'Web IDE')}</dt><dd>{(p.web_ide ?? []).length ? `${p.web_ide.map((k) => (k === 'jupyter' ? 'JupyterLab' : 'VS Code')).join(', ')} · ${L(`유휴 ${p.web_ide_idle_min}분 뒤 끔`, `ends after ${p.web_ide_idle_min} min unused`)}` : t('pol.offShort')}</dd>
             <dt>{t('pol.s.clip')}</dt><dd>{t(`pol.clip.${p.clipboard}` as MessageKey)}</dd>
             <dt>{t('pol.s.usb')}</dt><dd>{p.usb_redirect ? `${t('pol.on')}${p.usb_autoshare ? ` · ${t('pol.usbAuto')}` : ''}` : t('pol.offShort')}</dd>
+            {p.usb_redirect && <><dt>{L('USB 정책', 'USB policy')}</dt><dd>{usbSummary(p, L)}</dd></>}
             <dt>{L('RDP 파일 경로', 'RDP file route')}</dt><dd>{(p.rdp_route ?? 'record') === 'devices' ? L('장치 연결 (녹화 안 함)', 'Devices (not recorded)') : L('녹화 (보안 게이트웨이)', 'Recorded (security gateway)')}</dd>
             <dt>{L('RDP 드라이브 · 프린터', 'RDP drives, printers')}</dt><dd>{`${L('내 PC 드라이브', 'PC drives')} ${p.client_drives ? t('pol.on') : t('pol.offShort')} · ${L('프린터', 'printers')} ${(p.client_printers ?? true) ? t('pol.on') : t('pol.offShort')}`}</dd>
             <dt>{t('pol.s.power')}</dt><dd>{[p.start_on_connect && t('pol.startOnConnect'),

@@ -1746,3 +1746,41 @@ tr.clickable:hover td { background: var(--surface-2); }
   .vt-create { margin-left: 0; }
   .vt-plan-row { grid-template-columns: 1fr; }
 }
+/* --- 데스크톱 풀 › 정책 › USB 정책 --------------------------------------------------------------- */
+.usb-policy { display: grid; gap: .7rem; margin: .4rem 0 .2rem; padding: .9rem 1rem; border: 1px solid var(--border);
+  border-radius: 10px; background: var(--surface-2, var(--surface)); }
+.usb-policy-head { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+.usb-policy-head select { min-width: 9rem; }
+.usb-kinds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+@media (max-width: 640px) { .usb-kinds { grid-template-columns: 1fr; } }
+.usb-policy label.usb-kind { display: flex; flex-direction: row; align-items: center; gap: .65rem; padding: .55rem .7rem; border: 1px solid var(--border);
+  border-radius: 9px; background: var(--surface); cursor: pointer; transition: border-color .15s, background .15s; }
+.usb-kind:hover { border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+.usb-kind.on.deny { border-color: color-mix(in srgb, var(--danger) 45%, var(--border)); background: color-mix(in srgb, var(--danger) 6%, var(--surface)); }
+.usb-kind.on.allow { border-color: color-mix(in srgb, var(--ok) 50%, var(--border)); background: color-mix(in srgb, var(--ok) 7%, var(--surface)); }
+.usb-kind-name { flex: 1; font-weight: 550; }
+.usb-kind-icon { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; color: #fff; flex: none; }
+.usb-kind-icon.tone-blue { background: #3b82f6; }
+.usb-kind-icon.tone-violet { background: #8b5cf6; }
+.usb-kind-icon.tone-teal { background: #14b8a6; }
+.usb-kind-icon.tone-pink { background: #ec4899; }
+.usb-kind-icon.tone-amber { background: #f59e0b; }
+.usb-kind-icon.tone-green { background: #22c55e; }
+.usb-kind-icon.tone-slate { background: #64748b; }
+.usb-kind-icon.tone-sky { background: #0ea5e9; }
+.usb-kind .switch { position: relative; display: inline-flex; }
+.usb-kind .switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.usb-kind .switch-track { width: 36px; height: 20px; border-radius: 999px; background: var(--surface-3); position: relative; transition: background .15s; }
+.usb-kind .switch-track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s; }
+.usb-kind.deny .switch input:checked + .switch-track { background: var(--danger); }
+.usb-kind.allow .switch input:checked + .switch-track { background: var(--ok); }
+.usb-kind .switch input:checked + .switch-track::after { transform: translateX(16px); }
+.usb-kind .switch input:focus-visible + .switch-track { outline: 2px solid var(--accent); outline-offset: 2px; }
+.usb-devices { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
+.usb-devices li { display: flex; align-items: center; gap: .6rem; padding: .35rem .6rem; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); }
+.usb-devices li .strong { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.usb-device-add { display: grid; grid-template-columns: minmax(0, 1fr) 6rem 6rem auto; gap: .45rem; }
+@media (max-width: 640px) { .usb-device-add { grid-template-columns: 1fr 1fr; } }
+.usb-device-add .mono { font-family: ui-monospace, Consolas, monospace; }
+.usb-policy .error-text { color: var(--danger); font-size: .8rem; }
