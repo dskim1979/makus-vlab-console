@@ -589,6 +589,13 @@ fieldset.choices legend { font-size: .85rem; font-weight: 550; margin-bottom: .3
 .dtile-state { display: flex; flex-direction: column; align-items: flex-start; gap: .2rem; min-width: 0; }
 .dtile-state .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .dtile-foot .btn { min-width: 84px; }
+.split-btn { position: relative; display: inline-flex; }
+.split-btn .split-main { border-top-right-radius: 0; border-bottom-right-radius: 0; gap: .4rem; }
+.split-btn .split-arrow { min-width: 0; padding: 0 .55rem; border-top-left-radius: 0; border-bottom-left-radius: 0;
+  border-left: 1px solid color-mix(in srgb, currentColor 25%, transparent); }
+.split-btn .menu-up { top: auto; bottom: calc(100% + 6px); min-width: 230px; }
+.split-btn .split-chev { display: inline-flex; transform: rotate(90deg); }
+.menu .menu-check { margin-left: auto; font-size: .75rem; color: var(--accent); }
 
 /* my resources */
 .res-list { display: flex; flex-direction: column; gap: .5rem; }
