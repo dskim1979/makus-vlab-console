@@ -180,6 +180,7 @@ export type PoolPolicy = {
   // 네트워크 격리: inbound only through the MOAVI gateway, in the Proxmox firewall (netiso.ts)
   net_isolation?: boolean; net_peers?: boolean; net_allow_in?: NetRule[];
   net_egress?: 'any' | 'list'; net_allow_out?: NetRule[];
+  net_segment?: string;   // 네트워크 분리: a segment id (src/api/netseg.ts), '' = the VM's own bridge
 };
 export type NetRule = { cidr: string; proto: 'any' | 'tcp' | 'udp' | 'icmp'; port: string; note: string };
 export type PoolPolicyAnswer = { policy: PoolPolicy; defaults: PoolPolicy; reset_allowed: boolean };

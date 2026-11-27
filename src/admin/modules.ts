@@ -122,11 +122,12 @@ export const MODULES: AdminModule[] = [
   {
     id: 'cluster', icon: 'cluster', tone: 'navy',
     label: { ko: '클러스터', en: 'Cluster' },
-    summary: { ko: '클러스터(개요 · 노드 · 스토리지 · 고가용성), 클러스터 연결', en: 'Cluster (overview, nodes, storage, HA), connections' },
+    summary: { ko: '클러스터(개요 · 노드 · 스토리지 · 네트워크 분리 · 고가용성), 클러스터 연결', en: 'Cluster (overview, nodes, storage, network segments, HA), connections' },
     pages: [
       { id: 'overview', label: { ko: '클러스터', en: 'Cluster' }, phase: 1, tabs: [
         T('overview', '개요', 'Overview', 'cluster/overview'), T('nodes', '노드', 'Nodes', 'cluster/nodes'),
-        T('storage', '스토리지', 'Storage', 'cluster/storage'), T('ha', '고가용성(HA)', 'High availability', 'cluster/ha', ['ha'])] },
+        T('storage', '스토리지', 'Storage', 'cluster/storage'), T('network', '네트워크 분리', 'Network segments', 'cluster/network'),
+        T('ha', '고가용성(HA)', 'High availability', 'cluster/ha', ['ha'])] },
       { id: 'connections', label: { ko: '클러스터 연결', en: 'Cluster connections' }, phase: 1, render: 'cluster/connections' },
     ],
   },

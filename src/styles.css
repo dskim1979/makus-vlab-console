@@ -1785,3 +1785,12 @@ tr.clickable:hover td { background: var(--surface-2); }
 .td-screen .scr-who { position: absolute; left: 8px; bottom: 8px; display: inline-flex; align-items: center; gap: .35rem; max-width: calc(100% - 16px);
   height: 22px; padding: 0 .55rem; border-radius: 999px; background: rgba(11, 18, 32, .72); color: #fff; font-size: .72rem; font-weight: 600;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; backdrop-filter: blur(4px); }
+
+/* 클러스터 > 네트워크 분리 (NetSegPage.tsx) */
+.ns-sdnbar { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; padding: .6rem .8rem; border: 1px solid var(--border); border-radius: 8px; }
+.ns-sdnbar.confirm { border-color: var(--accent); }
+.ns-grow { flex: 1; }
+.ns-use { min-width: 9rem; }
+.ns-ips { display: grid; gap: .6rem; }
+.ns-reserve { display: grid; grid-template-columns: 1fr 1fr auto; gap: .5rem; max-width: 36rem; }
+@media (max-width: 700px) { .ns-reserve { grid-template-columns: 1fr; } }

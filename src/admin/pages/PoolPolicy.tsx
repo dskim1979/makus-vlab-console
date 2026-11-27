@@ -19,7 +19,7 @@ import { useFeatures } from '../../features';
 import { directoryApi } from '../../api/directory';
 import { nextApi } from '../../api/next';
 import { SubjectListEditor } from './PoolGrants';
-import { NetIsoStep, netIsoSummary } from './PoolNetIso';
+import { NetIsoStep, NetSegName, netIsoSummary } from './PoolNetIso';
 
 // 데스크톱 풀 > (풀) > 정책: how the pool's desktops are reached and kept - a summary on the
 // pool page and a wizard in six steps plus review. The engine applies it (pegaprox/vlab/policy.py; the
@@ -448,6 +448,7 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
             <dt>{t('pol.s.account')}</dt><dd>{p.allow_power ? t('pol.allowPower') : `${t('pol.s.power')}: ${t('pol.offShort')}`}
               {p.max_session_hours ? ` · ${t('pol.maxSession')} ${p.max_session_hours}${t('pol.hours')}` : ''}
               {` · ${L('화면 미리보기', 'Screen preview')} ${p.screen_thumbnail !== false ? t('pol.on') : t('pol.offShort')}`}</dd>
+            <dt>{L('네트워크 (망)', 'Network')}</dt><dd><NetSegName pool={pool} id={p.net_segment ?? ''} /></dd>
             <dt>{L('네트워크 격리', 'Network isolation')}</dt><dd>{netIsoSummary(p, L)}</dd>
             <dt>{L('공유 저장소', 'Shared storage')}</dt><dd>{storageSummary({ ...st, has_password: storage.has_password }, L)}
               {st.enabled ? ` · ${st.kind === 'smb' || st.create_by === 'user' ? L('폴더는 사용자 본인이 만듦', 'folders made by the user') : L('폴더는 엔진이 만듦', 'folders made by the engine')}` : ''}</dd>

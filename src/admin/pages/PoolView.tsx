@@ -16,7 +16,7 @@ import { AddVmDialog, CloneDialog, JoinChip, JoinStates } from './PoolDetailPage
 import { PoolEditDialog } from './PoolEdit';
 import { PoolGpuPanel } from './PoolGpu';
 import { PoolPolicyPanel } from './PoolPolicy';
-import { PoolNetIsoPanel } from './PoolNetIso';
+import { PoolNetIsoPanel, PoolNetSegPanel } from './PoolNetIso';
 import { DeskChip } from './PoolTable';
 import { PoolStoragePanel } from './PoolStorage';
 import { Caret, Drop, Modal, Usage } from './TableKit';
@@ -126,6 +126,7 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
         <div className="vd-body">
           <PoolPolicyPanel pool={pool} onChanged={pools.reload} />
           <PoolNetIsoPanel pool={pool} />
+          <PoolNetSegPanel pool={pool} />
           <PoolStoragePanel pool={pool} />
           <PoolDomainJoinPanel pool={pool} />
           <PoolGpuPanel pool={pool} onChanged={reload} />

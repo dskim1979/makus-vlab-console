@@ -14,6 +14,7 @@ import { AlertsPage } from './pages/AlertsPage';
 import { AuditPage } from './pages/AuditPage';
 import { BackupPage } from './pages/BackupPage';
 import { ClusterStoragePage } from './pages/ClusterPages';
+import { ClusterNetSegPage } from './pages/NetSegPage';
 import { ClusterNodesView, ClusterOverviewView } from './pages/ClusterViews';
 import { ClustersPage } from './pages/ClustersPage';
 import { DesktopStatusPage } from './pages/DesktopStatusPage';
@@ -65,6 +66,7 @@ function pageBody(key: string, subId?: string) {
   if (key === 'cluster/overview') return <ClusterOverviewView />;
   if (key === 'cluster/nodes') return <ClusterNodesView />;
   if (key === 'cluster/storage') return <ClusterStoragePage />;
+  if (key === 'cluster/network') return <ClusterNetSegPage />;
   if (key === 'labs/list') return <LabsPage />;
   if (key === 'labs/terminals') return <TerminalsPage />;
   if (key === 'labs/schedules') return <LabSchedulesPage />;
