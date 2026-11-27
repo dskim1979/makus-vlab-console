@@ -27,6 +27,7 @@ import { SessionsPage } from './pages/SessionsPage';
 import { SettingsHub } from './pages/SettingsHub';
 import { SummaryPage } from './pages/SummaryPage';
 import { ReportPage } from './pages/ReportPage';
+import { ReclaimPage } from './pages/ReclaimPage';
 import { UsagePage } from './pages/UsagePage';
 import { RolesPage } from './pages/RolesPage';
 import { AdDirectoryPage } from './pages/AdDirectoryPage';
@@ -51,6 +52,7 @@ function pageBody(key: string, subId?: string) {
   if (key === 'ops/backup') return <BackupPage />;
   if (key === 'ops/reports') return <UsagePage />;
   if (key === 'ops/report') return <ReportPage />;
+  if (key === 'ops/reclaim') return <ReclaimPage />;
   if (key === 'ops/settings') return <SettingsHub tab={subId} />;
   if (key === 'cluster/connections') return <ClustersPage />;
   if (key === 'accel/inventory') return <AccelInventoryPage />;

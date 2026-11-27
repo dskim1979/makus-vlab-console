@@ -133,7 +133,7 @@ export const MODULES: AdminModule[] = [
   {
     id: 'ops', icon: 'ops', tone: 'slate',
     label: { ko: '운영', en: 'Operations' },
-    summary: { ko: '요약(작업 진행), 기록(접속 · 감사), 보고서, 경보, 백업, 플랫폼 설정', en: 'Summary (tasks), logs (sessions, audit), reports, alerts, backup, platform settings' },
+    summary: { ko: '요약(작업 진행), 기록(접속 · 감사), 보고서, 자원 회수, 경보, 백업, 플랫폼 설정', en: 'Summary (tasks), logs (sessions, audit), reports, reclaim, alerts, backup, platform settings' },
     pages: [
       { id: 'summary', label: { ko: '요약', en: 'Summary' }, phase: 1, tabs: [
         T('summary', '시스템 요약', 'System summary', 'ops/summary'), T('tasks', '작업 진행', 'Tasks', 'ops/tasks')] },
@@ -141,6 +141,7 @@ export const MODULES: AdminModule[] = [
         T('sessions', '접속 기록', 'Sessions', 'ops/sessions'), T('audit', '작업 기록(감사)', 'Audit log', 'ops/audit')] },
       { id: 'reports', label: { ko: '보고서', en: 'Reports' }, phase: 1, tabs: [
         T('usage', '사용률', 'Usage', 'ops/reports'), T('pdf', '운영 보고서 (PDF)', 'Operations report (PDF)', 'ops/report')] },
+      { id: 'reclaim', label: { ko: '자원 회수', en: 'Reclaim' }, phase: 1, render: 'ops/reclaim' },
       { id: 'alerts', label: { ko: '경보', en: 'Alerts' }, phase: 1, render: 'ops/alerts' },
       { id: 'backup', label: { ko: '백업 (PBS)', en: 'Backup (PBS)' }, phase: 1, render: 'ops/backup' },
       { id: 'settings', label: { ko: '플랫폼 설정', en: 'Platform settings' }, phase: 1, render: 'ops/settings' },

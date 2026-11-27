@@ -835,6 +835,7 @@ export const messages = {
   'al.channelsAdmin': { ko: '알림 채널은 플랫폼 설정 권한(admin.settings)이 있어야 볼 수 있습니다.', en: 'Notification channels need the platform settings permission (admin.settings).' },
   'al.note': { ko: '경보 규칙·확인·음소거·채널은 엔진(PegaProx)의 경보 기능 그대로입니다. 확인하면 해당 경보의 에스컬레이션이 멈춥니다.', en: "Rules, acknowledgement, mutes and channels are the engine's own (PegaProx) alerting. Acknowledging stops the alert's escalation." },
   'rs.title': { ko: '자원 제안', en: 'Right-sizing' },
+  'rs.reclaimLink': { ko: '회수할 자원 보기', en: 'What to take back' },
   'rs.basis': { ko: '최근 {d}일 사용량 기준', en: 'based on the last {d} days' },
   'rs.grow': { ko: '증설 필요', en: 'Needs more' },
   'rs.reclaim': { ko: '회수 가능', en: 'Can give back' },

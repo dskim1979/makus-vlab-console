@@ -178,7 +178,8 @@ function Board({ d, s, rs }: { d: Infra; s: Summary; rs: ReturnType<typeof useLo
       <div className="dgrid row-c">
         <Panel className="c5" title={`${t('rs.title')} · ${t('rs.basis').replace('{d}', String(rs.state === 'ok' ? rs.data.days : ''))}`} to="/admin/ops/report">
           <LoadState value={rs} retry={rs.reload}>
-            {(r) => <div className="rs-body"><RightSizingSummary r={r} /><RightSizingTable r={r} limit={4} compact /></div>}
+            {(r) => <div className="rs-body"><RightSizingSummary r={r} /><RightSizingTable r={r} limit={4} compact />
+              <Link to="/admin/ops/reclaim" className="small rs-reclaim">{t('rs.reclaimLink')} →</Link></div>}
           </LoadState>
         </Panel>
         <Panel className="c4" title={t('inf.nodes')} to="/admin/cluster/nodes">
