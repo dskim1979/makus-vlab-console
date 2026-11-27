@@ -1780,3 +1780,20 @@ tr.clickable:hover td { background: var(--surface-2); }
 .td-screen .scr-who { position: absolute; left: 8px; bottom: 8px; display: inline-flex; align-items: center; gap: .35rem; max-width: calc(100% - 16px);
   height: 22px; padding: 0 .55rem; border-radius: 999px; background: rgba(11, 18, 32, .72); color: #fff; font-size: .72rem; font-weight: 600;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; backdrop-filter: blur(4px); }
+
+/* 운영 > 자원 회수 (ReclaimPage.tsx) */
+.rc-lead { margin: 0 0 .75rem; }
+.rc-kpis .kpi:hover { background: var(--surface); }
+.rc-check { display: inline-flex; align-items: center; gap: .35rem; font-size: .85rem; white-space: nowrap; }
+.rc-kind { display: inline-block; padding: .1rem .5rem; border-radius: 999px; font-size: .75rem; font-weight: 600; background: var(--surface-2); color: var(--muted); }
+.rc-kind.rc-unused, .rc-kind.rc-loan { background: var(--warn-soft); color: var(--warn); }
+.rc-kind.rc-oversized { background: var(--ok-soft); color: var(--ok); }
+.rc-kind.rc-stopped, .rc-kind.rc-orphan { background: var(--danger-soft); color: var(--danger); }
+.rc-why { min-width: 14rem; max-width: 28rem; }
+.rc-free { display: inline-block; margin: 0 .3rem .15rem 0; padding: 0 .4rem; border: 1px solid var(--border); border-radius: 4px; font-variant-numeric: tabular-nums; }
+.rc-danger { color: var(--danger); font-weight: 600; }
+.rc-resize, .rc-weekly { display: flex; flex-wrap: wrap; gap: .75rem 1rem; margin: .5rem 0; }
+.rc-resize label, .rc-weekly label:not(.rc-check) { display: flex; flex-direction: column; gap: .25rem; font-size: .85rem; }
+.rc-resize input { width: 7rem; }
+.rc-confirm { display: flex; flex-direction: column; gap: .4rem; margin-top: .5rem; }
+.rs-reclaim { align-self: flex-start; }
