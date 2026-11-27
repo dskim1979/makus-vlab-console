@@ -4,7 +4,8 @@ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 // a sparkline and a gauge. No chart library: the panels need little and stay light.
 
 // Categorical order for series (nodes): validated for the navy surface (dataviz palette check).
-export const SERIES = ['#14A09A', '#3987E5', '#D95926', '#9085E9', '#C98500', '#D55181'];
+// The colours follow the colour theme (src/themes.css --chart-1..6; defaults are the old palette).
+export const SERIES = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)', 'var(--chart-6)'];
 
 export type Series = { name: string; color: string; points: { ts: number; v: number }[] };
 

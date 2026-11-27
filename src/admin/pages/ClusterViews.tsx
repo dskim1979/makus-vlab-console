@@ -127,8 +127,8 @@ function Overview({ cluster }: { cluster: Cluster }) {
               <LoadState value={rrd} retry={rrd.reload}>
                 {(r) => r.points.length < 2 ? <p className="muted small">{L('아직 기록이 없습니다.', 'No history yet.')}</p> : (
                   <div className="cv-charts">
-                    <LineChart title={L('CPU 사용률', 'CPU use')} points={r.points.map((p) => [p.t, p.cpu])} tf={tf} hue="var(--tile-teal)" />
-                    <LineChart title={L('메모리 사용률', 'Memory use')} points={r.points.map((p) => [p.t, p.mem])} tf={tf} hue="var(--tile-violet)" />
+                    <LineChart title={L('CPU 사용률', 'CPU use')} points={r.points.map((p) => [p.t, p.cpu])} tf={tf} hue="var(--chart-1)" />
+                    <LineChart title={L('메모리 사용률', 'Memory use')} points={r.points.map((p) => [p.t, p.mem])} tf={tf} hue="var(--chart-2)" />
                     {r.nodes_missing.length > 0 && <p className="muted small">{L(`응답 없는 노드는 빠짐: ${r.nodes_missing.join(', ')}`, `Left out (no answer): ${r.nodes_missing.join(', ')}`)}</p>}
                   </div>
                 )}

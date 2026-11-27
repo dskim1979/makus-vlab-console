@@ -49,7 +49,7 @@ export type ColorTheme = 'default' | 'blue' | 'mint' | 'indigo' | 'violet' | 'ro
 export const COLOR_THEMES: { id: ColorTheme; ko: string; en: string; swatch: string; bar: string }[] = [
   { id: 'default', ko: '기본 (청록)', en: 'Default (teal)', swatch: '#0B7373', bar: '#0F182C' },
   { id: 'blue', ko: '블루', en: 'Blue', swatch: '#1F6FEB', bar: '#FFFFFF' },
-  { id: 'mint', ko: '민트', en: 'Mint', swatch: '#0E9384', bar: '#FFFFFF' },
+  { id: 'mint', ko: '민트', en: 'Mint', swatch: '#0A7D70', bar: '#FFFFFF' },
   { id: 'indigo', ko: '인디고', en: 'Indigo', swatch: '#4F46E5', bar: '#4F46E5' },
   { id: 'violet', ko: '바이올렛', en: 'Violet', swatch: '#7C3AED', bar: '#FFFFFF' },
   { id: 'rose', ko: '로즈', en: 'Rose', swatch: '#C8235E', bar: '#FFFFFF' },
