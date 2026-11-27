@@ -98,7 +98,11 @@ function Screen({ d, family }: { d: Desktop; family: OsFamily }) {
     <div className={`td-screen os-${family}${on ? ' on' : ''}`} aria-hidden={real ? undefined : true}>
       {on ? (
         <>
-          {who ? (
+          {real ? (
+            <img className="scr-shot" src={real} alt={pick({ ko: `${d.name} 화면`, en: `${d.name} screen` })}
+              title={pick({ ko: '20초마다 갱신 · RDP로 쓰는 중이면 잠금 화면이 보입니다', en: 'Updated every 20 s · shows the lock screen while in use over RDP' })}
+              onError={() => setBroken(real)} />
+          ) : who ? (
             <span className="scr-session">
               <span className="scr-session-icon"><Icon name="users" size={22} /></span>
               <span className="scr-session-text">
@@ -106,10 +110,6 @@ function Screen({ d, family }: { d: Desktop; family: OsFamily }) {
                 <span>{who.user}{(d.signed_in ?? []).length > 1 ? ` +${(d.signed_in ?? []).length - 1}` : ''}{since ? ` · ${since}` : ''}</span>
               </span>
             </span>
-          ) : real ? (
-            <img className="scr-shot" src={real} alt={pick({ ko: `${d.name} 화면`, en: `${d.name} screen` })}
-              title={pick({ ko: '20초마다 갱신 · RDP로 쓰는 중이면 잠금 화면이 보입니다', en: 'Updated every 20 s · shows the lock screen while in use over RDP' })}
-              onError={() => setBroken(real)} />
           ) : off ? (
             <span className="scr-off scr-dark">{pick({ ko: '대기 중 · 로그인 전', en: 'Idle · nobody signed in' })}</span>
           ) : (
@@ -120,6 +120,11 @@ function Screen({ d, family }: { d: Desktop; family: OsFamily }) {
             </>
           )}
           {d.state === 'in_use' && <span className="scr-live"><span className="dot" />{t('portal.state.in_use')}</span>}
+          {real && who && (
+            <span className="scr-who" title={(d.signed_in ?? []).map((u) => u.user).join(', ')}>
+              <Icon name="users" size={13} />{who.user}{(d.signed_in ?? []).length > 1 ? ` +${(d.signed_in ?? []).length - 1}` : ''}{since ? ` · ${since}` : ''}
+            </span>
+          )}
         </>
       ) : (
         <span className="scr-off"><Icon name={d.state === 'provisioning' ? 'refresh' : 'play'} size={22} /></span>
