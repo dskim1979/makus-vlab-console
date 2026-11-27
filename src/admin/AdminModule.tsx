@@ -16,7 +16,8 @@ import { BackupPage } from './pages/BackupPage';
 import { ClusterNodesPage, ClusterOverviewPage, ClusterStoragePage } from './pages/ClusterPages';
 import { ClustersPage } from './pages/ClustersPage';
 import { DesktopStatusPage } from './pages/DesktopStatusPage';
-import { TemplatesPage, VmDesktopsPage } from './pages/VmPages';
+import { TemplateHubPage } from './pages/TemplateHub';
+import { VmDesktopsPage } from './pages/VmPages';
 import { IsoLibraryPage, VmCreatePage } from './pages/BuildPages';
 import { ClusterHaPage, TasksPage } from './pages/OpsPages';
 import { PoolDetailPage } from './pages/PoolDetailPage';
@@ -57,7 +58,7 @@ function pageBody(key: string, subId?: string) {
   if (key === 'accel/leases') return <LeasesPage />;
   if (key === 'vms/desktops') return <VmDesktopsPage />;
   if (key === 'vms/desktpl') return <DesktopTemplatesPage />;
-  if (key === 'vms/templates') return <TemplatesPage />;
+  if (key === 'vms/templates') return <TemplateHubPage />;
   if (key === 'vms/create') return <VmCreatePage />;
   if (key === 'vms/isos') return <IsoLibraryPage />;
   if (key === 'cluster/overview') return <ClusterOverviewPage />;

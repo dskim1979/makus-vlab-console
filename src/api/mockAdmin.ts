@@ -723,7 +723,7 @@ export const mockAdminApi: AdminApi = {
       const disk = ceph ? { storage: 'ceph-vm', volume: `base-${x.vmid}-disk-0`, plugin: 'rbd' }
         : { storage: 'san-lvm', volume: `vm-${x.vmid}-disk-0`, plugin: 'lvm' };
       return { ...x, spec: { ...x.spec, disk_gb: ceph ? 200 : 64 }, disks: [{ key: 'scsi0', ...disk }],
-        linked_clone: ceph, pools: cloneSources.get(x.vmid)?.size ?? 0 };
+        linked_clone: ceph, pools: cloneSources.get(x.vmid)?.size ?? 0, ostype: /win/i.test(x.name) ? 'win11' : 'l26' };
     }));
   },
   powerDesktop: (id, action) => {

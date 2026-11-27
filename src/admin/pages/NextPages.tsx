@@ -155,7 +155,7 @@ export function GoldenImagesPage() {
   );
 }
 
-function AddGoldenDialog({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+export function AddGoldenDialog({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const { L } = useL();
   const clusters = useLoad(adminApi.clusters);
   const [cluster, setCluster] = useState('');
@@ -189,7 +189,7 @@ function AddGoldenDialog({ onClose, onDone }: { onClose: () => void; onDone: () 
   );
 }
 
-function VersionDialog({ image, onClose, onDone }: { image: GoldenImage; onClose: () => void; onDone: (v: string) => void }) {
+export function VersionDialog({ image, onClose, onDone }: { image: GoldenImage; onClose: () => void; onDone: (v: string) => void }) {
   const { L } = useL();
   const [desc, setDesc] = useState('');
   const [busy, setBusy] = useState(false);
@@ -207,7 +207,7 @@ function VersionDialog({ image, onClose, onDone }: { image: GoldenImage; onClose
   );
 }
 
-function DeployDialog({ image, onClose, onDone }: { image: GoldenImage; onClose: () => void; onDone: (n: number) => void }) {
+export function DeployDialog({ image, onClose, onDone }: { image: GoldenImage; onClose: () => void; onDone: (n: number) => void }) {
   const { L } = useL();
   const pools = useLoad(adminApi.pools);
   const [pool, setPool] = useState('');
@@ -238,7 +238,7 @@ function DeployDialog({ image, onClose, onDone }: { image: GoldenImage; onClose:
   );
 }
 
-function RolloutDialog({ target, onClose, onDone }: { target: { image: GoldenImage; pool_id: string; pool: string; outdated: number }; onClose: () => void; onDone: (r: RolloutResult) => void }) {
+export function RolloutDialog({ target, onClose, onDone }: { target: { image: GoldenImage; pool_id: string; pool: string; outdated: number }; onClose: () => void; onDone: (r: RolloutResult) => void }) {
   const { L } = useL();
   const [deleteOld, setDeleteOld] = useState(true);
   const [busy, setBusy] = useState(false);
