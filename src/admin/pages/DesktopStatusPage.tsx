@@ -10,7 +10,7 @@ import type { MessageKey } from '../../i18n/messages';
 import { WorkPanel } from './WorkPanel';
 import { UseChip, useLx } from '../../components/WorkParts';
 
-const STATES: DesktopState[] = ['ready', 'in_use', 'stopped', 'provisioning', 'error'];
+const STATES: DesktopState[] = ['ready', 'in_use', 'stopped', 'provisioning', 'error', 'missing'];
 
 // 데스크톱 풀 > 데스크톱 상태: every desktop of every pool, filter by pool / state / text.
 export function DesktopStatusPage() {

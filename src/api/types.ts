@@ -27,7 +27,7 @@ export type LoginResult =
   | { kind: 'second_factor'; methods: string[] }
   | { kind: 'error'; reason: 'invalid' | 'locked' | 'network' | 'other'; message?: string };
 
-export type DesktopState = 'ready' | 'in_use' | 'stopped' | 'provisioning' | 'error';
+export type DesktopState = 'ready' | 'in_use' | 'stopped' | 'provisioning' | 'error' | 'missing';
 
 export type Desktop = {
   id: string;
