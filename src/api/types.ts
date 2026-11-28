@@ -181,6 +181,9 @@ export type PoolPolicy = {
   net_isolation?: boolean; net_peers?: boolean; net_allow_in?: NetRule[];
   net_egress?: 'any' | 'list'; net_allow_out?: NetRule[];
   net_segment?: string;   // 네트워크 분리: a segment id (src/api/netseg.ts), '' = the VM's own bridge
+  net_segment_from?: string;                        // the bridge whose NIC moves ('' = the first NIC)
+  net_segment_move?: 'off' | 'idle' | 'window';     // running desktops: when next off / restart idle ones / idle ones in the window
+  net_segment_window?: string;                      // 'HH:MM-HH:MM'
 };
 export type NetRule = { cidr: string; proto: 'any' | 'tcp' | 'udp' | 'icmp'; port: string; note: string };
 export type PoolPolicyAnswer = { policy: PoolPolicy; defaults: PoolPolicy; reset_allowed: boolean };

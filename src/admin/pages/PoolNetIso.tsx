@@ -3,7 +3,7 @@ import type { Pool, PoolPolicy } from '../../api/types';
 import { netisoApi } from '../../api/netiso';
 import type { ClusterNetIso, NetRule } from '../../api/netiso';
 import { netsegApi } from '../../api/netseg';
-import type { PoolNetSeg, SegState } from '../../api/netseg';
+import type { PoolNetSeg, Reach, Restart, SegState } from '../../api/netseg';
 import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { useLoad } from '../../components/useLoad';
@@ -110,8 +110,45 @@ function SegmentField({ pool, p, set }: { pool: Pool; p: PoolPolicy; set: SetP }
         ? L('세그먼트가 없습니다. 클러스터 › 네트워크 분리에서 만듭니다.', 'No segments yet - make them under Cluster › Network segments.')
         : picked && picked.sdn !== 'applied'
           ? L('아직 Proxmox에 적용되지 않은 세그먼트입니다(클러스터 › 네트워크 분리 › SDN 적용). 적용 전에는 옮기지 않습니다.', 'Not applied in Proxmox yet (Cluster › Network segments › Apply SDN); nothing moves before.')
-          : L('꺼진 데스크톱은 바로, 켜진 데스크톱은 다음에 끌 때 이 망으로 옮깁니다.', 'Stopped desktops move at once, running ones when next off.')}</small>
+          : L('꺼진 데스크톱과 새로 만든 데스크톱은 켜기 전에 이 망으로 옮깁니다.', 'Stopped and new desktops go onto it before they start.')}</small>
+      {cur && <SegmentMoveFields pool={pool} p={p} set={set} />}
     </fieldset>
+  );
+}
+
+// which NIC goes onto the segment (a VM with a management NIC and a desktop NIC), and when running desktops move
+function SegmentMoveFields({ pool, p, set }: { pool: Pool; p: PoolPolicy; set: SetP }) {
+  const { L } = useL();
+  const b = useLoad(useCallback(() => netsegApi.bridges(pool.cluster_id), [pool.cluster_id]), [pool.cluster_id]);
+  const list = b.state === 'ok' ? b.data.bridges : [];
+  const from = p.net_segment_from ?? '';
+  const move = p.net_segment_move ?? 'off';
+  return (
+    <>
+      <label><span>{L('옮길 네트워크 카드', 'Network card to move')}</span>
+        <select value={from} onChange={(e) => set('net_segment_from', e.target.value)}>
+          <option value="">{L('첫 번째 카드 (net0)', 'The first card (net0)')}</option>
+          {list.map((x) => <option key={x.name} value={x.name}>{L(`${x.name}에 붙은 카드`, `The card on ${x.name}`)}{x.comments ? ` · ${x.comments}` : ''}{x.addressed.length ? L(' · 관리망 추정', ' · likely management') : ''}</option>)}
+          {from && !list.some((x) => x.name === from) && <option value={from}>{from}</option>}
+        </select>
+        <small className="muted">{L('관리용 카드와 업무용 카드가 따로 있으면 업무용 카드가 붙은 브리지를 고르세요. 나머지 카드는 그대로 둡니다.', 'With a management card and a desktop card, pick the desktop card\'s bridge; the other cards stay.')}</small>
+      </label>
+      <span className="field-label">{L('켜져 있는 데스크톱', 'Running desktops')}</span>
+      <div className="mode-cards mode-cards-3" role="radiogroup" aria-label={L('켜져 있는 데스크톱', 'Running desktops')}>
+        {([['off', L('끌 때 옮김', 'When next off'), L('재시작하지 않습니다.', 'Never restarted.')],
+          ['idle', L('빈 데스크톱 재시작', 'Restart idle ones'), L('접속한 사람이 없으면 재시작해서 옮깁니다.', 'Restarted when nobody is connected.')],
+          ['window', L('정한 시간에만', 'In a time window'), L('그 시간에 빈 데스크톱만 재시작합니다.', 'Idle ones restart only in the window.')]] as const).map(([v, t, h]) => (
+          <label key={v} className={`mode-card${move === v ? ' on' : ''}`}>
+            <input type="radio" name="net-seg-move" checked={move === v} onChange={() => set('net_segment_move', v)} />
+            <span className="strong">{t}</span><span className="muted small">{h}</span>
+          </label>
+        ))}
+      </div>
+      {move === 'window' && (
+        <label><span>{L('시간 (HH:MM-HH:MM)', 'Window (HH:MM-HH:MM)')}</span>
+          <input value={p.net_segment_window ?? ''} placeholder="22:00-06:00" onChange={(e) => set('net_segment_window', e.target.value.trim())} /></label>
+      )}
+    </>
   );
 }
 
@@ -223,7 +260,8 @@ export function PoolNetIsoPanel({ pool }: { pool: Pool }) {
 // the pool page: which desktops are on the pool's segment, 지금 적용 / 재시작해서 적용
 const SEG_STATE: Record<SegState, [string, string, string]> = {
   on: ['vt-st-running', '이 망에 있음', 'On it'], off: ['', '원래 브리지', 'Own bridge'],
-  waiting: ['vt-st-provisioning', '끄면 옮김', 'Moves when off'], waiting_sdn: ['vt-st-provisioning', 'SDN 적용 대기', 'Waiting for SDN'],
+  waiting: ['vt-st-provisioning', '끄면 옮김', 'Moves when off'], waiting_sdn: ['vt-st-provisioning', '망 준비 대기', 'Waiting for the network'],
+  waiting_busy: ['vt-st-in_use', '사용 중 — 나중에', 'In use - later'], waiting_lock: ['vt-st-provisioning', '준비 중(잠김)', 'Being prepared (locked)'],
   waiting_back: ['vt-st-provisioning', '끄면 되돌림', 'Back when off'], error: ['vt-st-error', '실패', 'Failed'],
 };
 
@@ -237,8 +275,9 @@ export function PoolNetSegPanel({ pool }: { pool: Pool }) {
   const v: PoolNetSeg = st.data;
   if (!v.segment && !v.desktops.some((d) => d.state !== 'off')) return null;
   const on = v.desktops.filter((d) => d.state === 'on').length;
-  const waiting = v.desktops.filter((d) => d.state === 'waiting' || d.state === 'waiting_back').length;
-  const apply = async (restart: boolean) => {
+  const idle = v.desktops.filter((d) => d.state === 'waiting' || d.state === 'waiting_back').length;
+  const inUse = v.desktops.filter((d) => d.state === 'waiting_busy').length;
+  const apply = async (restart: Restart) => {
     setBusy(true); setError(null);
     try { await netsegApi.applyPool(pool.id, restart); setConfirm(false); st.reload(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); }
   };
@@ -255,12 +294,15 @@ export function PoolNetSegPanel({ pool }: { pool: Pool }) {
         </div>
         <div className="panel-actions">
           <button type="button" className="btn" onClick={() => apply(false)} disabled={busy}>{L('지금 적용', 'Apply now')}</button>
-          {waiting > 0 && <button type="button" className={`btn${confirm ? ' primary' : ''}`} disabled={busy}
+          {idle > 0 && <button type="button" className="btn" disabled={busy} onClick={() => apply('idle')}
+            title={L('접속한 사람이 없는 데스크톱만 재시작합니다.', 'Restarts only the desktops nobody is connected to.')}>
+            {L(`빈 데스크톱 ${idle}대 재시작`, `Restart ${idle} idle`)}</button>}
+          {inUse > 0 && <button type="button" className={`btn${confirm ? ' primary danger' : ''}`} disabled={busy}
             onClick={confirm ? () => apply(true) : () => setConfirm(true)}>
-            {confirm ? L(`${waiting}대 재시작 — 확인`, `Restart ${waiting} - confirm`) : L('재시작해서 적용', 'Restart and apply')}</button>}
+            {confirm ? L(`사용 중 ${inUse}대까지 재시작 — 확인`, `Restart ${inUse} in use too - confirm`) : L('사용 중도 재시작', 'Restart in-use too')}</button>}
         </div>
       </div>
-      {confirm && <div className="alert small info">{L('켜져 있는 데스크톱을 다시 시작합니다. 사용 중인 사용자의 접속이 끊깁니다.', 'Running desktops restart: users on them are disconnected.')}</div>}
+      {confirm && <div className="alert small info">{L('접속 중인 사용자의 데스크톱도 다시 시작합니다. 그 사용자들의 접속이 끊깁니다.', 'Desktops with users on them restart too: those users are disconnected.')}</div>}
       {v.problem && <div className="alert error small" role="status">{v.problem.startsWith('the segment is not applied')
         ? L('세그먼트가 아직 Proxmox에 적용되지 않았습니다. 클러스터 › 네트워크 분리에서 SDN 적용을 누르세요.', 'The segment is not applied in Proxmox yet: press Apply SDN under Cluster › Network segments.')
         : v.problem.startsWith('the zone is not built')
@@ -271,13 +313,16 @@ export function PoolNetSegPanel({ pool }: { pool: Pool }) {
             : v.problem}</div>}
       {error && <div className="alert error small" role="alert">{error}</div>}
       <table className="table compact">
-        <thead><tr><th>{L('데스크톱', 'Desktop')}</th><th>VMID</th><th>{L('브리지', 'Bridge')}</th><th>{L('상태', 'State')}</th></tr></thead>
+        <thead><tr><th>{L('데스크톱', 'Desktop')}</th><th>VMID</th><th>{L('카드', 'Card')}</th><th>{L('브리지', 'Bridge')}</th>
+          <th>{L('주소', 'Address')}</th><th title={L('MOAVI 서버(게이트웨이)에서 원격 데스크톱 포트(3389)로 닿는지', 'Whether the MOAVI server (gateway) reaches its RDP port (3389)')}>{L('게이트웨이에서', 'From gateway')}</th><th>{L('상태', 'State')}</th></tr></thead>
         <tbody>{v.desktops.map((d) => {
           const [cls, ko, en] = SEG_STATE[d.state] ?? SEG_STATE.off;
           return (
             <tr key={d.id}>
-              <td>{d.name}</td><td className="mono">{d.vmid}</td>
+              <td>{d.name}</td><td className="mono">{d.vmid}</td><td className="mono">{d.nic || '-'}</td>
               <td className="mono">{d.bridge || '-'}{d.orig_bridge && d.state === 'on' ? <span className="muted small"> ({L('원래', 'was')} {d.orig_bridge})</span> : null}</td>
+              <td className="mono">{d.ips?.join(', ') || '-'}</td>
+              <td><ReachBadge r={d.reach ?? ''} /></td>
               <td>{d.old_ips?.length
                 ? <span className="vt-st vt-st-offline" title={d.old_ips.join(', ')}>{L('예전 주소 사용', 'Old address')}</span>
                 : <span className={`vt-st ${cls}`} title={d.error || undefined}>{L(ko, en)}</span>}</td>
@@ -287,6 +332,15 @@ export function PoolNetSegPanel({ pool }: { pool: Pool }) {
       </table>
     </section>
   );
+}
+
+// as the MOAVI server (where rdpgw and Warpgate run) sees an address
+export function ReachBadge({ r }: { r: Reach }) {
+  const { L } = useL();
+  if (!r) return <span className="muted">-</span>;
+  if (r === 'open' || r === 'reachable') return <span className="vt-st vt-st-running">{L('닿음', 'Reached')}</span>;
+  if (r === 'unreachable') return <span className="vt-st vt-st-error" title={L('MOAVI 서버에서 이 망으로 가는 경로가 없습니다. 라우터에 경로를 넣으세요.', 'No route from the MOAVI server: add one on the router.')}>{L('경로 없음', 'No route')}</span>;
+  return <span className="vt-st vt-st-offline" title={L('응답이 없습니다. 방화벽이나 꺼진 장비일 수 있습니다.', 'No answer: a firewall, or it is down.')}>{L('응답 없음', 'No answer')}</span>;
 }
 
 // the policy review: the segment's name (a lookup of the cluster's segments)
