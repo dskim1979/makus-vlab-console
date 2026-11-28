@@ -14,6 +14,7 @@ export type Segment = SegmentInput & {
   id: string; cluster_id: string; vnet: string; created_at: string;
   pools: string[]; desktops: number; usable: number;
   sdn: 'missing' | 'applied' | 'new' | 'changed' | 'deleted';
+  gateway_reach?: Reach;   // the segment's gateway as the MOAVI server sees it
 };
 export type ClusterNetSeg = {
   zone: NetZone | null;
@@ -29,10 +30,18 @@ export type SegmentIpam = {
   outside: { ip: string; vmid: number; name: string; desktop_id: string }[]; duplicates: number;
 };
 export type Ipam = { ipam: boolean; segments: SegmentIpam[] };
-export type SegState = 'on' | 'off' | 'waiting' | 'waiting_sdn' | 'waiting_back' | 'error';
+export type SegState = 'on' | 'off' | 'waiting' | 'waiting_busy' | 'waiting_lock' | 'waiting_sdn' | 'waiting_back' | 'error';
+// from the MOAVI server: open / reachable (the host answered) / unreachable (no route) / timeout
+export type Reach = 'open' | 'reachable' | 'unreachable' | 'timeout' | '';
+export type Bridge = { name: string; type: string; nodes: string[]; vlan_aware: string[]; addressed: string[]; comments: string };
+export type Bridges = { nodes: string[]; bridges: Bridge[] };
+export type ReadyCheck = { id: 'source' | 'dnsmasq' | 'forward' | 'bridge' | 'mtu' | 'ssh'; ok: boolean; detail?: string; fix?: string };
+export type Readiness = { zone_type: string; nodes: { node: string; ok: boolean; checks: ReadyCheck[] }[] };
+export type Restart = boolean | 'idle';
 export type PoolNetSeg = {
   segment: (SegmentInput & { id: string; vnet: string }) | null; problem: string; checked_at: number | null;
-  desktops: { id: string; name: string; vmid: number; state: SegState; bridge: string; orig_bridge: string; running: boolean; error: string; old_ips?: string[] }[];
+  desktops: { id: string; name: string; vmid: number; state: SegState; bridge: string; orig_bridge: string; running: boolean; error: string; old_ips?: string[];
+    nic?: string; ips?: string[]; reach?: Reach }[];
 };
 export type SdnResult = { changed: string[]; applied: boolean; problem: string; nodes?: Record<string, string>; node_problem?: string };
 
@@ -59,7 +68,9 @@ const realApi = {
   reserve: (cid: string, id: string, ip: string, mac: string) => call<{ reserved: string }>('POST', `${C(cid)}/segments/${enc(id)}/ips`, { ip, mac }),
   unreserve: (cid: string, id: string, ip: string, mac: string) => call<{ released: string }>('DELETE', `${C(cid)}/segments/${enc(id)}/ips`, { ip, mac }),
   pool: (pid: string) => call<PoolNetSeg>('GET', `/api/vlab/admin/pools/${enc(pid)}/netseg`),
-  applyPool: (pid: string, restart: boolean) => call<PoolNetSeg>('POST', `/api/vlab/admin/pools/${enc(pid)}/netseg/apply`, { restart }),
+  applyPool: (pid: string, restart: Restart) => call<PoolNetSeg>('POST', `/api/vlab/admin/pools/${enc(pid)}/netseg/apply`, { restart }),
+  bridges: (cid: string) => call<Bridges>('GET', `${C(cid)}/bridges`),
+  readiness: (cid: string) => call<Readiness>('GET', `${C(cid)}/readiness`),
 };
 export type NetSegApi = typeof realApi;
 
@@ -85,7 +96,8 @@ function cidr(s: string): [number, number] | null {
 const inNet = (ip: string, net: string) => { const c = cidr(net); if (!c) return false; const mask = (0xffffffff << (32 - c[1])) >>> 0; return ((ipNum(ip) & mask) >>> 0) === c[0]; };
 const vnetOf = (id: string) => `mv${id.slice(-6).padStart(6, '0')}`;
 const isRunning = (vmid: number) => mockVmStore.guests.find((g) => g.vmid === vmid)?.status === 'running';
-const policyOf = (pid: string) => (mockVmStore.pools.find((p) => p.id === pid)?.settings?.policy ?? {}) as { net_segment?: string };
+const policyOf = (pid: string) => (mockVmStore.pools.find((p) => p.id === pid)?.settings?.policy ?? {}) as { net_segment?: string; net_segment_from?: string };
+const isBusy = (vmid: number) => isRunning(vmid) && vmid % 2 === 1;   // mock: odd running VMs have a user on them
 
 function check(cid: string, s: SegmentInput, self?: string): string | null {
   const z = zones[cid];
@@ -108,7 +120,8 @@ function view(cid: string): ClusterNetSeg {
   const list = (segs[cid] ?? []).map((s) => {
     const pools = mockVmStore.pools.filter((p) => p.cluster_id === cid && policyOf(p.id).net_segment === s.id).map((p) => p.name);
     const c = cidr(s.subnet)!;
-    return { ...s, sdn: s._sdn, pools, desktops: Object.values(moved).filter((m) => m.seg === s.id).length, usable: 2 ** (32 - c[1]) - 2 };
+    return { ...s, sdn: s._sdn, pools, desktops: Object.values(moved).filter((m) => m.seg === s.id).length, usable: 2 ** (32 - c[1]) - 2,
+      gateway_reach: (s._sdn === 'applied' ? 'reachable' : 'unreachable') as Reach };
   });
   const pending = list.filter((s) => s.sdn !== 'applied').map((s) => `vnet ${s.vnet} (${s.sdn === 'missing' ? 'new' : s.sdn})`);
   return { zone: zones[cid] ?? null, segments: list,
@@ -126,19 +139,24 @@ function poolView(pid: string): PoolNetSeg | null {
     desktops: mockVmStore.desks.filter((d) => d.pool_id === pid).map((d) => {
       const m = moved[d.id];
       const running = isRunning(d.vmid);
-      const state: SegState = seg ? (m?.seg === seg.id ? 'on' : seg._sdn !== 'applied' ? 'waiting_sdn' : running ? 'waiting' : 'on')
+      const state: SegState = seg ? (m?.seg === seg.id ? 'on' : seg._sdn !== 'applied' ? 'waiting_sdn' : running ? (isBusy(d.vmid) ? 'waiting_busy' : 'waiting') : 'on')
         : m ? (running ? 'waiting_back' : 'off') : 'off';
-      return { id: d.id, name: d.name, vmid: d.vmid, state, bridge: state === 'on' && seg ? seg.vnet : 'vmbr0', orig_bridge: m?.orig ?? '', running, error: '' };
+      const from = policyOf(pid).net_segment_from || 'vmbr0';
+      const c = seg ? cidr(seg.subnet) : null;
+      return { id: d.id, name: d.name, vmid: d.vmid, state, bridge: state === 'on' && seg ? seg.vnet : from, orig_bridge: m?.orig ?? '', running, error: '',
+        nic: from === 'vmbr0' ? 'net0' : 'net1', ips: state === 'on' && running && c ? [ipStr(c[0] + 20 + (d.vmid % 50))] : [],
+        reach: (state === 'on' && running ? 'open' : '') as Reach };
     }),
   };
 }
-function settle(pid: string, restart: boolean) {
+function settle(pid: string, restart: Restart) {
   const v = poolView(pid);
   if (!v) return;
   for (const d of v.desktops) {
     const desk = mockVmStore.desks.find((x) => x.id === d.id)!;
     const running = isRunning(desk.vmid);
-    if (v.segment && (d.state === 'on' || (d.state === 'waiting' && restart))) moved[d.id] = { seg: v.segment.id, orig: moved[d.id]?.orig ?? 'vmbr0' };
+    if (v.segment && (d.state === 'on' || (d.state === 'waiting' && restart) || (d.state === 'waiting_busy' && restart === true)))
+      moved[d.id] = { seg: v.segment.id, orig: moved[d.id]?.orig ?? (policyOf(pid).net_segment_from || 'vmbr0') };
     if (!v.segment && moved[d.id] && (!running || restart)) delete moved[d.id];
   }
 }
@@ -213,6 +231,19 @@ const mockApi: NetSegApi = {
   unreserve: (_cid, id, ip) => { reserved[id] = (reserved[id] ?? []).filter((r) => r.ip !== ip); return delay({ released: ip }); },
   pool: (pid) => { const v = poolView(pid); return v ? delay(v) : fail(404, 'pool not found'); },
   applyPool: (pid, restart) => { settle(pid, restart); const v = poolView(pid); return v ? delay(v, 600) : fail(404, 'pool not found'); },
+  bridges: () => delay({ nodes: ['pve1', 'pve2', 'pve3'], bridges: [
+    { name: 'vmbr0', type: 'bridge', nodes: ['pve1', 'pve2', 'pve3'], vlan_aware: [], addressed: ['pve1', 'pve2', 'pve3'], comments: '관리' },
+    { name: 'vmbr1', type: 'bridge', nodes: ['pve1', 'pve2', 'pve3'], vlan_aware: ['pve1', 'pve2', 'pve3'], addressed: [], comments: 'VM' },
+    { name: 'vmbr2', type: 'bridge', nodes: ['pve1', 'pve2'], vlan_aware: [], addressed: [], comments: '' }] }),
+  readiness: (cid) => {
+    const z = zones[cid];
+    if (!z) return fail(409, 'set the zone first');
+    const checks = (n: string) => [{ id: 'source' as const, ok: n !== 'pve3', fix: "echo 'source /etc/network/interfaces.d/sdn' >> /etc/network/interfaces" },
+      ...(z.type === 'simple' ? [{ id: 'dnsmasq' as const, ok: true }, { id: 'forward' as const, ok: n === 'pve1', fix: 'sysctl -w net.ipv4.ip_forward=1' }] : []),
+      ...(z.type === 'vlan' ? [{ id: 'bridge' as const, ok: true, detail: z.bridge }] : []),
+      ...(z.type === 'vxlan' ? [{ id: 'mtu' as const, ok: !!z.mtu, detail: `underlay 1500, zone ${z.mtu || 'default'}`, fix: 'zone MTU 1450' }] : [])];
+    return delay({ zone_type: z.type, nodes: ['pve1', 'pve2', 'pve3'].map((n) => ({ node: n, checks: checks(n), ok: checks(n).every((c) => c.ok) })) }, 700);
+  },
 };
 
 export const netsegApi: NetSegApi = isMock ? mockApi : realApi;

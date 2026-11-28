@@ -1,13 +1,14 @@
-import { Fragment, useCallback, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import type { Cluster } from '../../api/types';
 import { netsegApi } from '../../api/netseg';
-import type { ClusterNetSeg, NetZone, Segment, SegmentInput, SegmentIpam, ZoneType } from '../../api/netseg';
+import type { ClusterNetSeg, NetZone, Readiness, Segment, SegmentInput, SegmentIpam, ZoneType } from '../../api/netseg';
 import { Dialog } from '../../components/Dialog';
 import { HowTo } from '../../components/HowTo';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
 import { ClusterFrame, Meter } from './ClusterPages';
+import { ReachBadge } from './PoolNetIso';
 import { useL } from './OpsPages';
 
 // 클러스터 > 네트워크 분리: segments (a department's own network) as Proxmox SDN VNets with a subnet
@@ -22,7 +23,17 @@ const sdnBadge = (s: Segment['sdn'], L: Lx) => (s === 'applied'
 function ZoneDialog({ cid, zone, locked, onClose, onSaved }: { cid: string; zone: NetZone | null; locked: boolean; onClose: () => void; onSaved: () => void }) {
   const [sure, setSure] = useState(false);
   const { L } = useL();
-  const [z, setZ] = useState<NetZone>(zone ?? { zone: 'moavi', type: 'vlan', bridge: 'vmbr0', peers: '', mtu: 0, existing: false });
+  const [z, setZ] = useState<NetZone>(zone ?? { zone: 'moavi', type: 'vlan', bridge: '', peers: '', mtu: 0, existing: false });
+  const br = useLoad(useCallback(() => netsegApi.bridges(cid), [cid]), [cid]);
+  const blist = br.state === 'ok' ? br.data.bridges : [];
+  const allNodes = br.state === 'ok' ? br.data.nodes : [];
+  // first time: a bridge every node has and none has an address on (a VM network, not the management one)
+  useEffect(() => {
+    if (z.bridge || !blist.length) return;
+    const pick = blist.find((b) => b.nodes.length === allNodes.length && !b.addressed.length) ?? blist[0];
+    setZ((o) => ({ ...o, bridge: pick.name }));
+  }, [blist, allNodes.length, z.bridge]);
+  const picked = blist.find((b) => b.name === z.bridge);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const save = async () => {
@@ -59,8 +70,18 @@ function ZoneDialog({ cid, zone, locked, onClose, onSaved }: { cid: string; zone
           <input value={z.zone} maxLength={8} disabled={locked} onChange={(e) => setZ({ ...z, zone: e.target.value.toLowerCase() })} />
           <small className="muted">{L('영문 소문자 · 숫자 8자 이내', 'Up to 8 lowercase letters or digits')}</small></label>
         {!z.existing && z.type === 'vlan' && (
-          <label><span>{L('노드 브리지', 'Node bridge')}</span>
-            <input value={z.bridge} placeholder="vmbr0" onChange={(e) => setZ({ ...z, bridge: e.target.value })} /></label>
+          <label><span>{L('노드 브리지 (VM 망)', 'Node bridge (VM network)')}</span>
+            {blist.length ? (
+              <select value={z.bridge} onChange={(e) => setZ({ ...z, bridge: e.target.value })}>
+                {blist.map((b) => (
+                  <option key={b.name} value={b.name}>{b.name}{b.comments ? ` · ${b.comments}` : ''}
+                    {b.addressed.length ? L(' · 관리망 추정(주소 있음)', ' · likely management (has an address)') : ''}
+                    {b.nodes.length < allNodes.length ? L(` · 일부 노드만(${b.nodes.join(', ')})`, ` · only on ${b.nodes.join(', ')}`) : ''}</option>
+                ))}
+              </select>
+            ) : <input value={z.bridge} placeholder="vmbr1" onChange={(e) => setZ({ ...z, bridge: e.target.value })} />}
+            {picked?.addressed.length ? <small className="warn-text">{L('이 브리지에는 노드 주소가 있어 관리망일 수 있습니다. VM 전용 브리지를 권합니다.', 'This bridge carries the node address - likely management. A VM-only bridge is better.')}</small> : null}
+            {picked && picked.nodes.length < allNodes.length ? <small className="warn-text">{L(`이 브리지가 없는 노드가 있어 저장되지 않습니다: ${allNodes.filter((n) => !picked.nodes.includes(n)).join(', ')}`, `Some nodes lack this bridge, so it cannot be saved: ${allNodes.filter((n) => !picked.nodes.includes(n)).join(', ')}`)}</small> : null}</label>
         )}
         {!z.existing && z.type === 'vxlan' && (
           <label><span>{L('노드 주소', 'Node addresses')}</span>
@@ -212,11 +233,47 @@ function SdnBar({ cid, v, reload }: { cid: string; v: ClusterNetSeg; reload: () 
   );
 }
 
+const CHECK_NAME: Record<string, [string, string]> = {
+  source: ["SDN 설정 줄 (interfaces)", "SDN line (interfaces)"], dnsmasq: ["dnsmasq (DHCP)", "dnsmasq (DHCP)"],
+  forward: ["IP 포워딩", "IP forwarding"], bridge: ["브리지", "Bridge"], mtu: ["MTU", "MTU"], ssh: ["SSH 접속", "SSH"],
+};
+
+// 노드 점검: what the zone needs on each node, read over SSH (nothing is changed)
+function ReadinessPanel({ cid, onClose }: { cid: string; onClose: () => void }) {
+  const { L } = useL();
+  const r = useLoad(useCallback(() => netsegApi.readiness(cid), [cid]), [cid]);
+  return (
+    <div className="ns-ready">
+      <div className="ns-ready-head"><span className="strong">{L('노드 점검', 'Node check')}</span>
+        <span className="muted small">{L('읽기만 합니다. 고칠 명령은 노드 셸에서 실행하세요.', 'Read only. Run the fixes in the node shell.')}</span>
+        <span className="ns-grow" />
+        <button type="button" className="btn-ghost small" onClick={r.reload}>{L('다시 점검', 'Check again')}</button>
+        <button type="button" className="btn-ghost small" onClick={onClose}>{L('닫기', 'Close')}</button></div>
+      <LoadState value={r} retry={r.reload}>
+        {(d: Readiness) => (
+          <table className="table compact">
+            <thead><tr><th>{L('노드', 'Node')}</th><th>{L('점검', 'Check')}</th><th>{L('결과', 'Result')}</th><th>{L('고치는 방법', 'Fix')}</th></tr></thead>
+            <tbody>{d.nodes.flatMap((n) => n.checks.map((c, i) => (
+              <tr key={`${n.node}-${c.id}`}>
+                <td className="strong">{i === 0 ? n.node : ''}</td>
+                <td>{L(...(CHECK_NAME[c.id] ?? [c.id, c.id]))}{c.detail ? <span className="muted small"> · {c.detail}</span> : null}</td>
+                <td>{c.ok ? <span className="vt-st vt-st-running">{L('정상', 'OK')}</span> : <span className="vt-st vt-st-error">{L('필요', 'Needed')}</span>}</td>
+                <td>{!c.ok && c.fix ? <code className="code small">{c.fix}</code> : null}</td>
+              </tr>
+            )))}</tbody>
+          </table>
+        )}
+      </LoadState>
+    </div>
+  );
+}
+
 function NetSegBody({ c }: { c: Cluster }) {
   const { L } = useL();
   const st = useLoad(useCallback(() => netsegApi.cluster(c.id), [c.id]), [c.id]);
   const ipam = useLoad(useCallback(() => netsegApi.ipam(c.id), [c.id]), [c.id]);
   const [zoneOpen, setZoneOpen] = useState(false);
+  const [checkOpen, setCheckOpen] = useState(false);
   const [edit, setEdit] = useState<Segment | 'new' | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -240,6 +297,7 @@ function NetSegBody({ c }: { c: Cluster }) {
                     'Give departments their own network (VLAN) and manage its addresses. A pool picks its network under Policy › Network isolation.')}</p>
                 </div>
                 <div className="panel-actions">
+                  <button type="button" className="btn" disabled={!v.zone} onClick={() => setCheckOpen(true)}><Icon name="search" size={16} />{L('노드 점검', 'Check nodes')}</button>
                   <button type="button" className="btn" onClick={() => setZoneOpen(true)}><Icon name="gear" size={16} />{L('SDN 영역', 'SDN zone')}</button>
                   <button type="button" className="btn primary" disabled={!v.zone} onClick={() => setEdit('new')}><Icon name="plus" size={16} />{L('세그먼트 추가', 'Add segment')}</button>
                 </div>
@@ -271,6 +329,7 @@ function NetSegBody({ c }: { c: Cluster }) {
               {v.sdn.node_problem && <div className="callout warn"><Icon name="info" size={18} />
                 <p>{L(`노드 ${Object.entries(v.sdn.nodes ?? {}).filter(([, s]) => s !== 'available').map(([n]) => n).join(', ')}에 이 영역이 만들어지지 않았습니다. 그 노드의 /etc/network/interfaces 끝에 'source /etc/network/interfaces.d/sdn' 줄이 있는지(단일 노드 영역이면 dnsmasq 설치도) 확인한 뒤 SDN 적용을 다시 누르세요. 그 노드의 데스크톱은 옮기지 않습니다.`,
                   `The zone was not built on node(s) ${Object.entries(v.sdn.nodes ?? {}).filter(([, s]) => s !== 'available').map(([n]) => n).join(', ')}. Check that node's /etc/network/interfaces ends with 'source /etc/network/interfaces.d/sdn' (and dnsmasq for a simple zone), then Apply SDN again. Desktops on that node are not moved.`)}</p></div>}
+              {checkOpen && <ReadinessPanel cid={c.id} onClose={() => setCheckOpen(false)} />}
               <SdnBar cid={c.id} v={v} reload={reload} />
               {error && <div className="alert error small" role="alert">{error}</div>}
               {v.segments.length > 0 && (
@@ -286,7 +345,8 @@ function NetSegBody({ c }: { c: Cluster }) {
                             <td><span className="strong">{s.name}</span>{s.department && <><br /><span className="muted small">{s.department}</span></>}
                               <br /><span className="muted small mono">{s.vnet}</span></td>
                             <td className="mono">{s.tag || '-'}</td>
-                            <td><span className="mono">{s.subnet}</span><br /><span className="muted small">{L('게이트웨이', 'gw')} <span className="mono">{s.gateway}</span>{s.snat ? ' · SNAT' : ''}</span></td>
+                            <td><span className="mono">{s.subnet}</span><br /><span className="muted small">{L('게이트웨이', 'gw')} <span className="mono">{s.gateway}</span>{s.snat ? ' · SNAT' : ''}</span>
+                              {s.sdn === 'applied' && <><br /><span className="muted small" title={L('MOAVI 서버(rdpgw·Warpgate가 있는 곳)에서 이 망의 게이트웨이로 닿는지', 'Whether the MOAVI server (rdpgw, Warpgate) reaches this network\'s gateway')}>{L('MOAVI에서 ', 'From MOAVI ')}</span><ReachBadge r={s.gateway_reach ?? ''} /></>}</td>
                             <td>{s.pools.length ? s.pools.join(', ') : <span className="muted">-</span>}
                               {s.desktops > 0 && <><br /><span className="muted small">{L(`데스크톱 ${s.desktops}대`, `${s.desktops} desktops`)}</span></>}</td>
                             <td className="ns-use">{g ? <><Meter value={(g.used / Math.max(g.usable, 1)) * 100} label={`${g.used}/${g.usable}`} />

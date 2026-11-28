@@ -168,7 +168,7 @@ const POLICY_DEFAULTS: PoolPolicy = {
   client_drives: false, client_printers: true, rdp_route: 'record', rdp_tune: true, auto_domain_join: null, start_on_connect: true, idle_shutdown_min: 0, reset_on_logout: false, allow_power: true, screen_thumbnail: true, max_session_hours: 0,
   defer_when_busy: true, busy_gpu_pct: 10, busy_cpu_pct: 50, defer_max_hours: 12, web_ide: [], web_ide_idle_min: 240,
   desktop_files: 'off', desktop_files_max_mb: 500, desktop_files_day_mb: 0,
-  net_isolation: false, net_peers: false, net_allow_in: [], net_egress: 'any', net_allow_out: [], net_segment: '',
+  net_isolation: false, net_peers: false, net_allow_in: [], net_egress: 'any', net_allow_out: [], net_segment: '', net_segment_from: '', net_segment_move: 'off', net_segment_window: '',
 };
 const cloneSources = new Map<number, Set<string>>();   // template -> pools cloned from it
 

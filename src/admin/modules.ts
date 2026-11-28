@@ -153,11 +153,11 @@ export const MODULES: AdminModule[] = [
   {
     id: 'cluster', group: 'infra', icon: 'cluster', tone: 'navy',
     label: { ko: '인프라', en: 'Infrastructure' },
-    summary: { ko: '클러스터(개요 · 노드 · 스토리지 · 네트워크 분리 · 고가용성), 클러스터 연결, 백업', en: 'Cluster (overview, nodes, storage, network segments, HA), connections, backup' },
+    summary: { ko: '클러스터(개요 · 노드 · 스토리지 · 네트워크 구성도 · 네트워크 분리 · 고가용성), 클러스터 연결, 백업', en: 'Cluster (overview, nodes, storage, network map, network segments, HA), connections, backup' },
     pages: [
       { id: 'overview', label: { ko: '클러스터', en: 'Cluster' }, phase: 1, tabs: [
         T('overview', '개요', 'Overview', 'cluster/overview'), T('nodes', '노드', 'Nodes', 'cluster/nodes'),
-        T('storage', '스토리지', 'Storage', 'cluster/storage'), T('network', '네트워크 분리', 'Network segments', 'cluster/network'),
+        T('storage', '스토리지', 'Storage', 'cluster/storage'), T('netmap', '네트워크 구성도', 'Network map', 'cluster/netmap'), T('network', '네트워크 분리', 'Network segments', 'cluster/network'),
         T('ha', '고가용성(HA)', 'High availability', 'cluster/ha', ['ha'])] },
       { id: 'connections', label: { ko: '클러스터 연결', en: 'Cluster connections' }, phase: 1, render: 'cluster/connections' },
       { id: 'backup', label: { ko: '백업 (PBS)', en: 'Backup (PBS)' }, phase: 1, render: 'ops/backup' },
