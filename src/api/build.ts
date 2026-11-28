@@ -205,6 +205,8 @@ const mockBuildApi: BuildApi = {
   },
   console: (_cid, vmid) => {
     const v = mockVms.get(vmid);
+    // a VM of a desktop template build (src/api/desktpl.ts mock, VMID 9100 and up) is running its install
+    if (!v && vmid >= 9100) return delay({ type: 'vnc' as const, ws_path: `/api/mock/vnc/${vmid}`, password: 'mock', node: 'pve1', name: `build-${vmid}` });
     if (!v) return fail(404, `VM ${vmid} not found on this cluster`);
     if (v.template) return fail(409, 'This VM is a template');
     if (v.status !== 'running') {

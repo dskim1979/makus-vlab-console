@@ -121,6 +121,7 @@ export const messages = {
 
   'common.refresh': { ko: '새로고침', en: 'Refresh' },
   'common.cancel': { ko: '취소', en: 'Cancel' },
+  'common.close': { ko: '닫기', en: 'Close' },
   'common.save': { ko: '저장', en: 'Save' },
   'common.add': { ko: '추가', en: 'Add' },
   'common.delete': { ko: '삭제', en: 'Delete' },
