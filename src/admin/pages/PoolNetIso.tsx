@@ -261,9 +261,14 @@ export function PoolNetSegPanel({ pool }: { pool: Pool }) {
         </div>
       </div>
       {confirm && <div className="alert small info">{L('켜져 있는 데스크톱을 다시 시작합니다. 사용 중인 사용자의 접속이 끊깁니다.', 'Running desktops restart: users on them are disconnected.')}</div>}
-      {v.problem && <div className="alert error small" role="status">{v.problem.includes('SDN')
+      {v.problem && <div className="alert error small" role="status">{v.problem.startsWith('the segment is not applied')
         ? L('세그먼트가 아직 Proxmox에 적용되지 않았습니다. 클러스터 › 네트워크 분리에서 SDN 적용을 누르세요.', 'The segment is not applied in Proxmox yet: press Apply SDN under Cluster › Network segments.')
-        : v.problem}</div>}
+        : v.problem.startsWith('the zone is not built')
+          ? L('일부 노드에 망이 만들어지지 않아 그 노드의 데스크톱은 옮기지 않습니다. 클러스터 › 네트워크 분리에서 노드 상태를 확인하세요.', 'Some nodes did not build the network, so their desktops are not moved. See node states under Cluster › Network segments.')
+          : v.problem.includes('fixed address')
+            ? L(`망은 옮겼지만 예전 주소를 그대로 쓰는 데스크톱이 있습니다(${v.desktops.filter((d) => d.old_ips?.length).map((d) => `${d.name} ${d.old_ips!.join(', ')}`).join(' · ')}). Windows 네트워크 설정에서 IP를 자동(DHCP)으로 바꾸거나 이 망의 주소로 바꾸세요.`,
+              `Moved, but still on the old address (${v.desktops.filter((d) => d.old_ips?.length).map((d) => `${d.name} ${d.old_ips!.join(', ')}`).join(' · ')}). Set the guest's IP to automatic (DHCP) or to an address of this network.`)
+            : v.problem}</div>}
       {error && <div className="alert error small" role="alert">{error}</div>}
       <table className="table compact">
         <thead><tr><th>{L('데스크톱', 'Desktop')}</th><th>VMID</th><th>{L('브리지', 'Bridge')}</th><th>{L('상태', 'State')}</th></tr></thead>
@@ -273,7 +278,9 @@ export function PoolNetSegPanel({ pool }: { pool: Pool }) {
             <tr key={d.id}>
               <td>{d.name}</td><td className="mono">{d.vmid}</td>
               <td className="mono">{d.bridge || '-'}{d.orig_bridge && d.state === 'on' ? <span className="muted small"> ({L('원래', 'was')} {d.orig_bridge})</span> : null}</td>
-              <td><span className={`vt-st ${cls}`} title={d.error || undefined}>{L(ko, en)}</span></td>
+              <td>{d.old_ips?.length
+                ? <span className="vt-st vt-st-offline" title={d.old_ips.join(', ')}>{L('예전 주소 사용', 'Old address')}</span>
+                : <span className={`vt-st ${cls}`} title={d.error || undefined}>{L(ko, en)}</span>}</td>
             </tr>
           );
         })}</tbody>

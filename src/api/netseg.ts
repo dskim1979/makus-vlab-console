@@ -32,7 +32,7 @@ export type Ipam = { ipam: boolean; segments: SegmentIpam[] };
 export type SegState = 'on' | 'off' | 'waiting' | 'waiting_sdn' | 'waiting_back' | 'error';
 export type PoolNetSeg = {
   segment: (SegmentInput & { id: string; vnet: string }) | null; problem: string; checked_at: number | null;
-  desktops: { id: string; name: string; vmid: number; state: SegState; bridge: string; orig_bridge: string; running: boolean; error: string }[];
+  desktops: { id: string; name: string; vmid: number; state: SegState; bridge: string; orig_bridge: string; running: boolean; error: string; old_ips?: string[] }[];
 };
 export type SdnResult = { changed: string[]; applied: boolean; problem: string; nodes?: Record<string, string>; node_problem?: string };
 
