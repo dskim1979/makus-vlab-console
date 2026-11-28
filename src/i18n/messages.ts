@@ -18,6 +18,7 @@ export const messages = {
   'login.errLocked': { ko: '로그인 시도가 너무 많아 잠시 잠겼습니다. 잠시 후 다시 시도하세요.', en: 'Too many attempts. Try again later.' },
   'login.errNetwork': { ko: '서버에 연결할 수 없습니다.', en: 'Cannot reach the server.' },
   'login.errWebauthn': { ko: '이 계정은 보안 키가 필요합니다. 보안 키 로그인은 다음 단계에서 지원합니다.', en: 'This account needs a security key. Security-key sign-in comes in a later step.' },
+  'login.expired': { ko: '로그인이 끝났습니다(서버 재시작 등). 다시 로그인하면 보던 화면으로 돌아갑니다.', en: 'Your session ended (e.g. the server restarted). Sign in again to go back to where you were.' },
   'login.mock': { ko: '모의 모드: 아무 아이디로 로그인됩니다 (admin → 관리자).', en: 'Mock mode: any username works (admin → administrator).' },
 
   'setup.title': { ko: '첫 설정', en: 'First setup' },

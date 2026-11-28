@@ -20,7 +20,7 @@ function RequireAuth({ admin = false, children }: { admin?: boolean; children: R
   const { t } = useI18n();
   const location = useLocation();
   if (loading) return <div className="center muted">{t('app.loading')}</div>;
-  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />;
   if (admin && !isAdmin) return <Shell><div className="center">{t('admin.notAdmin')}</div></Shell>;
   return <TermsGate><Shell>{children}</Shell></TermsGate>;
 }

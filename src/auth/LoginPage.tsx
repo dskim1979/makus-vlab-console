@@ -25,7 +25,7 @@ export function LoginPage() {
   const { t, pick } = useI18n();
   const { b: brand } = useBranding();
   const support = useSupportUrl();
-  const { status, signedIn } = useAuth();
+  const { status, signedIn, expired } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   // "/" is only the default landing page, so admins still go to the admin console.
@@ -88,6 +88,7 @@ export function LoginPage() {
         </div>
 
         {isMock && <div className="alert info">{t('login.mock')}</div>}
+        {expired && <div className="alert info small" role="status">{t('login.expired')}</div>}
 
         {step === 'change' ? (
           <div className="form">
