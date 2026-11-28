@@ -29,6 +29,7 @@
   --accent-ring: rgba(31, 111, 235, 0.25) !important; --on-accent: #FFFFFF !important; --bar-bg: #FFFFFF; --bar-text: #101828; --bar-muted: #475467; --bar-line: #E4E8EF; --bar-hover: rgba(15, 24, 44, .06); --bar-vi: #1F6FEB;
   --text: #0B1220; --text-2: #1A2433; --muted: #33435D; --subtle: #45566F; --heading: #134592;
   --row-hover: #F7FAFE; }
+:root[data-accent="blue"] .login-page { --accent: #1F6FEB; --accent-hover: #1A5CC8; --accent-soft: #EFF5FE; --accent-ring: rgba(31, 111, 235, 0.25); --on-accent: #FFFFFF; }
 
 /* mint */
 :root[data-accent="mint"] { --accent: #2DD4BF !important; --accent-hover: #5EEAD4 !important; --accent-soft: #11352F !important;
@@ -39,6 +40,7 @@
   --accent-ring: rgba(10, 125, 112, 0.25) !important; --on-accent: #FFFFFF !important; --bar-bg: #FFFFFF; --bar-text: #101828; --bar-muted: #475467; --bar-line: #E4E8EF; --bar-hover: rgba(15, 24, 44, .06); --bar-vi: #0A7D70;
   --text: #0B1220; --text-2: #1A2433; --muted: #314456; --subtle: #435668; --heading: #064E45;
   --row-hover: #F6FAFA; }
+:root[data-accent="mint"] .login-page { --accent: #0A7D70; --accent-hover: #08665C; --accent-soft: #EEF6F5; --accent-ring: rgba(10, 125, 112, 0.25); --on-accent: #FFFFFF; }
 
 /* indigo */
 :root[data-accent="indigo"] { --accent: #818CF8 !important; --accent-hover: #A5B4FC !important; --accent-soft: #23214F !important;
@@ -49,6 +51,7 @@
   --accent-ring: rgba(79, 70, 229, 0.25) !important; --on-accent: #FFFFFF !important; --bar-bg: #4F46E5; --bar-text: #FFFFFF; --bar-muted: rgba(255, 255, 255, .8); --bar-line: rgba(255, 255, 255, .22); --bar-hover: rgba(255, 255, 255, .14); --bar-vi: #C7D2FE;
   --text: #0B1220; --text-2: #1A2433; --muted: #36405D; --subtle: #47536F; --heading: #312B8E;
   --row-hover: #F9F9FE; }
+:root[data-accent="indigo"] .login-page { --accent: #4F46E5; --accent-hover: #4338CA; --accent-soft: #F3F2FD; --accent-ring: rgba(79, 70, 229, 0.25); --on-accent: #FFFFFF; }
 
 /* violet */
 :root[data-accent="violet"] { --accent: #A78BFA !important; --accent-hover: #C4B5FD !important; --accent-soft: #2A1F4D !important;
@@ -59,6 +62,7 @@
   --accent-ring: rgba(124, 58, 237, 0.25) !important; --on-accent: #FFFFFF !important; --bar-bg: #FFFFFF; --bar-text: #101828; --bar-muted: #475467; --bar-line: #E4E8EF; --bar-hover: rgba(15, 24, 44, .06); --bar-vi: #7C3AED;
   --text: #0B1220; --text-2: #1A2433; --muted: #38405D; --subtle: #4A526F; --heading: #4D2493;
   --row-hover: #FAF8FE; }
+:root[data-accent="violet"] .login-page { --accent: #7C3AED; --accent-hover: #6D28D9; --accent-soft: #F6F1FE; --accent-ring: rgba(124, 58, 237, 0.25); --on-accent: #FFFFFF; }
 
 /* rose */
 :root[data-accent="rose"] { --accent: #FB7FA6 !important; --accent-hover: #FDA4C1 !important; --accent-soft: #3E1626 !important;
@@ -69,6 +73,7 @@
   --accent-ring: rgba(200, 35, 94, 0.25) !important; --on-accent: #FFFFFF !important; --bar-bg: #FFFFFF; --bar-text: #101828; --bar-muted: #475467; --bar-line: #E4E8EF; --bar-hover: rgba(15, 24, 44, .06); --bar-vi: #C8235E;
   --text: #0B1220; --text-2: #1A2433; --muted: #3D3E55; --subtle: #4F5166; --heading: #7C163A;
   --row-hover: #FDF7F9; }
+:root[data-accent="rose"] .login-page { --accent: #C8235E; --accent-hover: #A81D4F; --accent-soft: #FBF0F4; --accent-ring: rgba(200, 35, 94, 0.25); --on-accent: #FFFFFF; }
 
 /* orange */
 :root[data-accent="orange"] { --accent: #FB923C !important; --accent-hover: #FDBA74 !important; --accent-soft: #3A2212 !important;
@@ -79,6 +84,7 @@
   --accent-ring: rgba(194, 65, 12, 0.25) !important; --on-accent: #FFFFFF !important; --bar-bg: #FFFFFF; --bar-text: #101828; --bar-muted: #475467; --bar-line: #E4E8EF; --bar-hover: rgba(15, 24, 44, .06); --bar-vi: #C2410C;
   --text: #0B1220; --text-2: #1A2433; --muted: #3D4050; --subtle: #4E5362; --heading: #782807;
   --row-hover: #FDF8F6; }
+:root[data-accent="orange"] .login-page { --accent: #C2410C; --accent-hover: #9A3412; --accent-soft: #FBF2EE; --accent-ring: rgba(194, 65, 12, 0.25); --on-accent: #FFFFFF; }
 
 /* green */
 :root[data-accent="green"] { --accent: #4ADE80 !important; --accent-hover: #86EFAC !important; --accent-soft: #123220 !important;
@@ -89,6 +95,7 @@
   --accent-ring: rgba(21, 128, 61, 0.25) !important; --on-accent: #FFFFFF !important; --bar-bg: #FFFFFF; --bar-text: #101828; --bar-muted: #475467; --bar-line: #E4E8EF; --bar-hover: rgba(15, 24, 44, .06); --bar-vi: #15803D;
   --text: #0B1220; --text-2: #1A2433; --muted: #324453; --subtle: #445764; --heading: #0D4F26;
   --row-hover: #F7FBF8; }
+:root[data-accent="green"] .login-page { --accent: #15803D; --accent-hover: #166534; --accent-soft: #EFF6F1; --accent-ring: rgba(21, 128, 61, 0.25); --on-accent: #FFFFFF; }
 
 /* graphite */
 :root[data-accent="graphite"] { --accent: #CBD5E1 !important; --accent-hover: #E2E8F0 !important; --accent-soft: #243149 !important;
@@ -99,6 +106,7 @@
   --accent-ring: rgba(51, 65, 85, 0.25) !important; --on-accent: #FFFFFF !important; --bar-bg: #FFFFFF; --bar-text: #101828; --bar-muted: #475467; --bar-line: #E4E8EF; --bar-hover: rgba(15, 24, 44, .06); --bar-vi: #334155;
   --text: #0B1220; --text-2: #1A2433; --muted: #344054; --subtle: #465366; --heading: #202835;
   --row-hover: #F8F8F9; }
+:root[data-accent="graphite"] .login-page { --accent: #334155; --accent-hover: #1E293B; --accent-soft: #F1F2F3; --accent-ring: rgba(51, 65, 85, 0.25); --on-accent: #FFFFFF; }
 
 
 /* the picker in the user menu: a swatch each, the top band shows the theme's bar */
@@ -109,3 +117,31 @@
 .color-sw { position: relative; display: block; width: 100%; aspect-ratio: 1; border-radius: 5px; overflow: hidden; }
 .color-bar { position: absolute; left: 0; right: 0; top: 0; height: 34%; border-bottom: 1px solid rgba(15, 24, 44, .12); }
 .tb-menu { min-width: 260px; }
+
+
+/* ---------- the user portal follows the same theme ---------- */
+/* its status pills: a dot and a coloured word, like the console */
+.pill[class*="st-"], .state-ready, .state-in_use, .state-stopped, .state-provisioning, .state-error, .state-missing { background: transparent !important; border: 0; padding-left: 0; }
+/* the brand's "VI" and the light glass bar take the theme colour */
+:root[data-theme="light"][data-accent] .app-workspace .tb-brand .brand-vi { color: var(--accent); }
+/* a theme with a coloured bar (인디고) colours the portal bar too */
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .topbar { --head-text: #FFFFFF; --head-muted: rgba(255, 255, 255, .8);
+  background: var(--bar-bg); backdrop-filter: none; border-bottom-color: var(--bar-line); }
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-brand,
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-brand .brand-product,
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-brand .brand-vi,
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-tabs a:hover,
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-tabs a.active,
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-icon:hover,
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-support,
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-feedback { color: #FFFFFF !important; }
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-tabs a.active { border-bottom-color: #FFFFFF; }
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-context,
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-link,
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-support,
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-feedback { border-color: var(--bar-line); }
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-link:hover,
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-icon:hover,
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-user-btn:hover,
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-support:hover,
+:root[data-theme="light"][data-accent="indigo"] .app-workspace .tb-feedback:hover { background: var(--bar-hover); }
