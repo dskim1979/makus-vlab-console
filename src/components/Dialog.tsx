@@ -1,7 +1,8 @@
 import { useEffect, useRef, type FormEvent, type ReactNode } from 'react';
 import { useI18n } from '../i18n';
 
-// Modal form: native <dialog>, Esc and Cancel close it, submit calls onSubmit.
+// Modal form: native <dialog>, Esc and Cancel close it, submit calls onSubmit. Without onSubmit the
+// dialog only shows something, and its one button says Close rather than Cancel.
 export function Dialog({ open, title, onClose, onSubmit, submitLabel, busy, error, extra, wide, children }: {
   open: boolean;
   title: string;
@@ -37,7 +38,7 @@ export function Dialog({ open, title, onClose, onSubmit, submitLabel, busy, erro
         {error && <div className="alert error" role="alert">{error}</div>}
         <div className="dialog-actions">
           {extra}
-          <button type="button" className="btn" onClick={onClose}>{t('common.cancel')}</button>
+          <button type="button" className="btn" onClick={onClose}>{t(onSubmit ? 'common.cancel' : 'common.close')}</button>
           {onSubmit && (
             <button type="submit" className="btn primary" disabled={busy}>{submitLabel ?? t('common.save')}</button>
           )}

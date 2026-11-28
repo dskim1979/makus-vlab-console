@@ -31,8 +31,16 @@ export async function request<T>(method: string, path: string, body?: unknown, e
   if (text) {
     try { data = JSON.parse(text); } catch { data = text; }
   }
+  // the engine no longer knows this session (it forgets every session when it restarts): tell the
+  // app, which takes a signed-in user back to the sign-in page instead of showing "Unauthorized"
+  if (res.status === 401 && path.startsWith('/api/') && !path.startsWith('/api/auth/')
+      && (data as { code?: string } | null)?.code === 'AUTH_REQUIRED') {
+    window.dispatchEvent(new Event(SESSION_EXPIRED));
+  }
   return { status: res.status, data: data as T };
 }
+
+export const SESSION_EXPIRED = 'moavi:session-expired';
 
 const realApi = {
   async authStatus(): Promise<AuthStatus> {

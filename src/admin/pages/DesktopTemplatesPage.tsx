@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../../api/admin';
 import { buildApi } from '../../api/build';
@@ -6,6 +6,7 @@ import type { Iso, Network } from '../../api/build';
 import { desktplApi } from '../../api/desktpl';
 import type { DeskBuild, DeskBuildInput, DeskBuildStarted, DeskDesktop, DeskPreset } from '../../api/desktpl';
 import type { Cluster, ClusterStorage } from '../../api/types';
+import { isMock } from '../../api/client';
 import { Dialog } from '../../components/Dialog';
 import { Icon } from '../../components/Icon';
 import { LoadState } from '../../components/LoadState';
@@ -14,6 +15,8 @@ import { useLoad } from '../../components/useLoad';
 import { useFeatures } from '../../features';
 import { useI18n } from '../../i18n';
 import { bytes, ClusterFrame, Meter } from './ClusterPages';
+
+const ConsoleWindow = lazy(() => import('../../portal/ConsoleWindow'));
 
 // 가상머신 > 이미지 > 템플릿 만들기: ready-made desktops built on the cluster - 일반 업무 (Windows 11 from the
 // admin's ISO, unattended), 연구원, GPU · AI, NPU, FPGA (Ubuntu cloud images + first-boot setup). Linux ones end
@@ -39,6 +42,17 @@ function DesktopTemplates({ cluster }: { cluster: Cluster }) {
   const [making, setMaking] = useState<DeskPreset | null>(null);
   const [started, setStarted] = useState<DeskBuildStarted | null>(null);
   const [logOf, setLogOf] = useState<string | null>(null);
+  // the VM's screen while it builds (a long install looks stuck at one percentage)
+  const [screen, setScreen] = useState<{ title: string; wsPath: string; password: string } | null>(null);
+  const [screenErr, setScreenErr] = useState<string | null>(null);
+  const [opening, setOpening] = useState<string | null>(null);
+  const openScreen = async (b: DeskBuild) => {
+    setOpening(b.id); setScreenErr(null);
+    try {
+      const r = await buildApi.console(b.cluster_id || cluster.id, b.vmid);
+      setScreen({ title: `${b.name} · VMID ${b.vmid}`, wsPath: r.ws_path, password: r.password });
+    } catch (e) { setScreenErr((e as Error).message); } finally { setOpening(null); }
+  };
   const running = data.state === 'ok' && data.data.builds.some((b) => b.status === 'running' || b.status === 'queued');
   useEffect(() => {
     if (!running) return;
@@ -85,6 +99,10 @@ function DesktopTemplates({ cluster }: { cluster: Cluster }) {
                       <td className="actions nowrap">
                         {b.result.golden_id && <Link className="btn-ghost small-btn" to="/admin/images/templates/templates">{L('골든 이미지 →', 'Golden image →')}</Link>}
                         {b.result.template_vmid && <Link className="btn-ghost small-btn" to="/admin/images/templates/templates">{L('템플릿 →', 'Template →')}</Link>}
+                        {b.status === 'running' && b.vmid > 0 && (
+                          <button type="button" className="btn-ghost small-btn" disabled={opening === b.id} onClick={() => openScreen(b)}
+                            title={L('설치 화면을 봅니다. 자동 설치 중이니 키보드 · 마우스는 쓰지 마세요.', 'Watch the install. It runs by itself: do not type or click in it.')}>
+                            <Icon name="play" size={14} />{opening === b.id ? L('여는 중…', 'Opening…') : L('화면 보기', 'Screen')}</button>)}
                         <button type="button" className="btn-ghost small-btn" onClick={() => setLogOf(b.id)}>{L('기록', 'Log')}</button>
                         {(b.status === 'running' || b.status === 'queued') && (
                           <button type="button" className="btn-ghost small-btn danger" onClick={async () => {
@@ -99,6 +117,13 @@ function DesktopTemplates({ cluster }: { cluster: Cluster }) {
               onStarted={(s) => { setMaking(null); data.reload(); if (s.admin_password) setStarted(s); }} />}
             {started && <PasswordDialog started={started} onClose={() => setStarted(null)} />}
             {logOf && <LogDialog id={logOf} onClose={() => setLogOf(null)} />}
+            {screenErr && <div className="alert error small" role="alert">{screenErr}</div>}
+            {isMock && screen && <p className="muted small">{L('모의 모드: 화면 연결은 "끊김"으로 보입니다.', 'Mock mode: the screen shows as disconnected.')}</p>}
+            {screen && (
+              <Suspense fallback={null}>
+                <ConsoleWindow title={screen.title} wsPath={screen.wsPath} password={screen.password} onClose={() => setScreen(null)} />
+              </Suspense>
+            )}
           </>
         );
       }}
