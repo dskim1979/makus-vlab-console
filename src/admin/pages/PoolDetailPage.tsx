@@ -205,8 +205,12 @@ export function LogonChip({ l, onReinstall }: { l: LogonInstall; onReinstall: ()
     return <><span className={l.current ? 'vt-st vd-tag' : 'vt-st'} title={l.at}>{L('자동 로그인', 'Auto sign-in')} {l.version}</span> {again}</>;
   }
   if (l.state === 'unsupported') {
-    return <span className="vt-st" title={l.detail}>{L('자동 로그인 안 됨: LSA 보호', 'No auto sign-in: LSA protection')}</span>;
+    return <span className="vt-st vt-st-error" title={l.detail}>{l.code === 'LSA_PPL_LOCKED'
+      ? L('자동 로그인 안 됨: LSA 보호 잠김(UEFI)', 'No auto sign-in: LSA protection locked (UEFI)')
+      : L('자동 로그인 안 됨: LSA 보호', 'No auto sign-in: LSA protection')}</span>;
   }
+  if (l.code === 'LSA_PPL_WAIT') return <span className="vt-st" title={l.detail}>{L('LSA 보호 끔 · 접속 끝나면 재부팅', 'LSA protection off · restarts when free')}</span>;
+  if (l.code === 'LSA_PPL_RESTART') return <span className="vt-st" title={l.detail}>{L('LSA 보호 끔 · 재부팅 중', 'LSA protection off · restarting')}</span>;
   if (l.state === 'failed') {
     return <><span className="vt-st vt-st-error" title={l.detail}>{L('자동 로그인 설치 실패', 'Auto sign-in install failed')}</span> {again}</>;
   }

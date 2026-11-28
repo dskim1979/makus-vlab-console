@@ -378,6 +378,8 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
             <span className="strong">{L('Windows 자동 로그인', 'Windows auto sign-in')}</span></label>
           <small className="muted hint-indent">{L('포털 로그인으로 바로 바탕 화면. 모듈은 자동 설치됩니다.',
             'Portal sign-in goes straight to the desktop. The module installs by itself.')}</small>
+          {p.desktop_sso && <small className="hint-indent" style={{ color: "var(--warn)" }}>{L('Windows의 LSA 보호를 끄고 데스크톱을 재부팅합니다(도메인 조인 때, 또는 아무도 접속하지 않았을 때).',
+            'Turns Windows LSA protection off and restarts the desktop (at the domain join, or when nobody is signed in).')}</small>}
           <label>
             <span>{t('pol.idle')}</span>
             <span className="with-unit">
