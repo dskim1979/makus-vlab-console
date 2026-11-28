@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { adminApi } from '../../api/admin';
 import type { Pool, PoolPolicy } from '../../api/types';
 import { netisoApi } from '../../api/netiso';
 import type { ClusterNetIso, NetRule } from '../../api/netiso';
@@ -16,22 +17,37 @@ import { useL } from './OpsPages';
 type SetP = <K extends keyof PoolPolicy>(k: K, v: PoolPolicy[K]) => void;
 const PROTOS: NetRule['proto'][] = ['any', 'tcp', 'udp', 'icmp'];
 
-function RuleList({ list, onChange, placeholder }: { list: NetRule[]; onChange: (l: NetRule[]) => void; placeholder: string }) {
+type PeerPool = { id: string; name: string };
+const EMPTY_RULE: NetRule = { cidr: '', proto: 'tcp', port: '', note: '', action: 'accept' };
+
+// a pool's rules: each names an address or another pool (마이크로 세그먼트), and allows or drops (차단)
+export function RuleList({ list, onChange, placeholder, pools = [] }: {
+  list: NetRule[]; onChange: (l: NetRule[]) => void; placeholder: string; pools?: PeerPool[];
+}) {
   const { L } = useL();
-  const [d, setD] = useState<NetRule>({ cidr: '', proto: 'tcp', port: '', note: '' });
+  const [d, setD] = useState<NetRule>(EMPTY_RULE);
+  const [byPool, setByPool] = useState(false);
+  const ready = byPool ? !!d.pool : !!d.cidr.trim();
   const add = () => {
-    if (!d.cidr.trim()) return;
-    onChange([...list, { ...d, cidr: d.cidr.trim(), port: d.proto === 'tcp' || d.proto === 'udp' ? d.port.trim() : '' }]);
-    setD({ cidr: '', proto: 'tcp', port: '', note: '' });
+    if (!ready) return;
+    const port = d.proto === 'tcp' || d.proto === 'udp' ? d.port.trim() : '';
+    const r: NetRule = { cidr: byPool ? '' : d.cidr.trim(), proto: d.proto, port, note: d.note };
+    if (byPool && d.pool) r.pool = d.pool;
+    if (d.action === 'drop') r.action = 'drop';
+    onChange([...list, r]);
+    setD(EMPTY_RULE);
   };
+  const poolName = (id: string) => pools.find((p) => p.id === id)?.name ?? id;
   return (
     <div className="ni-rules">
       {list.length > 0 && (
         <table className="table compact">
-          <thead><tr><th>{L('주소', 'Address')}</th><th>{L('프로토콜', 'Protocol')}</th><th>{L('포트', 'Port')}</th><th>{L('메모', 'Note')}</th><th /></tr></thead>
+          <thead><tr><th>{L('동작', 'Action')}</th><th>{L('상대', 'Peer')}</th><th>{L('프로토콜', 'Protocol')}</th><th>{L('포트', 'Port')}</th><th>{L('메모', 'Note')}</th><th /></tr></thead>
           <tbody>{list.map((r, i) => (
-            <tr key={`${r.cidr}-${r.proto}-${r.port}-${i}`}>
-              <td className="mono">{r.cidr}</td><td>{r.proto === 'any' ? L('전체', 'Any') : r.proto.toUpperCase()}</td>
+            <tr key={`${r.pool ?? r.cidr}-${r.proto}-${r.port}-${i}`}>
+              <td>{r.action === 'drop' ? <span className="vt-st vt-st-error">{L('차단', 'Drop')}</span> : <span className="vt-st vt-st-running">{L('허용', 'Allow')}</span>}</td>
+              <td className={r.pool ? 'strong' : 'mono'}>{r.pool ? <><Icon name="pool" size={13} /> {poolName(r.pool)}</> : r.cidr}</td>
+              <td>{r.proto === 'any' ? L('전체', 'Any') : r.proto.toUpperCase()}</td>
               <td className="mono">{r.port || '-'}</td><td>{r.note || '-'}</td>
               <td><button type="button" className="btn-ghost small" onClick={() => onChange(list.filter((_, k) => k !== i))}>{L('삭제', 'Remove')}</button></td>
             </tr>
@@ -39,14 +55,27 @@ function RuleList({ list, onChange, placeholder }: { list: NetRule[]; onChange: 
         </table>
       )}
       <div className="ni-add">
-        <input aria-label={L('주소', 'Address')} placeholder={placeholder} value={d.cidr} onChange={(e) => setD({ ...d, cidr: e.target.value })} />
+        <select aria-label={L('동작', 'Action')} value={d.action ?? 'accept'} onChange={(e) => setD({ ...d, action: e.target.value as 'accept' | 'drop' })}>
+          <option value="accept">{L('허용', 'Allow')}</option><option value="drop">{L('차단', 'Drop')}</option>
+        </select>
+        {pools.length > 0 && (
+          <select aria-label={L('상대 종류', 'Peer kind')} value={byPool ? 'pool' : 'cidr'} onChange={(e) => { setByPool(e.target.value === 'pool'); setD({ ...d, pool: undefined, cidr: '' }); }}>
+            <option value="cidr">{L('주소', 'Address')}</option><option value="pool">{L('다른 풀', 'Another pool')}</option>
+          </select>
+        )}
+        {byPool ? (
+          <select aria-label={L('풀', 'Pool')} value={d.pool ?? ''} onChange={(e) => setD({ ...d, pool: e.target.value || undefined })}>
+            <option value="">{L('풀 고르기', 'Pick a pool')}</option>
+            {pools.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        ) : <input aria-label={L('주소', 'Address')} placeholder={placeholder} value={d.cidr} onChange={(e) => setD({ ...d, cidr: e.target.value })} />}
         <select aria-label={L('프로토콜', 'Protocol')} value={d.proto} onChange={(e) => setD({ ...d, proto: e.target.value as NetRule['proto'] })}>
           {PROTOS.map((p) => <option key={p} value={p}>{p === 'any' ? L('전체', 'Any') : p.toUpperCase()}</option>)}
         </select>
         <input aria-label={L('포트', 'Port')} placeholder="22, 80,443" value={d.port} disabled={d.proto !== 'tcp' && d.proto !== 'udp'}
           onChange={(e) => setD({ ...d, port: e.target.value })} />
         <input aria-label={L('메모', 'Note')} placeholder={L('메모', 'Note')} value={d.note} maxLength={40} onChange={(e) => setD({ ...d, note: e.target.value })} />
-        <button type="button" className="btn" onClick={add} disabled={!d.cidr.trim()}>{L('추가', 'Add')}</button>
+        <button type="button" className="btn" onClick={add} disabled={!ready}>{L('추가', 'Add')}</button>
       </div>
     </div>
   );
@@ -152,7 +181,14 @@ function SegmentMoveFields({ pool, p, set }: { pool: Pool; p: PoolPolicy; set: S
   );
 }
 
+// the cluster's other pools, for rules that name a pool
+export function usePeerPools(pool: Pool): PeerPool[] {
+  const r = useLoad(useCallback(() => adminApi.pools(), []), []);
+  return r.state === 'ok' ? r.data.filter((x) => x.cluster_id === pool.cluster_id && x.id !== pool.id).map((x) => ({ id: x.id, name: x.name })) : [];
+}
+
 export function NetIsoStep({ pool, p, set }: { pool: Pool; p: PoolPolicy; set: SetP }) {
+  const peerPools = usePeerPools(pool);
   const { L } = useL();
   const on = !!p.net_isolation;
   return (
@@ -177,7 +213,7 @@ export function NetIsoStep({ pool, p, set }: { pool: Pool; p: PoolPolicy; set: S
           <span className="field-label">{L('추가로 받을 접속', 'Also let in')}</span>
           <small className="muted">{L('관리망 SSH, 모니터링처럼 게이트웨이 말고 데스크톱으로 직접 와야 하는 것만 넣습니다.',
             'Only what must reach the desktops directly, like management SSH or monitoring.')}</small>
-          <RuleList list={p.net_allow_in ?? []} onChange={(l) => set('net_allow_in', l)} placeholder="10.10.0.0/24" />
+          <RuleList list={p.net_allow_in ?? []} onChange={(l) => set('net_allow_in', l)} placeholder="10.10.0.0/24" pools={peerPools} />
           <span className="field-label">{L('나가는 통신', 'Outbound')}</span>
           <div className="mode-cards mode-cards-2" role="radiogroup" aria-label={L('나가는 통신', 'Outbound')}>
             {([['any', L('모두 허용', 'Allow all'), L('지금처럼 어디로든 나갈 수 있습니다.', 'As now: anywhere.')],
@@ -188,13 +224,11 @@ export function NetIsoStep({ pool, p, set }: { pool: Pool; p: PoolPolicy; set: S
               </label>
             ))}
           </div>
-          {p.net_egress === 'list' && (
-            <>
-              <small className="muted">{L('DNS · AD(도메인 컨트롤러) · 파일 서버 · 프록시를 빠뜨리면 로그인과 인터넷이 안 됩니다.',
-                'Leave out DNS, AD (domain controllers), file servers or the proxy and sign-in and the web stop working.')}</small>
-              <RuleList list={p.net_allow_out ?? []} onChange={(l) => set('net_allow_out', l)} placeholder="10.0.0.53" />
-            </>
-          )}
+          <small className="muted">{p.net_egress === 'list'
+            ? L('DNS · AD(도메인 컨트롤러) · 파일 서버 · 프록시를 빠뜨리면 로그인과 인터넷이 안 됩니다.',
+              'Leave out DNS, AD (domain controllers), file servers or the proxy and sign-in and the web stop working.')
+            : L('모두 허용일 때는 차단 규칙만 쓸모가 있습니다(예: TCP 25 차단).', 'With allow all only drop rules matter (e.g. drop TCP 25).')}</small>
+          <RuleList list={p.net_allow_out ?? []} onChange={(l) => set('net_allow_out', l)} placeholder="10.0.0.53" pools={peerPools} />
         </>
       )}
     </div>

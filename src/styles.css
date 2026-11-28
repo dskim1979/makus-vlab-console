@@ -201,8 +201,10 @@ input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 15
 /* 네트워크 격리: an address with its button, and a rule row (address, protocol, port, note, add) */
 .ni-gw { display: flex; gap: .5rem; align-items: center; }
 .ni-gw input { flex: 1; min-width: 0; }
-.ni-add { display: grid; grid-template-columns: 2fr 1fr 1fr 2fr auto; gap: .5rem; align-items: center; }
-@media (max-width: 700px) { .ni-add { grid-template-columns: 1fr 1fr; } }
+.ni-add { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+.ni-add > select { flex: 0 0 auto; width: auto; min-width: 5.5rem; }
+.ni-add > input { flex: 1 1 8rem; min-width: 6rem; }
+.ni-add > button { flex: none; }
 .form-actions { display: flex; justify-content: flex-end; gap: .5rem; }
 .field-label { font-size: var(--fs-sm); font-weight: 550; color: var(--text-2); }
 .check-bottom { align-self: end; padding-bottom: .2rem; }
@@ -1882,3 +1884,31 @@ tr.clickable:hover td { background: var(--surface-2); }
 .nm-peer { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nm-open { grid-column: 1 / -1; color: var(--danger); font-weight: 600; }
 .nm-pool-foot { display: flex; flex-wrap: wrap; gap: .25rem .7rem; }
+
+/* 네트워크 구성도: desktops, drop / pool rules, the pool matrix, the editor */
+.nm-pool { cursor: pointer; }
+.nm-pool:focus-visible { outline: 3px solid var(--accent-ring); outline-offset: 2px; }
+.nm-edit { margin-left: auto; display: inline-flex; align-items: center; gap: .2rem; }
+.nm-pool-head .nm-dot { margin-left: 0; }
+.nm-rules li.nm-rule-drop { background: var(--danger-soft); color: var(--danger); }
+.nm-rules li.nm-rule-pool { background: var(--info-soft); }
+.nm-vms { display: flex; flex-wrap: wrap; gap: .25rem; }
+.nm-vm { display: inline-flex; align-items: center; gap: .25rem; max-width: 100%; padding: .1rem .4rem; border-radius: 4px; font-size: var(--fs-xs);
+  border: 1px solid var(--border); background: var(--surface-2); cursor: default; }
+.nm-vm > svg { color: var(--ok); }
+.nm-vm-off { opacity: .6; }
+.nm-vm-bad { border-color: var(--danger); }
+.nm-vm-bad > svg { color: var(--danger); }
+.nm-vm-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); flex: none; }
+.nm-vm-dot.on { background: var(--ok); }
+.nm-vm-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nm-vm-ip { color: var(--text-2); }
+.nm-matrix th[scope=row] { text-align: left; white-space: nowrap; }
+.nm-matrix td { padding: 0; text-align: center; }
+.nm-mx-btn { all: unset; box-sizing: border-box; display: block; width: 100%; padding: .4rem .5rem; cursor: pointer; font-size: var(--fs-xs); font-weight: 600; }
+.nm-mx-btn:hover { background: var(--row-hover); }
+.nm-mx-ok { background: var(--ok-soft); color: var(--ok); }
+.nm-mx-no { color: var(--muted); }
+.nm-mx-open { background: var(--danger-soft); color: var(--danger); }
+.nm-mx-warn { background: var(--warn-soft); color: var(--warn); }
+.nm-editor { display: grid; gap: .55rem; }

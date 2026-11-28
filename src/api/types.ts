@@ -185,7 +185,8 @@ export type PoolPolicy = {
   net_segment_move?: 'off' | 'idle' | 'window';     // running desktops: when next off / restart idle ones / idle ones in the window
   net_segment_window?: string;                      // 'HH:MM-HH:MM'
 };
-export type NetRule = { cidr: string; proto: 'any' | 'tcp' | 'udp' | 'icmp'; port: string; note: string };
+// pool: another pool's desktops instead of an address (cidr then ''); action 'drop' = 차단 (before the accepts)
+export type NetRule = { cidr: string; proto: 'any' | 'tcp' | 'udp' | 'icmp'; port: string; note: string; pool?: string; action?: 'accept' | 'drop' };
 export type PoolPolicyAnswer = { policy: PoolPolicy; defaults: PoolPolicy; reset_allowed: boolean };
 
 // --- accelerators (가속 자원, docs/vlab-design.md 10-0) ---------------------------
