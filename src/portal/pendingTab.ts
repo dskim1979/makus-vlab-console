@@ -13,13 +13,22 @@ export function openPendingTab(text: string): Window | null {
   return tab;
 }
 
+// Sends the tab on as the web IDE does (location.href). The opener is left as it is: cutting it first
+// could leave the tab where it was (seen on the test server: every other click stayed on the blank
+// tab). If the tab is still blank a moment later it is told again, then a new tab is opened.
 export function sendPendingTab(tab: Window | null, url: string) {
-  if (tab && !tab.closed) {
-    try { tab.opener = null; } catch { /* the address is ours */ }
-    tab.location.replace(url);
-  } else {
+  if (!tab || tab.closed) {
     window.open(url, '_blank', 'noopener');
+    return;
   }
+  const go = () => { try { tab.location.href = url; return true; } catch { return false; } };
+  if (!go()) { window.open(url, '_blank', 'noopener'); return; }
+  const stillBlank = () => { try { return !tab.closed && tab.location.href === 'about:blank'; } catch { return false; } };   // cross-origin = it left
+  window.setTimeout(() => {
+    if (!stillBlank()) return;
+    go();
+    window.setTimeout(() => { if (stillBlank()) { tab.close(); window.open(url, '_blank', 'noopener'); } }, 1500);
+  }, 1500);
 }
 
 export function closePendingTab(tab: Window | null) {
