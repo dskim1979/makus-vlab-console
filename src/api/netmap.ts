@@ -47,7 +47,8 @@ async function call<T>(method: string, path: string): Promise<T> {
 }
 
 const realApi = {
-  map: (cid: string) => call<NetMap>('GET', `/api/vlab/admin/clusters/${encodeURIComponent(cid)}/netmap`),
+  // the engine answers a map again from memory for a minute; fresh reads Proxmox again (다시 점검)
+  map: (cid: string, fresh = false) => call<NetMap>('GET', `/api/vlab/admin/clusters/${encodeURIComponent(cid)}/netmap${fresh ? '?fresh=1' : ''}`),
 };
 export type NetMapApi = typeof realApi;
 
@@ -121,6 +122,6 @@ function mockMap(cid: string): NetMap {
   };
 }
 
-const mockApi: NetMapApi = { map: (cid) => delay(mockMap(cid)) };
+const mockApi: NetMapApi = { map: (cid) => delay(mockMap(cid)) };   // fresh: the mock is always fresh
 
 export const netmapApi: NetMapApi = isMock ? mockApi : realApi;

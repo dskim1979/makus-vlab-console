@@ -362,13 +362,14 @@ function RuleEditor({ m, poolId, onClose, onSaved }: { m: NetMap; poolId: string
 }
 
 function NetMapBody({ c }: { c: Cluster }) {
-  const st = useLoad(useCallback(() => netmapApi.map(c.id), [c.id]), [c.id]);
+  const [checks, setChecks] = useState(0);         // 다시 점검 / a saved rule: read Proxmox again, not the minute's copy
+  const st = useLoad(useCallback(() => netmapApi.map(c.id, checks > 0), [c.id, checks]), [c.id, checks]);
   const [view, setView] = useState<View>('map');
   const [hot, setHot] = useState('');
   const [showInfo, setShowInfo] = useState(false);
   return (
     <LoadState value={st} retry={st.reload}>
-      {(m) => <NetMapView m={m} reload={st.reload} view={view} setView={setView} hot={hot} setHot={setHot} showInfo={showInfo} setShowInfo={setShowInfo} />}
+      {(m) => <NetMapView m={m} reload={() => setChecks((x) => x + 1)} view={view} setView={setView} hot={hot} setHot={setHot} showInfo={showInfo} setShowInfo={setShowInfo} />}
     </LoadState>
   );
 }
