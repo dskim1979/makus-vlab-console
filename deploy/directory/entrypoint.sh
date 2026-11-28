@@ -150,5 +150,23 @@ fi
     echo "vlab-directory: no TLS CA after 4 minutes - the engine cannot check the certificate" >&2
 ) &
 
+# The domain's time: members set their clock from the DC (Windows: NT5DS; Kerberos allows 5 minutes,
+# certificate sign-in certificates live 5). chrony serves the container's clock - the host's - and
+# signs its replies through samba's ntp_signd socket, as Windows members require (MS-SNTP). -x: never
+# sets the clock itself (the container may not, and the host keeps it).
+if command -v chronyd >/dev/null 2>&1; then
+    SIGND="$STATE/ntp_signd"
+    mkdir -p "$SIGND"
+    chgrp _chrony "$SIGND" 2>/dev/null && chmod 750 "$SIGND"
+    mkdir -p /run/chrony /var/lib/chrony
+    cat > /etc/chrony/chrony.conf <<EOF
+local stratum 8
+allow all
+ntpsigndsocket $SIGND
+driftfile /var/lib/chrony/chrony.drift
+EOF
+    chronyd -x -f /etc/chrony/chrony.conf && log "NTP on 123/udp (signed for domain members)" || log "NTP not started"
+fi
+
 log "starting samba ($ROLE)"
 exec samba --foreground --no-process-group --debug-stdout

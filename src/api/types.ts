@@ -175,6 +175,9 @@ export type PoolPolicy = {
   screen_thumbnail?: boolean;
   // new, cloned and reset desktops join the bundled directory by themselves; null = on while it is in use
   auto_domain_join?: boolean | null;
+  // 데스크톱 자동 로그인: the Windows desktops sign the portal user in over RDP, no second password;
+  // the engine installs the module on them by itself (absent from older engines: off)
+  desktop_sso?: boolean;
   // 포털 '파일': 내 데스크톱 MOAVI 폴더로 올리기·받기 (게스트 에이전트)
   desktop_files?: 'off' | 'up' | 'down' | 'both'; desktop_files_max_mb?: number; desktop_files_day_mb?: number;
   // 네트워크 격리: inbound only through the MOAVI gateway, in the Proxmox firewall (netiso.ts)

@@ -80,6 +80,7 @@ function Summary({ p, storage }: { p: PoolPolicy; storage: PoolStorage | null })
   if (storage?.enabled) chips.push(`${L('공유 저장소', 'Shared storage')}: ${storage.kind.toUpperCase()} ${storage.server}`);
   if (p.auto_domain_join === true) chips.push(L('자동 도메인 조인', 'Auto domain join'));
   if (p.net_isolation) chips.push(L('네트워크 격리', 'Network isolation'));
+  if (p.desktop_sso) chips.push(L('Windows 자동 로그인', 'Windows auto sign-in'));
   return <div className="policy-chips">{chips.map((c) => <span key={c} className="chip">{c}</span>)}</div>;
 }
 
@@ -387,6 +388,12 @@ function PolicyWizard({ pool, initial, resetAllowed, storage, onClose, onSaved }
           <label className="check"><input type="checkbox" checked={p.start_on_connect} onChange={(e) => set('start_on_connect', e.target.checked)} />
             <span>{t('pol.startOnConnect')}</span></label>
           <AutoJoinSwitch value={p.auto_domain_join ?? null} onChange={(v) => set('auto_domain_join', v)} />
+          <label className="check"><input type="checkbox" checked={!!p.desktop_sso} onChange={(e) => set('desktop_sso', e.target.checked)} />
+            <span className="strong">{L('Windows 자동 로그인', 'Windows auto sign-in')}</span></label>
+          <small className="muted hint-indent">{L('포털 로그인으로 바로 바탕 화면. 모듈은 자동 설치됩니다.',
+            'Portal sign-in goes straight to the desktop. The module installs by itself.')}</small>
+          {p.desktop_sso && <small className="hint-indent" style={{ color: "var(--warn)" }}>{L('Windows의 LSA 보호를 끄고 데스크톱을 재부팅합니다(도메인 조인 때, 또는 아무도 접속하지 않았을 때).',
+            'Turns Windows LSA protection off and restarts the desktop (at the domain join, or when nobody is signed in).')}</small>}
           <label>
             <span>{t('pol.idle')}</span>
             <span className="with-unit">

@@ -193,6 +193,8 @@ export function PoolDomainJoinPanel({ pool }: { pool: Pool }) {
       </div>
       {notice && <div className={`alert small ${notice.kind === 'error' ? 'error' : 'info'}`} role="status">{notice.text}</div>}
       <p className="muted small">{L(`가입한 데스크톱에는 ${dom}\\아이디 로 로그인합니다.`, `Joined desktops sign in as ${dom}\\user.`)}</p>
+      <div className="alert small">{L('조인할 때 데스크톱이 재부팅됩니다. 사용 중인 데스크톱은 작업을 저장하게 하세요.',
+        'Desktops restart when they join. Have users save their work first.')}</div>
       <details className="small"><summary>{L('자세히', 'Details')}</summary>
         <ul className="plain-list">
           <li>{L('게스트 에이전트로 가입합니다: Windows 는 Add-Computer, Linux 는 realm join.', 'Through the guest agent: Add-Computer on Windows, realm join on Linux.')}</li>

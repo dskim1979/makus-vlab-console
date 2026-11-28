@@ -13,7 +13,8 @@ import { useI18n } from '../../i18n';
 import type { MessageKey } from '../../i18n/messages';
 import { relativeTime } from '../../portal/DesktopCard';
 import { PoolDomainJoinPanel } from './BundledDirectory';
-import { AddVmDialog, CloneDialog, JoinChip, JoinStates } from './PoolDetailPage';
+import { AddVmDialog, CloneDialog, JoinChip, JoinStates, LogonChip, LogonStates } from './PoolDetailPage';
+import { logonApi, type LogonInstall } from '../../api/logonSso';
 import { PoolEditDialog } from './PoolEdit';
 import { PoolGpuPanel } from './PoolGpu';
 import { PoolPolicyPanel } from './PoolPolicy';
@@ -49,6 +50,7 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
   const setView = (v: View) => setParams((p) => { const n = new URLSearchParams(p); if (v === 'desktops') n.delete('tab'); else n.set('tab', v); return n; }, { replace: true });
   const [notice, setNotice] = useState<Notice | null>(null);
   const [joinRows, setJoinRows] = useState<Record<string, DomainJoin>>({});
+  const [logonRows, setLogonRows] = useState<Record<string, LogonInstall>>({});
   const [dlg, setDlg] = useState<null | 'clone' | 'add' | 'edit' | GrantType>(null);
   const adminConsole = useAdminConsole(useCallback((text: string) => setNotice({ kind: 'error', text }), []));
 
@@ -160,7 +162,7 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
             </span>
           </div>
 
-          <Desktops pool={pool} list={list} loaded={desks} usage={usage} joinRows={joinRows} sessions={sessions.state === 'ok' ? sessions.data : []}
+          <Desktops pool={pool} list={list} loaded={desks} usage={usage} joinRows={joinRows} logonRows={logonRows} sessions={sessions.state === 'ok' ? sessions.data : []}
             maxSessions={grants.state === 'ok' ? grants.data.max_sessions : null} users={users.state === 'ok' ? users.data : []}
             onConsole={(d) => adminConsole.start({ id: d.id, name: d.name })}
             onAct={run} />
@@ -183,6 +185,7 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
 
       {view === 'logs' && pool && <Logs pool={pool} sessions={sessions} />}
       <JoinStates poolId={poolId} tick={desks.state} onRows={setJoinRows} />
+      <LogonStates poolId={poolId} tick={desks.state} onRows={setLogonRows} />
 
       {pool && dlg === 'edit' && <PoolEditDialog pool={pool} onClose={() => setDlg(null)} onSaved={() => { setDlg(null); setNotice({ kind: 'info', text: t('pool.saved') }); reload(); }} />}
       {pool && dlg === 'clone' && <CloneDialog pool={pool} onClose={() => setDlg(null)} onDone={(n) => { setDlg(null); setNotice(n); reload(); }} />}
@@ -198,9 +201,9 @@ export function PoolDetailPage({ poolId }: { poolId: string }) {
   );
 }
 
-function Desktops({ pool, list, loaded, usage, joinRows, sessions, maxSessions, users, onConsole, onAct }: {
+function Desktops({ pool, list, loaded, usage, joinRows, logonRows, sessions, maxSessions, users, onConsole, onAct }: {
   pool: Pool; list: AdminDesktop[]; loaded: Parameters<typeof LoadState>[0]['value']; usage: Map<string, AdminDesktop['usage']>;
-  joinRows: Record<string, DomainJoin>; sessions: { desktop_id: string | null; ended_at: string | null }[]; maxSessions: number | null;
+  joinRows: Record<string, DomainJoin>; logonRows: Record<string, LogonInstall>; sessions: { desktop_id: string | null; ended_at: string | null }[]; maxSessions: number | null;
   users: AssignableUser[]; onConsole: (d: AdminDesktop) => void; onAct: (fn: () => Promise<unknown>, ok: string) => void;
 }) {
   const { t, pick } = useI18n();
@@ -256,6 +259,8 @@ function Desktops({ pool, list, loaded, usage, joinRows, sessions, maxSessions, 
                           : <Link className="strong" to={`/admin/pools/vms/list?vm=${encodeURIComponent(d.id)}`}>{d.name}</Link>}
                         {d.has_base && <span className="vt-st vd-tag" title={t('reset.hasBase')}>{L('기준', 'Base')}</span>}
                         {joinRows[d.id] && <> <JoinChip j={joinRows[d.id]} /></>}
+                        {logonRows[d.id] && <> <LogonChip l={logonRows[d.id]}
+                          onReinstall={() => onAct(() => logonApi.reinstall(d.id), L(`${d.name}: 자동 로그인 다시 설치함`, `${d.name}: auto sign-in reinstalled`))} /></>}
                       </td>
                       <td><DeskChip d={d} /></td>
                       <td className="pv-use">{u ? <Usage main={`${u.cpus}`} pct={on ? u.cpu_percent : null} /> : <span className="muted">-</span>}</td>

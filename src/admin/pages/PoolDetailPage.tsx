@@ -6,6 +6,7 @@ import { LoadState } from '../../components/LoadState';
 import { useLoad } from '../../components/useLoad';
 import { useI18n } from '../../i18n';
 import { directoryApi, joinCodeText, type DomainJoin } from '../../api/directory';
+import { logonApi, type LogonInstall } from '../../api/logonSso';
 import { useL } from './OpsPages';
 
 export function AddVmDialog({ pool, onClose, onAdded }: { pool: Pool; onClose: () => void; onAdded: () => void }) {
@@ -178,6 +179,42 @@ export function JoinStates({ poolId, tick, onRows }: { poolId: string; tick: unk
     return () => { live = false; if (timer) clearTimeout(timer); };
   }, [on, poolId, tick, n]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
+}
+
+// the Windows auto sign-in module of each desktop while the pool has desktop_sso on; asked again
+// every 30 s while one is waiting (the engine installs by itself)
+export function LogonStates({ poolId, tick, onRows }: { poolId: string; tick: unknown; onRows: (r: Record<string, LogonInstall>) => void }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    let live = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    logonApi.pool(poolId).then((p) => {
+      if (!live) return;
+      onRows(p.desktop_sso ? Object.fromEntries(p.desktops.filter((r) => r.state !== 'skipped').map((r) => [r.desktop_id, r])) : {});
+      if (p.desktop_sso && p.desktops.some((r) => r.state === 'pending' || r.state === 'none')) timer = setTimeout(() => setN((x) => x + 1), 30000);
+    }).catch(() => onRows({}));
+    return () => { live = false; if (timer) clearTimeout(timer); };
+  }, [poolId, tick, n]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
+}
+
+export function LogonChip({ l, onReinstall }: { l: LogonInstall; onReinstall: () => void }) {
+  const { L } = useL();
+  const again = <button type="button" className="vt-link" onClick={onReinstall}>{L('다시 설치', 'Reinstall')}</button>;
+  if (l.state === 'installed') {
+    return <><span className={l.current ? 'vt-st vd-tag' : 'vt-st'} title={l.at}>{L('자동 로그인', 'Auto sign-in')} {l.version}</span> {again}</>;
+  }
+  if (l.state === 'unsupported') {
+    return <span className="vt-st vt-st-error" title={l.detail}>{l.code === 'LSA_PPL_LOCKED'
+      ? L('자동 로그인 안 됨: LSA 보호 잠김(UEFI)', 'No auto sign-in: LSA protection locked (UEFI)')
+      : L('자동 로그인 안 됨: LSA 보호', 'No auto sign-in: LSA protection')}</span>;
+  }
+  if (l.code === 'LSA_PPL_WAIT') return <span className="vt-st" title={l.detail}>{L('LSA 보호 끔 · 접속 끝나면 재부팅', 'LSA protection off · restarts when free')}</span>;
+  if (l.code === 'LSA_PPL_RESTART') return <span className="vt-st" title={l.detail}>{L('LSA 보호 끔 · 재부팅 중', 'LSA protection off · restarting')}</span>;
+  if (l.state === 'failed') {
+    return <><span className="vt-st vt-st-error" title={l.detail}>{L('자동 로그인 설치 실패', 'Auto sign-in install failed')}</span> {again}</>;
+  }
+  return <span className="vt-st" title={l.detail}>{L('자동 로그인 설치 대기', 'Auto sign-in: waiting')}</span>;
 }
 
 export function JoinChip({ j }: { j: DomainJoin }) {
