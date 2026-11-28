@@ -213,8 +213,9 @@ export function PoolDomainJoinPanel({ pool }: { pool: Pool }) {
               <td className="muted small">{r.at ? when(r.at) : '-'}</td>
               <td>
                 <button type="button" className="btn-ghost small-btn" disabled={!!busy} onClick={() => one(r, true)}>{L('확인', 'Check')}</button>
-                <button type="button" className="btn-ghost small-btn" disabled={!!busy || r.state === 'joined'} onClick={() => one(r, false)}>
-                  {busy === r.desktop_id ? L('가입 중…', 'Joining…') : L('가입', 'Join')}</button>
+                <button type="button" className="btn-ghost small-btn" disabled={!!busy} onClick={() => one(r, false)}
+                  title={r.state === 'joined' ? L('원격 데스크톱 사용자 그룹을 다시 맞춥니다(재부팅 없음).', 'Sets the Remote Desktop Users group again (no restart).') : undefined}>
+                  {busy === r.desktop_id ? L('가입 중…', 'Joining…') : r.state === 'joined' ? L('권한 다시 적용', 'Reapply access') : L('가입', 'Join')}</button>
               </td>
             </tr>))}</tbody>
         </table></div>
