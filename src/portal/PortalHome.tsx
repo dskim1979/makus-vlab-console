@@ -18,6 +18,7 @@ import { certDone, GatewayCertDialog, loadGatewayCert, type GatewayCert } from '
 import { MyPools } from './MyPools';
 import { WebIdePanel } from './WebIde';
 import { useFeatures } from '../features';
+import { closePendingTab, openPendingTab, sendPendingTab } from './pendingTab';
 
 // noVNC is only loaded when a console is opened
 const ConsoleWindow = lazy(() => import('./ConsoleWindow'));
@@ -73,11 +74,13 @@ export function PortalHome() {
   async function connect(d: Desktop, protocol: 'vnc' | 'spice' | 'rdp' | 'wg-rdp' | 'wg-ssh') {
     setBusy(d.id); setError(null); setHint(null);
     if (protocol === 'wg-rdp' || protocol === 'wg-ssh') {
+      const tab = openPendingTab(pick({ ko: `${d.name}에 연결하는 중…`, en: `Connecting to ${d.name}…` }));
       try {
         const conn = await warpgateApi.connect(d.id, protocol === 'wg-ssh' ? 'ssh' : 'rdp');
-        window.open(conn.browser_url, '_blank', 'noopener');
+        sendPendingTab(tab, conn.browser_url);
         setHint({ id: d.id, text: t('portal.warpgateHint') });
       } catch (e) {
+        closePendingTab(tab);
         const code = (e as { code?: string }).code;
         setError({ id: d.id, text: code && (code.startsWith('NO_') || code === 'WG_DOWN') ? t(`portal.err.${code}` as MessageKey) : (e as Error).message });
       } finally { setBusy(null); }
