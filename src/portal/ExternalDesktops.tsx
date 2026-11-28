@@ -4,6 +4,7 @@ import { warpgateApi } from '../api/warpgate';
 import { Icon } from '../components/Icon';
 import { useLoad } from '../components/useLoad';
 import { useI18n } from '../i18n';
+import { closePendingTab, openPendingTab, sendPendingTab } from './pendingTab';
 
 // 외부 데스크톱: physical PCs an admin assigned to the user, opened with an .rdp file (through
 // 보안 게이트웨이 when its RDP switch is on) or, with 보안 게이트웨이 on, in the browser.
@@ -28,8 +29,10 @@ export function ExternalDesktops() {
 
   async function web(id: string) {
     setError(null);
-    try { window.open((await nextApi.myExternalWeb(id)).url, '_blank', 'noopener'); }
+    const tab = openPendingTab(L('연결하는 중…', 'Connecting…'));
+    try { sendPendingTab(tab, (await nextApi.myExternalWeb(id)).url); }
     catch (e) {
+      closePendingTab(tab);
       const code = (e as { code?: string }).code;
       setError(code === 'WG_DOWN' || code === 'WG_OFF' ? L('지금은 연결할 수 없습니다. 잠시 뒤에 다시 해 보세요.', 'Cannot connect right now. Try again shortly.') : (e as Error).message);
     }
